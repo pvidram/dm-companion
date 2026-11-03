@@ -8,8 +8,8 @@ public class CombatComponentTests : UiTestContext
     [Fact]
     public void Stat_badge_shows_label_and_value()
     {
-        var cut = Render<StatBadge>(p => p.Add(x => x.Label, "CA").Add(x => x.Value, "15"));
-        cut.Find(".ds-stat").TextContent.Should().Contain("CA").And.Contain("15");
+        var cut = Render<StatBadge>(p => p.Add(x => x.Label, "AC").Add(x => x.Value, "15"));
+        cut.Find(".ds-stat").TextContent.Should().Contain("AC").And.Contain("15");
     }
 
     [Fact]

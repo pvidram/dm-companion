@@ -71,7 +71,7 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
     public void Lyra_sheet_shows_armor_class_and_hit_points()
     {
         var cut = RenderPanel(Lyra);
-        (Stat(cut, "CA"), Stat(cut, "PG")).Should().Be(("14", "27"));
+        (Stat(cut, "AC"), Stat(cut, "HP")).Should().Be(("14", "27"));
     }
 
     [Fact]

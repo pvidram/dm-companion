@@ -8,8 +8,8 @@
         <InlineNotice Kind="NoticeKind.Warning">@error</InlineNotice>
     }
     <div class="ds-stats">
-        <StatBadge Label="CA" Value="@Show(_stats.ArmorClass)" />
-        <StatBadge Label="PG" Value="@Show(_stats.HitPoints)" />
+        <StatBadge Label="AC" Value="@Show(_stats.ArmorClass)" />
+        <StatBadge Label="HP" Value="@Show(_stats.HitPoints)" />
         <StatBadge Label="Velocidad" Value="@Show(_stats.Speed)" />
         <StatBadge Label="Iniciativa" Value="@(_stats.InitiativeBonus is { } bonus ? Signed(bonus) : "—")" />
     </div>
