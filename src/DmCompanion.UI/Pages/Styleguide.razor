@@ -1,0 +1,42 @@
+@page "/styleguide"
+
+<TableFrame IsTv="_tv">
+    <Rail>
+        <RailButton Icon="IconName.Settings" Label="Controles" IsPressed="@(_open == Sample.Controls)" OnToggle="() => Toggle(Sample.Controls)" />
+        <RailButton Icon="IconName.Swords" Label="Combate" IsPressed="@(_open == Sample.Combat)" OnToggle="() => Toggle(Sample.Combat)" />
+        <RailButton Icon="IconName.Folder" Label="Listas" IsPressed="@(_open == Sample.Lists)" OnToggle="() => Toggle(Sample.Lists)" />
+        <RailButton Icon="IconName.ScrollText" Label="Contenido" IsPressed="@(_open == Sample.Content)" OnToggle="() => Toggle(Sample.Content)" />
+        <RailButton Icon="IconName.Tv" Label="Vista TV" IsPressed="_tv" OnToggle="() => _tv = !_tv" />
+    </Rail>
+    <Strip>
+        <InitiativeChip Name="Aria" Faction="Faction.Pc" Initiative="18" IsCurrent="true" />
+        <InitiativeChip Name="Goblin" Faction="Faction.Enemy" Initiative="15" />
+        <InitiativeChip Name="Bram" Faction="Faction.Ally" Initiative="12" />
+    </Strip>
+    <Map><div class="ds-frame__layer ds-frame__layer--placeholder"></div></Map>
+    <Overlays>
+        <Parchment Title="Controles" IsOpen="@(_open == Sample.Controls)" OnClose="Close"><ControlsSample OnOpenDialog="() => _confirm = true" /></Parchment>
+        <Parchment Title="Combate" Size="ParchmentSize.Wide" IsOpen="@(_open == Sample.Combat)" OnClose="Close"><CombatSample /></Parchment>
+        <Parchment Title="Listas" IsOpen="@(_open == Sample.Lists)" OnClose="Close"><ListsSample /></Parchment>
+        <Parchment Title="Contenido" Size="ParchmentSize.Wide" IsOpen="@(_open == Sample.Content)" OnClose="Close">
+            <ChildContent><ContentSample /></ChildContent>
+            <Actions><Button Variant="ButtonVariant.Primary" Icon="IconName.Tv">Mostrar en TV</Button></Actions>
+        </Parchment>
+    </Overlays>
+    <Dialogs>
+        <ConfirmDialog Title="Conflicto de escritura" Message="La nota ha cambiado en disco. ¿Sobrescribir?"
+                       IsOpen="_confirm" Destructive="true" ConfirmText="Sobrescribir"
+                       OnConfirm="() => _confirm = false" OnCancel="() => _confirm = false" />
+    </Dialogs>
+</TableFrame>
+
+@code {
+    private enum Sample { None, Controls, Combat, Lists, Content }
+
+    private Sample _open = Sample.Controls;
+    private bool _tv;
+    private bool _confirm;
+
+    private void Toggle(Sample sample) => _open = _open == sample ? Sample.None : sample;
+    private void Close() => _open = Sample.None;
+}

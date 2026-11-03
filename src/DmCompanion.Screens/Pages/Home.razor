@@ -1,0 +1,66 @@
+@page "/"
+@inherits DmComponentBase
+@using DmCompanion.Screens.Platform
+@inject IStorageAccess Storage
+
+<PageTitle>DM Companion</PageTitle>
+
+@if (!_hasAccess)
+{
+    <StorageAccessScreen OnRequest="Storage.RequestAllFilesAccess" OnRecheck="RecheckAsync" ShowNotGranted="_notGranted" />
+}
+else if (_isOpening)
+{
+    <TableFrame>
+        <Map>
+            <div class="ds-frame__layer ds-frame__layer--placeholder"></div>
+        </Map>
+        <Overlays>
+            <Parchment Title="DM Companion" Size="ParchmentSize.Side">
+                <p>Abriendo el vault…</p>
+            </Parchment>
+        </Overlays>
+    </TableFrame>
+}
+else if (Host.Current is null)
+{
+    <VaultPicker />
+}
+else
+{
+    <DmShell />
+}
+
+@code {
+    private bool _hasAccess;
+    private bool _isOpening;
+    private bool _notGranted;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hasAccess = Storage.HasAllFilesAccess;
+        await OpenSavedAsync();
+    }
+
+    private async Task RecheckAsync()
+    {
+        _hasAccess = Storage.HasAllFilesAccess;
+        _notGranted = !_hasAccess;
+        await OpenSavedAsync();
+    }
+
+    private async Task OpenSavedAsync()
+    {
+        if (!_hasAccess || Host.Current is not null || Host.SavedPath is not { } saved) return;
+        _isOpening = true;
+        try
+        {
+            // Un fallo no se lanza: OpenAsync lo deja en LastError y el selector lo muestra.
+            await Host.OpenIfNotCurrentAsync(saved);
+        }
+        finally
+        {
+            _isOpening = false;
+        }
+    }
+}

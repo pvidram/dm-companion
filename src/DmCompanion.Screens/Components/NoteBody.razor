@@ -1,0 +1,58 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Rendering
+@using Microsoft.JSInterop
+@inject WikilinkInterop Wikilinks
+
+@if (Entity is { } entity)
+{
+    <div @ref="_content">
+        <NoteContent Html="@Html(entity)" IsSecret="entity.IsSecret" />
+    </div>
+}
+
+@code {
+    [Parameter] public VaultEntity? Entity { get; set; }
+
+    private ElementReference _content;
+    private DotNetObjectReference<NoteBody>? _self;
+
+    private MarkupString Html(VaultEntity entity) =>
+        new(NoteHtmlRenderer.Render(entity.Body, RenderAudience.Dm, target => Index.Resolve(target) is not null));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Entity is null) return;
+        _self ??= DotNetObjectReference.Create(this);
+        await Wikilinks.AttachAsync(_content, _self);
+    }
+
+    [JSInvokable]
+    public Task OnWikilinkClicked(string? target, bool broken) =>
+        InvokeAsync(() =>
+        {
+            if (string.IsNullOrEmpty(target)) return;
+            if (!broken && Index.Resolve(target) is { } existing)
+            {
+                _ = Shell.RequestOpenNote(existing.RelativePath);
+                return;
+            }
+
+            // Un destino con ruta (Carpeta/Título) propone esa carpeta; si no, la de la nota actual.
+            var slash = target.LastIndexOf('/');
+            var title = slash < 0 ? target : target[(slash + 1)..];
+            var folder = slash >= 0 ? target[..slash] : FolderOf(Entity?.RelativePath);
+            Shell.RequestNewNote(title, folder);
+        });
+
+    private static string? FolderOf(string? path)
+    {
+        var slash = path?.LastIndexOf('/') ?? -1;
+        return slash < 0 ? null : path![..slash];
+    }
+
+    public override void Dispose()
+    {
+        _self?.Dispose();
+        base.Dispose();
+    }
+}

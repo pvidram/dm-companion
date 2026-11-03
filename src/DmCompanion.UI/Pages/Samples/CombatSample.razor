@@ -1,0 +1,21 @@
+<div class="ds-stats ds-stats--split">
+    <div class="ds-stats">
+        <StatBadge Label="CA" Value="15" />
+        <StatBadge Label="Vel." Value="30 ft" />
+        <StatBadge Label="Inic." Value="+2" />
+    </div>
+    <HpControl Current="_hp" Max="20" OnDamage="amount => _hp = Math.Max(0, _hp - amount)" OnHeal="amount => _hp = Math.Min(20, _hp + amount)" />
+</div>
+<p>
+    <ConditionTag Name="Envenenado" OnRemove="() => { }" />
+    <ConditionTag Name="Aturdido" />
+</p>
+<p>
+    <TokenAvatar Name="Aria" Faction="Faction.Pc" />
+    <TokenAvatar Name="Bram" Faction="Faction.Ally" />
+    <TokenAvatar Name="Goblin" Faction="Faction.Enemy" />
+</p>
+
+@code {
+    private int _hp = 12;
+}

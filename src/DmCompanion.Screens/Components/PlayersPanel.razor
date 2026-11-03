@@ -1,0 +1,42 @@
+@inherits DmComponentBase
+
+<Parchment Title="Jugadores" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Players)"
+           OnClose="@(() => Shell.Toggle(OverlayPanel.Players))">
+    <ChildContent>
+        @{
+            var pcs = Index.OfType(EntityType.Pc);
+        }
+        @if (pcs.Count == 0)
+        {
+            <EmptyState Icon="IconName.Users" Title="Sin jugadores">Crea una nota con <code>type: pc</code> para añadir un personaje.</EmptyState>
+        }
+        else
+        {
+            <div>
+                @foreach (var pc in pcs)
+                {
+                    var path = pc.RelativePath;
+                    <ListRow IsSelected="@(path == Shell.SelectedPcPath)" OnSelect="() => Shell.SelectPc(path)">
+                        <PcPortrait Entity="pc" />
+                        @pc.Title
+                    </ListRow>
+                }
+            </div>
+            @if (Shell.SelectedPcPath is { } selected && Index.Get(selected) is { } entity)
+            {
+                <CharacterSheet Entity="entity" />
+            }
+            else
+            {
+                <EmptyState Icon="IconName.Users" Title="Ficha">Elige un personaje de la lista.</EmptyState>
+            }
+        }
+    </ChildContent>
+    <Actions>
+        @if (Shell.SelectedPcPath is { } path && Index.Get(path) is not null)
+        {
+            <Button Icon="IconName.ScrollText" OnClick="@(() => Shell.RequestOpenNote(path))">Abrir nota</Button>
+            <Button Icon="IconName.FileText" OnClick="@(() => Shell.RequestEditNote(path))">Editar</Button>
+        }
+    </Actions>
+</Parchment>

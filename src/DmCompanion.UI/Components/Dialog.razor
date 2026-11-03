@@ -1,0 +1,29 @@
+@inherits OverlayBase
+
+<div class="ds-dialog-backdrop" hidden="@(!IsOpen)">
+    <div @attributes="AdditionalAttributes" @ref="Element" class="@CssClass" role="dialog" aria-modal="true" aria-labelledby="@_titleId"
+         tabindex="-1" @onkeydown="HandleKeyDownAsync" @onkeydown:stopPropagation="true">
+        <h2 id="@_titleId" class="ds-dialog__title">@Title</h2>
+        <div class="ds-dialog__body">@ChildContent</div>
+        @if (Footer is not null)
+        {
+            <footer class="ds-dialog__footer">@Footer</footer>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Título y nombre accesible del diálogo.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Pie con los botones del diálogo.</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>Un diálogo nace cerrado: hay que abrirlo con <c>IsOpen</c>. Va en la ranura <c>Dialogs</c> de <c>TableFrame</c>.</summary>
+    public Dialog() => IsOpen = false;
+
+    protected override bool TrapFocus => true;
+
+    private string CssClass => AttributeMerge.Class("ds-dialog", AdditionalAttributes);
+    private readonly string _titleId = $"ds-dialog-{Guid.NewGuid():N}";
+}

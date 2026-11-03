@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DmCompanion.App/DmCompanion.App.csproj" />
+    <Project Path="src/DmCompanion.Core/DmCompanion.Core.csproj" />
+    <Project Path="src/DmCompanion.DevHost/DmCompanion.DevHost.csproj" />
+    <Project Path="src/DmCompanion.Infrastructure/DmCompanion.Infrastructure.csproj" />
+    <Project Path="src/DmCompanion.Screens/DmCompanion.Screens.csproj" />
+    <Project Path="src/DmCompanion.UI/DmCompanion.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DmCompanion.Core.Tests/DmCompanion.Core.Tests.csproj" />
+    <Project Path="tests/DmCompanion.DevHost.Tests/DmCompanion.DevHost.Tests.csproj" />
+    <Project Path="tests/DmCompanion.Infrastructure.Tests/DmCompanion.Infrastructure.Tests.csproj" />
+    <Project Path="tests/DmCompanion.Screens.Tests/DmCompanion.Screens.Tests.csproj" />
+    <Project Path="tests/DmCompanion.UI.Tests/DmCompanion.UI.Tests.csproj" />
+  </Folder>
+</Solution>

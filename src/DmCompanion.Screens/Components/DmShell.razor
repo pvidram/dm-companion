@@ -1,0 +1,46 @@
+@inherits DmComponentBase
+
+<TableFrame>
+    <Rail>
+        <RailButton Icon="IconName.Users" Label="Jugadores" IsPressed="@(Shell.ActivePanel == OverlayPanel.Players)"
+                    OnToggle="@(() => Shell.Toggle(OverlayPanel.Players))" />
+        <RailButton Icon="IconName.ScrollText" Label="Notas" IsPressed="@(Shell.ActivePanel == OverlayPanel.Notes)"
+                    OnToggle="@(() => Shell.Toggle(OverlayPanel.Notes))" />
+        <RailButton Icon="IconName.FolderOpen" Label="Cambiar vault" OnToggle="ForgetAsync" />
+    </Rail>
+    <Strip>
+        @if (Host.Current is { Conflicts.Count: > 0 } vault)
+        {
+            <InlineNotice Kind="NoticeKind.Warning">
+                @ConflictText(vault.Conflicts.Count)
+                <Button OnClick="Shell.OpenConflicts">Revisar</Button>
+            </InlineNotice>
+        }
+    </Strip>
+    <Map>
+        <div class="ds-frame__layer ds-frame__layer--placeholder">El mapa llegará en la fase 2</div>
+    </Map>
+    <Overlays>
+        <NotesPanel />
+        <PlayersPanel />
+    </Overlays>
+    <Dialogs>
+        <NewNoteDialog />
+        <ConflictResolver />
+        <EditorDialogs />
+    </Dialogs>
+</TableFrame>
+
+@code {
+    private static string ConflictText(int count) =>
+        count == 1 ? "1 conflicto de sincronización" : $"{count} conflictos de sincronización";
+
+    private async Task ForgetAsync()
+    {
+        await Shell.RequestNavigationAsync(async () =>
+        {
+            Shell.Reset();
+            await Host.ForgetAsync();
+        });
+    }
+}

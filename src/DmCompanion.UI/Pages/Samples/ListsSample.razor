@@ -1,0 +1,16 @@
+<TreeView TItem="SampleNode" Items="Nodes" ChildrenOf="n => n.Children" LabelOf="n => n.Name"
+          KeyOf="n => n.Name" IsBranch="n => n.Children.Count > 0" SelectedKey="@_selected"
+          OnSelect="n => _selected = n.Name" />
+
+@code {
+    private sealed record SampleNode(string Name, IReadOnlyList<SampleNode> Children);
+
+    private static readonly IReadOnlyList<SampleNode> Nodes =
+    [
+        new("Lugares", [new("El Pony Pisador", []), new("Torre del mago", [])]),
+        new("Personajes", [new("Aria", []), new("Bram", [])]),
+        new("Diario de sesión", []),
+    ];
+
+    private string? _selected = "Aria";
+}

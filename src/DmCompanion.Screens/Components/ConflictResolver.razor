@@ -1,0 +1,172 @@
+@inherits DmComponentBase
+@using Microsoft.Extensions.Logging
+@inject ILogger<ConflictResolver> Logger
+
+<Dialog Title="Conflictos de sincronización" IsOpen="Shell.ConflictsOpen" OnClose="Shell.CloseConflicts">
+    <ChildContent>
+        @if (_selected is { } conflict)
+        {
+            @if (Conflicts.Count > 1)
+            {
+                <Select TValue="SyncConflict" Label="Conflicto" Value="conflict" Options="Conflicts"
+                        LabelOf="@(c => c.OriginalRelativePath)" ValueChanged="SelectAsync" />
+            }
+            else
+            {
+                <p>@conflict.OriginalRelativePath</p>
+            }
+            @if (_notice is { } notice)
+            {
+                <InlineNotice Kind="_noticeKind">@notice</InlineNotice>
+            }
+            <div class="conflict-columns">
+                <section>
+                    <h3>Versión actual</h3>
+                    @if (_currentWrite is null)
+                    {
+                        <p>(la versión actual ya no existe)</p>
+                    }
+                    else
+                    {
+                        <pre>@_currentText</pre>
+                    }
+                </section>
+                <section>
+                    <h3>Copia en conflicto</h3>
+                    <pre>@_copyText</pre>
+                </section>
+            </div>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Disabled="@(_busy || _currentWrite is null)" OnClick="@(() => ResolveAsync(ConflictChoice.KeepOriginal))">Quedarme con la actual</Button>
+        <Button Variant="ButtonVariant.Primary" Disabled="@(_busy || _selected is null)" OnClick="@(() => ResolveAsync(ConflictChoice.KeepConflictCopy))">Quedarme con la copia</Button>
+        <Button OnClick="Shell.CloseConflicts">Decidir más tarde</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private SyncConflict? _selected;
+    private bool _wasOpen;
+    private bool _busy;
+    private string _currentText = string.Empty;
+    private string _copyText = string.Empty;
+    private DateTime? _currentWrite;
+    private string? _notice;
+    private NoticeKind _noticeKind = NoticeKind.Info;
+
+    private IReadOnlyList<SyncConflict> Conflicts => Host.Current?.Conflicts ?? [];
+
+    // Se ejecuta en el dispatcher ante cualquier cambio de ShellState o del vault.
+    protected override void OnVaultChanged()
+    {
+        var open = Shell.ConflictsOpen;
+        var opening = open && !_wasOpen;
+        _wasOpen = open;
+        if (!open) return;
+        if (opening) _ = LoadObservedAsync(Conflicts.FirstOrDefault());
+        else if (_selected is { } current && !Conflicts.Contains(current) && !_busy)
+            _ = LoadObservedAsync(Conflicts.FirstOrDefault());
+    }
+
+    // Fire-and-forget observado: un fallo inesperado se registra, nunca se pierde en silencio.
+    private async Task LoadObservedAsync(SyncConflict? conflict)
+    {
+        try
+        {
+            await LoadAsync(conflict, null, null);
+        }
+        catch (Exception ex)
+        {
+            // Sin `ex`: el diff y la lectura de las notas pueden lanzar mensajes que citen su texto.
+            Logger.LogError("Fallo al cargar el conflicto {Path} ({ExceptionType}).", conflict?.OriginalRelativePath, ex.GetType().FullName);
+        }
+    }
+
+    private Task SelectAsync(SyncConflict conflict) => LoadAsync(conflict, null, null);
+
+    private async Task LoadAsync(SyncConflict? conflict, string? notice, NoticeKind? kind)
+    {
+        if (conflict is null)
+        {
+            _selected = null;
+            if (Shell.ConflictsOpen) Shell.CloseConflicts();
+            return;
+        }
+        var (currentText, currentWrite, copyText) = (string.Empty, (DateTime?)null, string.Empty);
+        var noticeKind = kind ?? NoticeKind.Info;
+        if (Host.Current is { } vault)
+        {
+            try
+            {
+                try
+                {
+                    var current = await vault.ReadRawAsync(conflict.OriginalRelativePath);
+                    (currentText, currentWrite) = (current.Content, current.LastWriteTimeUtc);
+                }
+                catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+                {
+                    currentWrite = null;
+                }
+                copyText = (await vault.ReadRawAsync(conflict.ConflictRelativePath)).Content;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                (notice, noticeKind) = ($"No se pudo leer el conflicto: {ex.Message}", NoticeKind.Error);
+            }
+        }
+        // Todo el estado se asigna de una vez: un render intermedio nunca ve una versión a medias.
+        (_selected, _currentText, _currentWrite, _copyText, _notice, _noticeKind) =
+            (conflict, currentText, currentWrite, copyText, notice, noticeKind);
+        StateHasChanged();
+    }
+
+    private Task ResolveAsync(ConflictChoice choice)
+    {
+        if (_busy || _selected is not { } conflict) return Task.CompletedTask;
+        // La copia sobrescribe la nota abierta en el editor: primero se pregunta por el texto sin guardar y se cierra el editor.
+        if (choice == ConflictChoice.KeepConflictCopy && Shell.EditingPath == conflict.OriginalRelativePath)
+        {
+            return Shell.RequestNavigationAsync(async () =>
+            {
+                Shell.CloseEditor();
+                await ApplyAsync(conflict, choice);
+            });
+        }
+        return ApplyAsync(conflict, choice);
+    }
+
+    private async Task ApplyAsync(SyncConflict conflict, ConflictChoice choice)
+    {
+        if (_busy || Host.Current is not { } vault) return;
+        // Antes del primer await: el segundo clic ya ve el estado ocupado y los botones se pintan deshabilitados.
+        _busy = true;
+        StateHasChanged();
+        try
+        {
+            var result = await vault.ResolveConflictAsync(conflict, choice, _currentWrite);
+            switch (result.Status)
+            {
+                case ConflictResolutionStatus.Resolved:
+                    await LoadAsync(Conflicts.FirstOrDefault(), null, null);
+                    break;
+                case ConflictResolutionStatus.OriginalChanged:
+                    await LoadAsync(conflict, "La versión actual ha cambiado mientras la mirabas. Revisa las dos versiones y decide de nuevo.", NoticeKind.Warning);
+                    break;
+                default:
+                    await LoadAsync(conflict, "La versión actual ya no existe: solo puedes quedarte con la copia.", NoticeKind.Warning);
+                    break;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notice = $"No se pudo resolver el conflicto: {ex.Message}";
+            _noticeKind = NoticeKind.Error;
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+}

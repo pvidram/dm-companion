@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DmCompanion.Core\DmCompanion.Core.csproj" />
+    <ProjectReference Include="..\DmCompanion.Infrastructure\DmCompanion.Infrastructure.csproj" />
+    <ProjectReference Include="..\DmCompanion.Screens\DmCompanion.Screens.csproj" />
+    <ProjectReference Include="..\DmCompanion.UI\DmCompanion.UI.csproj" />
+  </ItemGroup>
+
+</Project>

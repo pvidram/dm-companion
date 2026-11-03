@@ -1,0 +1,25 @@
+<TableFrame>
+    <Map>
+        <div class="ds-frame__layer ds-frame__layer--placeholder"></div>
+    </Map>
+    <Overlays>
+        <Parchment Title="Acceso a los archivos" Size="ParchmentSize.Side">
+            <p>
+                DM Companion lee y escribe las notas de tu vault (carpeta compartida con Obsidian), que vive fuera
+                de la carpeta privada de la aplicación. Para ello Android necesita que concedas el acceso a todos los archivos.
+            </p>
+            @if (ShowNotGranted)
+            {
+                <InlineNotice Kind="NoticeKind.Warning">Todavía no se detecta el acceso. Concédelo en Ajustes y vuelve a pulsar «Ya lo he concedido».</InlineNotice>
+            }
+            <Button Variant="ButtonVariant.Primary" OnClick="OnRequest">Conceder acceso</Button>
+            <Button Variant="ButtonVariant.Secondary" OnClick="OnRecheck">Ya lo he concedido</Button>
+        </Parchment>
+    </Overlays>
+</TableFrame>
+
+@code {
+    [Parameter] public EventCallback OnRequest { get; set; }
+    [Parameter] public EventCallback OnRecheck { get; set; }
+    [Parameter] public bool ShowNotGranted { get; set; }
+}

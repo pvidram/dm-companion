@@ -1,0 +1,20 @@
+<label class="ds-field ds-field--search">
+    <span class="ds-visually-hidden">@Label</span>
+    <Icon Name="IconName.Search" Class="ds-field__icon" />
+    <input @attributes="AdditionalAttributes" class="@CssClass" type="search" value="@Value" placeholder="@(Placeholder ?? Label)" @oninput="OnInputAsync" />
+</label>
+
+@code {
+    /// <summary>Nombre accesible (oculto) y placeholder por defecto.</summary>
+    [Parameter] public string Label { get; set; } = "Buscar";
+    [Parameter] public string? Value { get; set; }
+    /// <summary>Se invoca en cada pulsación (oninput). Permite @bind-Value.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el <c>input</c>. Los que fija el componente (aria-*, disabled…) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private Task OnInputAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+    private string CssClass => AttributeMerge.Class("ds-field__input", AdditionalAttributes);
+}

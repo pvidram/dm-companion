@@ -1,0 +1,58 @@
+.ds-parchment, .ds-quick-card, .ds-dialog {
+    display: flex; flex-direction: column;
+    background-color: var(--surface-sheet);
+    background-image: var(--sheet-texture);
+    border: var(--sheet-edge);
+    border-radius: var(--radius-sheet);
+    color: var(--text-ink);
+    animation: ds-sheet-enter var(--motion-enter) var(--motion-ease);
+}
+.ds-parchment[hidden], .ds-quick-card[hidden], .ds-dialog-backdrop[hidden] { display: none; }
+.ds-root :is(.ds-parchment, .ds-quick-card, .ds-dialog) :focus-visible { outline-color: var(--accent-on-sheet); }
+
+/* El 100 % y los cqw se refieren al área del mapa (contenedor map-area, ver frame.css). */
+.ds-parchment {
+    position: absolute; top: var(--space-4); left: var(--space-4); z-index: var(--z-panel);
+    max-width: calc(100% - 2 * var(--space-4)); max-height: calc(100% - 2 * var(--space-4));
+    box-shadow: var(--elevation-1);
+    container-type: inline-size; container-name: parchment;
+}
+.ds-parchment--side { width: clamp(min(360px, 100%), 40cqw, 520px); }
+.ds-parchment--wide { width: clamp(min(560px, 100%), 70cqw, 960px); }
+.ds-parchment--full { inset: var(--space-4); width: auto; }
+
+.ds-quick-card {
+    position: absolute; z-index: var(--z-card);
+    width: clamp(min(280px, 100%), 25cqw, 340px); max-height: calc(100% - 2 * var(--space-4));
+    box-shadow: var(--elevation-2);
+}
+
+.ds-parchment__header {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+    padding: var(--space-3) var(--space-3) var(--space-2) var(--space-4);
+}
+.ds-parchment__title {
+    font-size: var(--font-size-h2);
+    background-image: var(--heading-ornament); background-repeat: no-repeat; background-position: left bottom;
+}
+.ds-quick-card .ds-parchment__title { font-size: var(--font-size-h3); }
+.ds-parchment__header .ds-parchment__title { flex: 1; }
+.ds-parchment__body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 var(--space-4) var(--space-4); }
+.ds-parchment__actions {
+    display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end;
+    padding: var(--space-3) var(--space-4); border-top: 1px solid var(--surface-sheet-sunken);
+}
+
+.ds-dialog-backdrop {
+    position: fixed; inset: 0; z-index: var(--z-dialog);
+    display: grid; place-items: center; padding: var(--space-4);
+    background-color: var(--scrim);
+}
+.ds-dialog { width: min(480px, 100%); max-height: 100%; box-shadow: var(--elevation-2); padding: var(--space-4); gap: var(--space-3); }
+.ds-dialog__title { font-size: var(--font-size-h2); }
+.ds-dialog__body { overflow-y: auto; }
+.ds-dialog__footer { display: flex; gap: var(--space-2); justify-content: flex-end; }
+
+@keyframes ds-sheet-enter {
+    from { opacity: 0; transform: translateY(var(--motion-offset)); }
+}

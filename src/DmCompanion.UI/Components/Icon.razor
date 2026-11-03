@@ -1,0 +1,9 @@
+<span class="@CssClass" aria-hidden="true" style="-webkit-mask-image: url('@IconFiles.Url(Name)'); mask-image: url('@IconFiles.Url(Name)')"></span>
+
+@code {
+    [Parameter, EditorRequired] public IconName Name { get; set; }
+    /// <summary>Clases CSS adicionales.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(Class) ? "ds-icon" : "ds-icon " + Class;
+}

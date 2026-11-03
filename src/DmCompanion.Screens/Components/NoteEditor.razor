@@ -1,0 +1,182 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Rendering
+@using Microsoft.Extensions.Logging
+@inject ILogger<NoteEditor> Logger
+
+<div class="note-editor" data-testid="note-editor">
+    <h3>@Path</h3>
+    @if (_notice is { } notice)
+    {
+        <InlineNotice Kind="_noticeKind">@notice</InlineNotice>
+    }
+    @if (_loaded)
+    {
+        @if (_preview)
+        {
+            <NoteContent Html="_previewHtml" IsSecret="false" />
+        }
+        else
+        {
+            <TextArea Label="Contenido Markdown" Value="@_text" ValueChanged="OnTextChanged" Rows="20" />
+        }
+    }
+    <div>
+        @if (_loaded)
+        {
+            <Button Variant="ButtonVariant.Primary" Disabled="_busy" OnClick="SaveAsync">Guardar</Button>
+            <Button OnClick="TogglePreview">@(_preview ? "Editar" : "Vista previa")</Button>
+        }
+        <Button OnClick="RequestClose">Cerrar</Button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Path { get; set; } = string.Empty;
+
+    private string? _loadedPath;
+    private bool _loaded;
+    private bool _busy;
+    private bool _preview;
+    private MarkupString _previewHtml;
+    private string _text = string.Empty;
+    private string _original = string.Empty;
+    private DateTime _loadedAt;
+    private string? _notice;
+    private NoticeKind _noticeKind = NoticeKind.Info;
+
+    private bool IsDirty => !string.Equals(_text, _original, StringComparison.Ordinal);
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Shell.EditorCommandRaised += OnCommand;
+    }
+
+    // Solo se lee del disco cuando cambia la ruta: un re-render del padre nunca pisa lo escrito.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedPath == Path) return;
+        _loadedPath = Path;
+        _loaded = false;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _preview = false;
+        _notice = null;
+        if (Host.Current is not { } vault) return;
+        var path = Path;
+        try
+        {
+            var raw = await vault.ReadRawAsync(path);
+            if (path != Path) return; // la ruta cambió mientras se leía
+            _text = _original = raw.Content;
+            _loadedAt = raw.LastWriteTimeUtc;
+            _loaded = true;
+            Shell.SetEditorDirty(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Una recarga fallida conserva el buffer actual.
+            Fail($"No se pudo leer la nota: {ex.Message}");
+        }
+    }
+
+    private Task SaveAsync() => WriteAsync(WritePrecondition.UnchangedSince(_loadedAt));
+
+    private async Task WriteAsync(WritePrecondition precondition)
+    {
+        if (Host.Current is not { } vault) return;
+        if (_busy)
+        {
+            Fail("Hay un guardado en curso; inténtalo de nuevo en un momento.");
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var text = _text;
+            var result = await vault.SaveAsync(Path, text, precondition);
+            switch (result.Status)
+            {
+                case WriteStatus.Written:
+                    _original = text;
+                    _loadedAt = result.LastWriteTimeUtc;
+                    Shell.SetEditorDirty(IsDirty);
+                    _notice = "Guardado";
+                    _noticeKind = NoticeKind.Info;
+                    break;
+                case WriteStatus.ModifiedOnDisk:
+                    Shell.ShowEditorDialog(EditorDialog.Conflict);
+                    break;
+                default:
+                    Fail("No se pudo guardar la nota.");
+                    break;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Fail($"No se pudo guardar la nota: {ex.Message}");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void OnTextChanged(string value)
+    {
+        _text = value;
+        if (_noticeKind == NoticeKind.Info) _notice = null;
+        Shell.SetEditorDirty(IsDirty);
+    }
+
+    private void OnCommand(EditorCommand command) => _ = HandleCommandAsync(command);
+
+    private async Task HandleCommandAsync(EditorCommand command)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (command == EditorCommand.Overwrite) await WriteAsync(WritePrecondition.Overwrite);
+                else await LoadAsync();
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            // Sin `ex`: leer o escribir la nota puede lanzar mensajes que citen su texto.
+            Logger.LogError("Fallo al ejecutar {Command} en el editor de {Path} ({ExceptionType}).", command, Path, ex.GetType().FullName);
+        }
+    }
+
+    // La vista previa se calcula solo al conmutar, no por tecla.
+    private void TogglePreview()
+    {
+        _preview = !_preview;
+        if (!_preview) return;
+        var body = FrontmatterParser.Parse(_text).Body;
+        _previewHtml = new MarkupString(NoteHtmlRenderer.Render(body, RenderAudience.Dm, target => Index.Resolve(target) is not null));
+    }
+
+    private void RequestClose()
+    {
+        Shell.SetEditorDirty(IsDirty);
+        Shell.RequestCloseEditor();
+    }
+
+    private void Fail(string message)
+    {
+        _notice = message;
+        _noticeKind = NoticeKind.Error;
+    }
+
+    public override void Dispose()
+    {
+        Shell.EditorCommandRaised -= OnCommand;
+        Shell.SetEditorDirty(false);
+        base.Dispose();
+    }
+}

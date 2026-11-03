@@ -1,0 +1,20 @@
+<label class="ds-field">
+    <span class="ds-field__label">@Label</span>
+    <textarea @attributes="AdditionalAttributes" class="@CssClass" rows="@Rows" disabled="@Disabled" placeholder="@Placeholder" value="@Value" @oninput="OnInputAsync"></textarea>
+</label>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string? Value { get; set; }
+    /// <summary>Se invoca en cada pulsación (oninput). Permite @bind-Value.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public int Rows { get; set; } = 8;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el <c>textarea</c>. Los que fija el componente (rows, disabled…) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private Task OnInputAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+    private string CssClass => AttributeMerge.Class("ds-field__input ds-field__input--multiline", AdditionalAttributes);
+}

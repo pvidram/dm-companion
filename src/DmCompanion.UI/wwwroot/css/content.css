@@ -1,0 +1,31 @@
+.ds-note { color: var(--text-ink); line-height: 1.55; }
+.ds-note :is(h1, h2, h3) { font-family: var(--font-heading); margin: var(--space-4) 0 var(--space-2); }
+.ds-note h1 { font-size: var(--font-size-h1); }
+.ds-note h2 { font-size: var(--font-size-h2); }
+.ds-note h3 { font-size: var(--font-size-h3); }
+.ds-note :is(p, ul, ol, table, blockquote) { margin: 0 0 var(--space-3); }
+.ds-note blockquote { padding-left: var(--space-3); border-left: 3px solid var(--text-ink-secondary); color: var(--text-ink-secondary); font-style: italic; }
+.ds-note table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ds-note :is(th, td) { padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--surface-sheet-sunken); text-align: left; }
+.ds-note a.wikilink { color: var(--text-ink); font-weight: 600; text-decoration: underline; text-decoration-color: var(--accent-on-sheet); text-underline-offset: 3px; }
+.ds-note a.wikilink.broken { color: var(--text-damage); text-decoration-style: dashed; text-decoration-color: var(--text-damage); }
+
+/* Contenido solo para el DM: filete violeta (≥3:1) y etiqueta en violeta oscuro (≥4,5:1). */
+.ds-note .dm-secret {
+    padding: 0 var(--space-1); border-left: 3px solid var(--dm-only);
+    background-color: var(--surface-dm-secret);
+    -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.ds-note__dm-label {
+    display: inline-block; margin: 0 0 var(--space-2); padding: 0 var(--space-2);
+    border: 1px solid var(--dm-only); border-radius: var(--radius-control);
+    color: var(--text-dm-only); font-size: var(--font-size-small); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+.ds-empty { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-6) var(--space-4); color: var(--text-ink-secondary); text-align: center; }
+.ds-empty__icon { width: 2.5em; height: 2.5em; }
+.ds-empty__title { margin: 0; font-family: var(--font-heading); font-size: var(--font-size-h3); color: var(--text-ink); }
+
+.ds-notice { padding: var(--space-2) var(--space-3); border-left: 4px solid var(--text-ink-secondary); border-radius: var(--radius-control); background-color: var(--surface-sheet-sunken); color: var(--text-ink); }
+.ds-notice--warning { border-left-color: var(--accent-on-sheet); }
+.ds-notice--error { border-left-color: var(--text-damage); color: var(--text-damage); font-weight: 600; }

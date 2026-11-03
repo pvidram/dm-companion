@@ -1,0 +1,14 @@
+<article class="ds-note">
+    @if (IsSecret)
+    {
+        <p class="ds-note__dm-label dm-only">Solo DM</p>
+    }
+    @Html
+</article>
+
+@code {
+    /// <summary>HTML ya sanitizado por NoteHtmlRenderer (Core). Este componente solo le da estilo.</summary>
+    [Parameter, EditorRequired] public MarkupString Html { get; set; }
+    /// <summary>Marca la nota como solo para el DM (etiqueta .dm-only).</summary>
+    [Parameter] public bool IsSecret { get; set; }
+}

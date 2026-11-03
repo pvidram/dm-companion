@@ -1,0 +1,26 @@
+<button @attributes="AdditionalAttributes" type="button" class="@CssClass" style="@Indent" aria-current="@(IsSelected ? "true" : null)"
+        aria-expanded="@(Expanded is { } expanded ? (expanded ? "true" : "false") : null)" @onclick="OnSelect">
+    @if (Icon is { } icon)
+    {
+        <Icon Name="icon" />
+    }
+    <span class="ds-list-row__label">@ChildContent</span>
+</button>
+
+@code {
+    [Parameter] public IconName? Icon { get; set; }
+    /// <summary>Fila actual; se refleja en aria-current.</summary>
+    [Parameter] public bool IsSelected { get; set; }
+    /// <summary>Nivel de sangría (0 = raíz).</summary>
+    [Parameter] public int Depth { get; set; }
+    /// <summary>null en hojas (sin aria-expanded); true/false en ramas.</summary>
+    [Parameter] public bool? Expanded { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnSelect { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el elemento raíz. Los que fija el componente (aria-*, disabled…) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string Indent => string.Create(CultureInfo.InvariantCulture, $"--ds-depth: {Depth};");
+    private string CssClass => AttributeMerge.Class("ds-list-row", AdditionalAttributes);
+}

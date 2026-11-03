@@ -1,0 +1,18 @@
+﻿<Router AppAssembly="typeof(MauiProgram).Assembly" AdditionalAssemblies="AdditionalAssemblies">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" />
+    </Found>
+    <NotFound>
+        <p>Pantalla no encontrada.</p>
+    </NotFound>
+</Router>
+
+@code {
+    private static readonly System.Reflection.Assembly[] AdditionalAssemblies =
+    [
+        typeof(VaultDiagnostics).Assembly,
+#if DEBUG
+        typeof(DmCompanion.UI.Pages.Styleguide).Assembly,
+#endif
+    ];
+}

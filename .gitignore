@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.apk
+*.aab
+.env*
+node_modules/
+dist/
+TestResults/

@@ -1,0 +1,23 @@
+<div class="ds-hp">
+    <span class="ds-hp__value ds-numeric" aria-live="polite">@Current / @Max</span>
+    <label class="ds-hp__amount">
+        <span class="ds-visually-hidden">Cantidad</span>
+        <input type="number" min="1" inputmode="numeric" class="ds-field__input ds-numeric" @bind="_amount" />
+    </label>
+    <Button Variant="ButtonVariant.Damage" Icon="IconName.Minus" Disabled="@(_amount < 1)" OnClick="DamageAsync">Daño</Button>
+    <Button Variant="ButtonVariant.Heal" Icon="IconName.Plus" Disabled="@(_amount < 1)" OnClick="HealAsync">Curación</Button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public int Current { get; set; }
+    [Parameter, EditorRequired] public int Max { get; set; }
+    /// <summary>Se invoca con la cantidad introducida (≥ 1).</summary>
+    [Parameter] public EventCallback<int> OnDamage { get; set; }
+    /// <summary>Se invoca con la cantidad introducida (≥ 1).</summary>
+    [Parameter] public EventCallback<int> OnHeal { get; set; }
+
+    private int _amount = 1;
+
+    private Task DamageAsync() => OnDamage.InvokeAsync(_amount);
+    private Task HealAsync() => OnHeal.InvokeAsync(_amount);
+}

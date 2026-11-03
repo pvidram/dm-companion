@@ -1,0 +1,3 @@
+.ds-dialog:has(.conflict-columns) { width: min(960px, 100%); }
+.conflict-columns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.conflict-columns pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

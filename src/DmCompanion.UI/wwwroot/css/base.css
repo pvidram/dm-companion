@@ -1,0 +1,33 @@
+.ds-root {
+    font-family: var(--font-body);
+    font-size: var(--font-size-body);
+    line-height: 1.45;
+    color: var(--text-on-wood);
+    background-color: var(--surface-frame);
+    -webkit-tap-highlight-color: transparent;
+}
+.ds-root *, .ds-root *::before, .ds-root *::after { box-sizing: border-box; }
+.ds-root :is(h1, h2, h3) { font-family: var(--font-heading); font-weight: 600; line-height: 1.2; margin: 0; }
+
+/* Foco: latón claro sobre madera; latón oscuro dentro de pergaminos (ver overlays.css). */
+.ds-root :focus-visible { outline: 3px solid var(--accent-on-wood); outline-offset: 2px; }
+.ds-root :focus:not(:focus-visible) { outline: none; }
+
+.ds-icon {
+    display: inline-block;
+    flex: none;
+    width: 1.25em;
+    height: 1.25em;
+    background-color: currentColor;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+.ds-numeric { font-variant-numeric: tabular-nums; }
+.ds-visually-hidden {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

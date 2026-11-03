@@ -1,0 +1,7 @@
+/* Vista TV (jugadores): Core ya filtra los secretos; esto es el segundo seguro. */
+.tv .dm-only, .tv .dm-secret { display: none !important; }
+
+.tv .ds-parchment { inset: var(--space-4); width: auto; max-width: none; }
+.tv .ds-parchment__actions,
+.tv .ds-parchment__header .ds-icon-button { display: none; }
+.tv :focus-visible { outline: none; }

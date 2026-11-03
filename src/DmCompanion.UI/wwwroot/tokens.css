@@ -1,0 +1,122 @@
+/* Primitivas: solo se usan dentro de este fichero. */
+:root {
+    --wood-900: #1E140D;
+    --wood-800: #2A1C12;
+    --wood-600: #4A3421;
+    --bone-100: #E8DCC2;
+    --parchment-200: #DFCFAE;
+    --parchment-300: #D6C4A0;
+    --parchment-400: #C9B48C;
+    --ink-900: #2B2118;
+    --ink-700: #4A3B2D;
+    --brass-400: #C9A24A;
+    --brass-800: #6E5112;
+    --blue-600: #3E6A8E;
+    --green-600: #4F7A4A;
+    --green-800: #36602F;
+    --green-900: #2B4D27;
+    --red-700: #9E2B25;
+    --red-800: #8A231E;
+    --red-900: #7A1E19;
+    --violet-600: #6B4E8C;
+    --violet-800: #4F3570;
+    --violet-100: #C9B69E;
+}
+
+/* Semánticas: las únicas que usan los componentes y Konva. Un tema nuevo solo redefine este bloque. */
+:root {
+    --surface-frame: var(--wood-900);
+    --surface-frame-raised: var(--wood-800);
+    --border-frame: var(--wood-600);
+    --text-on-wood: var(--bone-100);
+
+    --surface-sheet: var(--parchment-300);
+    --surface-sheet-sunken: var(--parchment-400);
+    --surface-sheet-raised: var(--parchment-200);
+    --text-ink: var(--ink-900);
+    --text-ink-secondary: var(--ink-700);
+
+    --accent-on-wood: var(--brass-400);
+    --accent-on-sheet: var(--brass-800);
+
+    --faction-pc: var(--blue-600);
+    --faction-ally: var(--green-600);
+    --faction-enemy: var(--red-700);
+    --faction-outline-on-wood: var(--bone-100);
+    --faction-outline-on-sheet: var(--ink-900);
+    --fill-heal: var(--green-600);
+    --fill-damage: var(--red-700);
+    --text-heal: var(--green-900);
+    --text-damage: var(--red-900);
+
+    --button-primary-bg: var(--ink-900);
+    --button-damage-bg: var(--red-900);
+    --button-heal-bg: var(--green-900);
+    --button-primary-hover: var(--ink-700);
+    --button-damage-hover: var(--red-800);
+    --button-heal-hover: var(--green-800);
+    --button-text-on-fill: var(--parchment-200);
+
+    --dm-only: var(--violet-600);
+    --text-dm-only: var(--violet-800);
+    --surface-dm-secret: var(--violet-100);
+
+    --font-heading: "EB Garamond", Georgia, serif;
+    --font-body: "Source Sans 3", system-ui, sans-serif;
+
+    --ui-scale: 1;
+    --touch-min: 48px;
+    --touch-combat: 56px;
+
+    --radius-sheet: 6px;
+    --radius-control: 6px;
+
+    --scrim: rgb(0 0 0 / 0.55);
+
+    --elevation-1: 0 2px 6px rgb(0 0 0 / 0.35), 0 8px 24px rgb(0 0 0 / 0.30);
+    --elevation-2: 0 4px 10px rgb(0 0 0 / 0.40), 0 16px 40px rgb(0 0 0 / 0.45);
+
+    --z-map: 0;
+    --z-panel: 10;
+    --z-card: 20;
+    --z-dialog: 30;
+
+    --motion-enter: 160ms;
+    --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --motion-offset: 12px;
+
+    --frame-rail-width: 72px;
+    --frame-strip-height: 64px;
+    --frame-margin: 8px;
+
+    /* Ganchos de ornamentación (decisión aplazada): cambiar el valor, no los componentes. */
+    --sheet-texture: none;
+    --frame-texture: none;
+    --sheet-edge: none;
+    --heading-ornament: none;
+}
+
+/* Derivadas de --ui-scale: se recalculan en cualquier elemento con .ds-root (p. ej. TableFrame con .tv), no solo en :root. */
+:root, .ds-root {
+    --font-size-small: calc(14px * var(--ui-scale));
+    --font-size-body: calc(16px * var(--ui-scale));
+    --font-size-h3: calc(20px * var(--ui-scale));
+    --font-size-h2: calc(24px * var(--ui-scale));
+    --font-size-h1: calc(32px * var(--ui-scale));
+
+    --space-1: calc(4px * var(--ui-scale));
+    --space-2: calc(8px * var(--ui-scale));
+    --space-3: calc(12px * var(--ui-scale));
+    --space-4: calc(16px * var(--ui-scale));
+    --space-5: calc(24px * var(--ui-scale));
+    --space-6: calc(32px * var(--ui-scale));
+}
+
+.tv {
+    --ui-scale: 1.75;
+    --frame-margin: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root { --motion-offset: 0px; }
+}

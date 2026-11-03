@@ -1,0 +1,24 @@
+<div class="ds-stats">
+    <Button Variant="ButtonVariant.Primary">Primario</Button>
+    <Button>Secundario</Button>
+    <Button Variant="ButtonVariant.Damage">Daño</Button>
+    <Button Variant="ButtonVariant.Heal">Curación</Button>
+    <Button Disabled="true">Deshabilitado</Button>
+    <IconButton Icon="IconName.Ellipsis" Label="Más acciones" />
+</div>
+<p><TextField Label="Nombre" @bind-Value="_name" /></p>
+<p><SearchField @bind-Value="_query" /></p>
+<p><TextArea Label="Notas" Rows="4" @bind-Value="_notes" /></p>
+<p><Select Label="Tipo de nota" Options="Kinds" LabelOf="k => k.Name" @bind-Value="_kind" /></p>
+<Button Variant="ButtonVariant.Secondary" OnClick="OnOpenDialog">Abrir diálogo</Button>
+
+@code {
+    [Parameter] public EventCallback OnOpenDialog { get; set; }
+
+    private string? _name = "Aria";
+    private sealed record NoteKind(string Name);
+    private static readonly IReadOnlyList<NoteKind> Kinds = [new("Nota"), new("PNJ"), new("Lugar")];
+    private NoteKind _kind = Kinds[0];
+    private string? _query;
+    private string? _notes = "Primera línea\nSegunda línea";
+}

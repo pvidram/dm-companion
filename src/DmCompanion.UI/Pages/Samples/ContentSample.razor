@@ -1,0 +1,13 @@
+<InlineNotice Kind="NoticeKind.Warning">El frontmatter de esta nota tiene YAML inválido.</InlineNotice>
+<NoteContent Html="SampleHtml" IsSecret="true" />
+<EmptyState Icon="IconName.BookOpen" Title="Sin resultados">Prueba con otra búsqueda.</EmptyState>
+
+@code {
+    private static readonly MarkupString SampleHtml = new(
+        "<h2>La taberna</h2>" +
+        "<p>Regentada por <a href=\"#\" class=\"wikilink\" data-target=\"Bram\">Bram</a>. " +
+        "Ver también <a href=\"#\" class=\"wikilink broken\" data-target=\"Sótano\">Sótano</a>.</p>" +
+        "<p><span class=\"dm-secret\">Bram es en realidad un espía del culto.</span></p>" +
+        "<blockquote>«Aquí nadie hace preguntas.»</blockquote>" +
+        "<table><tr><th>Bebida</th><th>Precio</th></tr><tr><td>Cerveza</td><td>4 pc</td></tr></table>");
+}

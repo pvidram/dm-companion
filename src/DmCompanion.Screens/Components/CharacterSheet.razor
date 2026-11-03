@@ -1,0 +1,44 @@
+@inherits DmComponentBase
+
+<article class="character-sheet">
+    <PcPortrait Entity="Entity" ShowNotice="true" />
+    <h3 data-testid="pc-title">@Entity.Title</h3>
+    @if (Entity.ParseError is { } error)
+    {
+        <InlineNotice Kind="NoticeKind.Warning">@error</InlineNotice>
+    }
+    <div class="ds-stats">
+        <StatBadge Label="CA" Value="@Show(_stats.ArmorClass)" />
+        <StatBadge Label="PG" Value="@Show(_stats.HitPoints)" />
+        <StatBadge Label="Velocidad" Value="@Show(_stats.Speed)" />
+        <StatBadge Label="Iniciativa" Value="@(_stats.InitiativeBonus is { } bonus ? Signed(bonus) : "—")" />
+    </div>
+    <div class="ds-stats" data-testid="abilities">
+        @foreach (var ability in Enum.GetValues<Ability>())
+        {
+            <StatBadge Label="@Labels[ability]"
+                       Value="@(_stats.AbilityScores.TryGetValue(ability, out var score) ? $"{score} ({Signed(CharacterStats.Modifier(score))})" : "—")" />
+        }
+    </div>
+    <NoteBody Entity="Entity" />
+</article>
+
+@code {
+    private static readonly Dictionary<Ability, string> Labels = new()
+    {
+        [Ability.Str] = "FUE", [Ability.Dex] = "DES", [Ability.Con] = "CON",
+        [Ability.Int] = "INT", [Ability.Wis] = "SAB", [Ability.Cha] = "CAR",
+    };
+
+    private CharacterStats _stats = default!;
+
+    [Parameter, EditorRequired] public VaultEntity Entity { get; set; } = default!;
+
+    protected override void OnParametersSet() => _stats = CharacterStats.FromFrontmatter(Entity.Frontmatter);
+
+    private static string Show(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? "—";
+
+    // U+2212: el guion de resta tipográfico, no el guion medio.
+    private static string Signed(int value) =>
+        value < 0 ? "−" + (-value).ToString(CultureInfo.InvariantCulture) : "+" + value.ToString(CultureInfo.InvariantCulture);
+}

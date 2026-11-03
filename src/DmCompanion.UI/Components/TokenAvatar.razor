@@ -1,0 +1,20 @@
+<span class="ds-token ds-token--@FactionVisuals.CssModifier(Faction)">
+    @if (string.IsNullOrWhiteSpace(PortraitUrl))
+    {
+        <span class="ds-token__initial" aria-hidden="true">@Initial</span>
+    }
+    else
+    {
+        <img class="ds-token__portrait" src="@PortraitUrl" alt="" />
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public Faction Faction { get; set; }
+    /// <summary>Retrato; sin él se muestra la inicial.</summary>
+    [Parameter] public string? PortraitUrl { get; set; }
+
+    private string Initial =>
+        Name.Trim() is { Length: > 0 } trimmed ? char.ToUpperInvariant(trimmed[0]).ToString() : "?";
+}

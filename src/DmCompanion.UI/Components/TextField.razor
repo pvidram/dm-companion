@@ -1,0 +1,18 @@
+<label class="ds-field">
+    <span class="ds-field__label">@Label</span>
+    <input @attributes="AdditionalAttributes" class="@CssClass" type="text" value="@Value" placeholder="@Placeholder" @oninput="OnInputAsync" />
+</label>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string? Value { get; set; }
+    /// <summary>Se invoca en cada pulsación (oninput). Permite @bind-Value.</summary>
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el <c>input</c>. Los que fija el componente (aria-*, disabled…) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private Task OnInputAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+    private string CssClass => AttributeMerge.Class("ds-field__input", AdditionalAttributes);
+}

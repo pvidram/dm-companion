@@ -1,0 +1,20 @@
+<button @attributes="AdditionalAttributes" type="button" class="@CssClass"
+        aria-label="@Label" title="@Label" disabled="@Disabled" @onclick="OnClick">
+    <Icon Name="Icon" />
+</button>
+
+@code {
+    [Parameter, EditorRequired] public IconName Icon { get; set; }
+    /// <summary>Nombre accesible; también se muestra como tooltip. Obligatorio: el botón no tiene texto.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>Tamaño táctil de combate (56 px).</summary>
+    [Parameter] public bool Combat { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el elemento raíz. Los que fija el componente (aria-*, disabled…) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string CssClass => AttributeMerge.Class(
+        "ds-icon-button" + (Combat ? " ds-icon-button--combat" : string.Empty), AdditionalAttributes);
+}

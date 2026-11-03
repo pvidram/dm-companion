@@ -1,0 +1,31 @@
+@inherits OverlayBase
+
+<section @attributes="AdditionalAttributes" @ref="Element" class="@CssClass"
+         hidden="@(!IsOpen)" tabindex="-1" aria-labelledby="@_titleId" @onkeydown="HandleKeyDownAsync" @onkeydown:stopPropagation="true">
+    <header class="ds-parchment__header">
+        <h2 id="@_titleId" class="ds-parchment__title">@Title</h2>
+        @if (OnClose.HasDelegate)
+        {
+            <IconButton Icon="IconName.X" Label="Cerrar" OnClick="OnClose" />
+        }
+    </header>
+    <div class="ds-parchment__body">@ChildContent</div>
+    @if (Actions is not null)
+    {
+        <footer class="ds-parchment__actions">@Actions</footer>
+    }
+</section>
+
+@code {
+    /// <summary>Título visible y nombre accesible del panel.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    /// <summary>Ancho: Side (por defecto), Wide o Full.</summary>
+    [Parameter] public ParchmentSize Size { get; set; } = ParchmentSize.Side;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Pie con acciones; la vista TV lo oculta.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    private readonly string _titleId = $"ds-parchment-{Guid.NewGuid():N}";
+    private string CssClass => AttributeMerge.Class(
+        $"ds-parchment ds-parchment--{Size.ToString().ToLowerInvariant()}", AdditionalAttributes);
+}

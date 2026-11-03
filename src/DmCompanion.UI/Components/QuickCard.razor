@@ -1,0 +1,33 @@
+@inherits OverlayBase
+
+<section @attributes="AdditionalAttributes" @ref="Element" class="@CssClass" hidden="@(!IsOpen)" tabindex="-1" aria-labelledby="@_titleId"
+         style="@Position" @onkeydown="HandleKeyDownAsync" @onkeydown:stopPropagation="true">
+    <header class="ds-parchment__header">
+        @if (Faction is { } faction)
+        {
+            <Icon Name="FactionVisuals.Icon(faction)" />
+            <span class="ds-visually-hidden">@FactionVisuals.Label(faction)</span>
+        }
+        <h3 id="@_titleId" class="ds-parchment__title">@Title</h3>
+        @if (OnClose.HasDelegate)
+        {
+            <IconButton Icon="IconName.X" Label="Cerrar" OnClick="OnClose" />
+        }
+    </header>
+    <div class="ds-parchment__body">@ChildContent</div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    /// <summary>Bando de la criatura: muestra su icono (y su nombre para lectores de pantalla) junto al título.</summary>
+    [Parameter] public Faction? Faction { get; set; }
+    /// <summary>Posición izquierda en px relativa al área del mapa. No se limita: el llamador la ajusta a los bordes.</summary>
+    [Parameter] public double X { get; set; }
+    /// <summary>Posición superior en px relativa al área del mapa. No se limita: el llamador la ajusta a los bordes.</summary>
+    [Parameter] public double Y { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly string _titleId = $"ds-quick-card-{Guid.NewGuid():N}";
+    private string CssClass => AttributeMerge.Class("ds-quick-card", AdditionalAttributes);
+    private string Position => string.Create(CultureInfo.InvariantCulture, $"left: {X}px; top: {Y}px;");
+}

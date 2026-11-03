@@ -1,0 +1,99 @@
+@inherits DmComponentBase
+
+<Dialog Title="Nueva nota" IsOpen="@(Shell.NewNote is not null)" OnClose="Shell.CloseNewNote">
+    <ChildContent>
+        <Select TValue="EntityType" Label="Tipo" @bind-Value="_type" Options="Types" LabelOf="TypeLabel" />
+        <TextField Label="Título" @bind-Value="_title" />
+        <TextField Label="Carpeta" @bind-Value="_folder" Placeholder="@NoteTemplates.DefaultFolder(_type)" />
+        @if (_notice is { } notice)
+        {
+            <InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="_busy" OnClick="CreateAsync">Crear</Button>
+        <Button OnClick="Shell.CloseNewNote">Cancelar</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private static readonly IReadOnlyList<EntityType> Types =
+        [EntityType.Note, EntityType.Session, EntityType.Pc, EntityType.Npc, EntityType.Location];
+
+    private NewNoteRequest? _seen;
+    private EntityType _type = EntityType.Note;
+    private string _title = string.Empty;
+    private string _folder = string.Empty;
+    private string? _notice;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Sync();
+    }
+
+    // Cada petición nueva (otra instancia) reinicia el formulario con sus datos.
+    protected override void OnVaultChanged() => Sync();
+
+    private void Sync()
+    {
+        if (ReferenceEquals(_seen, Shell.NewNote)) return;
+        _seen = Shell.NewNote;
+        if (_seen is null) return;
+        _type = EntityType.Note;
+        _title = _seen.Title;
+        _folder = _seen.Folder ?? string.Empty;
+        _notice = null;
+    }
+
+    private static string TypeLabel(EntityType type) => type switch
+    {
+        EntityType.Note => "Nota",
+        EntityType.Session => "Sesión",
+        EntityType.Pc => "Personaje jugador",
+        EntityType.Npc => "PNJ",
+        EntityType.Location => "Lugar",
+        _ => type.ToString()
+    };
+
+    private async Task CreateAsync()
+    {
+        if (Host.Current is not { } vault) return;
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            _notice = "Escribe un título.";
+            return;
+        }
+
+        _busy = true;
+        _notice = null;
+        try
+        {
+            var result = await vault.CreateNoteAsync(_type, _title.Trim(), string.IsNullOrWhiteSpace(_folder) ? null : _folder.Trim());
+            if (result.Status == WriteStatus.Written)
+            {
+                Shell.CloseNewNote();
+                await Shell.RequestEditNote(result.RelativePath);
+            }
+            else
+            {
+                _notice = result.Status == WriteStatus.AlreadyExists
+                    ? $"Ya existe una nota en «{result.RelativePath}»."
+                    : $"No se pudo crear «{result.RelativePath}».";
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            _notice = $"Carpeta o título no válidos: {ex.Message}";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notice = $"No se pudo escribir la nota: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

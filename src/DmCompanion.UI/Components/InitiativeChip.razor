@@ -1,0 +1,19 @@
+<button type="button" class="ds-initiative @(IsCurrent ? "ds-initiative--current" : null)"
+        aria-current="@(IsCurrent ? "true" : null)" aria-label="@AccessibleName" @onclick="OnSelect">
+    <TokenAvatar Name="@Name" Faction="Faction" PortraitUrl="@PortraitUrl" />
+    <Icon Name="FactionVisuals.Icon(Faction)" Class="ds-initiative__faction" />
+    <span class="ds-initiative__value ds-numeric">@Initiative</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public Faction Faction { get; set; }
+    [Parameter, EditorRequired] public int Initiative { get; set; }
+    [Parameter] public string? PortraitUrl { get; set; }
+    /// <summary>Turno actual; se refleja en aria-current.</summary>
+    [Parameter] public bool IsCurrent { get; set; }
+    /// <summary>Se invoca al pulsar el chip.</summary>
+    [Parameter] public EventCallback OnSelect { get; set; }
+
+    private string AccessibleName => $"{Name}, iniciativa {Initiative}, {FactionVisuals.Label(Faction)}";
+}

@@ -1,0 +1,9 @@
+<div class="ds-notice ds-notice--@Kind.ToString().ToLowerInvariant()" role="@(Kind == NoticeKind.Error ? "alert" : "status")">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Info, Warning o Error (role=alert).</summary>
+    [Parameter] public NoticeKind Kind { get; set; } = NoticeKind.Info;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

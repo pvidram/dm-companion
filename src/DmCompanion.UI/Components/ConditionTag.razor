@@ -1,0 +1,13 @@
+<span class="ds-condition">
+    @Name
+    @if (OnRemove.HasDelegate)
+    {
+        <IconButton Icon="IconName.X" Label="@($"Quitar {Name}")" OnClick="OnRemove" />
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    /// <summary>Si tiene delegado, se muestra el botón de quitar.</summary>
+    [Parameter] public EventCallback OnRemove { get; set; }
+}

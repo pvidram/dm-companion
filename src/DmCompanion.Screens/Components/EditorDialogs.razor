@@ -1,0 +1,18 @@
+@inherits DmComponentBase
+
+<Dialog Title="La nota ha cambiado en disco" IsOpen="@(Shell.ActiveEditorDialog == EditorDialog.Conflict)"
+        OnClose="Shell.DismissEditorDialog">
+    <ChildContent>
+        <p>Otra aplicación ha modificado esta nota mientras la editabas. ¿Qué quieres hacer con tu versión?</p>
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" OnClick="@(() => Shell.RaiseEditorCommand(EditorCommand.Overwrite))">Sobrescribir con mi versión</Button>
+        <Button OnClick="@(() => Shell.RaiseEditorCommand(EditorCommand.Reload))">Descartar y recargar</Button>
+        <Button OnClick="Shell.DismissEditorDialog">Seguir editando</Button>
+    </Footer>
+</Dialog>
+
+<ConfirmDialog Title="Cerrar sin guardar" Message="Hay cambios sin guardar. Si cierras, se perderán."
+               IsOpen="@(Shell.ActiveEditorDialog == EditorDialog.ConfirmClose)" Destructive="true"
+               ConfirmText="Cerrar sin guardar" CancelText="Seguir editando"
+               OnConfirm="Shell.ConfirmDiscardAsync" OnCancel="Shell.CancelDiscard" />

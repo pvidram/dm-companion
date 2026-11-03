@@ -1,0 +1,42 @@
+<div @attributes="AdditionalAttributes" class="@CssClass">
+    @if (Rail is not null)
+    {
+        <nav class="ds-frame__rail" aria-label="Menú">@Rail</nav>
+    }
+    @if (Strip is not null)
+    {
+        <header class="ds-frame__strip">@Strip</header>
+    }
+    <main class="ds-frame__map">
+        @Map
+        @Overlays
+    </main>
+    @Dialogs
+</div>
+
+@code {
+    /// <summary>Vista TV: añade .tv (escala 1,75, oculta .dm-only y .dm-secret).</summary>
+    [Parameter] public bool IsTv { get; set; }
+    /// <summary>Raíl lateral de navegación (RailButton). Sin él, el marco usa el diseño sin raíl.</summary>
+    [Parameter] public RenderFragment? Rail { get; set; }
+    /// <summary>Franja superior (p. ej. iniciativa).</summary>
+    [Parameter] public RenderFragment? Strip { get; set; }
+    /// <summary>Contenido del área del mapa; usa .ds-frame__layer para llenarla.</summary>
+    [Parameter] public RenderFragment? Map { get; set; }
+    /// <summary>Pergaminos y tarjetas rápidas, dentro del área del mapa. Sin diálogos: van en Dialogs.</summary>
+    [Parameter] public RenderFragment? Overlays { get; set; }
+
+    /// <summary>
+    /// Ranura de los diálogos modales. Se pintan fuera del área del mapa, como último hijo del marco, para quedar por
+    /// encima de pergaminos y tarjetas. No anides un <c>Dialog</c> dentro de <c>Overlays</c> ni de otra superposición:
+    /// quedaría en su contexto de apilamiento y las tarjetas se pintarían sobre el fondo del modal.
+    /// </summary>
+    [Parameter] public RenderFragment? Dialogs { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el elemento raíz. Los que fija el componente (aria-*, disabled…) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string CssClass => AttributeMerge.Class(
+        "ds-root ds-frame" + (Rail is null ? " ds-frame--no-rail" : string.Empty) + (IsTv ? " tv" : string.Empty),
+        AdditionalAttributes);
+}

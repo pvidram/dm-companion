@@ -1,0 +1,57 @@
+@inherits DmComponentBase
+
+<Parchment Title="Notas" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Notes)"
+           OnClose="@(() => Shell.Toggle(OverlayPanel.Notes))">
+    <ChildContent>
+        <SearchField Label="Buscar notas" @bind-Value="_query" />
+        @if (_query.Trim().Length > 0)
+        {
+            var results = Index.Search(_query);
+            @if (results.Count == 0)
+            {
+                <EmptyState Icon="IconName.Search" Title="Sin resultados">Ninguna nota coincide con «@_query».</EmptyState>
+            }
+            else
+            {
+                <div>
+                    @foreach (var result in results)
+                    {
+                        var path = result.RelativePath;
+                        <ListRow Icon="IconName.FileText" IsSelected="@(path == Shell.SelectedNotePath)"
+                                 OnSelect="() => Shell.RequestOpenNote(path)">@result.Title</ListRow>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <TreeView TItem="VaultTreeNode" Items="@VaultTree.Build(Index.Entities).Children"
+                      ChildrenOf="@(node => node.Children)" LabelOf="@(node => node.Name)" KeyOf="@(node => node.Path)"
+                      IsBranch="@(node => node.IsFolder)" SelectedKey="@Shell.SelectedNotePath"
+                      OnSelect="@(node => Shell.RequestOpenNote(node.Path))" />
+        }
+
+        @if (Shell.EditingPath is { } editing)
+        {
+            <NoteEditor Path="@editing" />
+        }
+        else if (Shell.SelectedNotePath is { } selected && Index.Get(selected) is { } entity)
+        {
+            <NoteReader Entity="entity" />
+        }
+        else
+        {
+            <EmptyState Icon="IconName.ScrollText" Title="Notas">Elige una nota del árbol o busca por título o contenido.</EmptyState>
+        }
+    </ChildContent>
+    <Actions>
+        @if (Shell.EditingPath is null && Shell.SelectedNotePath is { } editable && Index.Get(editable) is not null)
+        {
+            <Button Icon="IconName.FileText" OnClick="@(() => Shell.RequestEditNote(editable))">Editar</Button>
+        }
+    </Actions>
+</Parchment>
+
+@code {
+    private string _query = string.Empty;
+}

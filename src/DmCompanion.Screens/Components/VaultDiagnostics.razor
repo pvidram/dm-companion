@@ -1,0 +1,46 @@
+@inherits DmComponentBase
+
+<TableFrame>
+    <Map>
+        <div class="ds-frame__layer ds-frame__layer--placeholder"></div>
+    </Map>
+    <Overlays>
+        <Parchment Title="Diagnóstico del vault" Size="ParchmentSize.Wide">
+            @if (Host.LastError is { } error)
+            {
+                <InlineNotice Kind="NoticeKind.Error">@error</InlineNotice>
+            }
+
+            @if (Host.Current is { } vault)
+            {
+                <dl>
+                    <dt>Vault</dt>
+                    <dd>@vault.RootPath</dd>
+                    <dt>Notas</dt>
+                    <dd>Notas: @Index.Count</dd>
+                </dl>
+
+                <h3>Conflictos de sincronización</h3>
+                @if (vault.Conflicts.Count == 0)
+                {
+                    <p>Sin conflictos.</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var conflict in vault.Conflicts)
+                        {
+                            <li>@conflict.OriginalRelativePath</li>
+                        }
+                    </ul>
+                }
+
+                <Button Variant="ButtonVariant.Secondary" OnClick="() => Host.OpenAsync(vault.RootPath)">Reabrir</Button>
+            }
+            else
+            {
+                <p>Sin vault abierto</p>
+            }
+        </Parchment>
+    </Overlays>
+</TableFrame>

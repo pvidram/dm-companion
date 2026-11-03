@@ -1,0 +1,52 @@
+@typeparam TItem
+
+@RenderLevel(Items, 0)
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+    [Parameter, EditorRequired] public Func<TItem, IReadOnlyList<TItem>> ChildrenOf { get; set; } = _ => [];
+    [Parameter, EditorRequired] public Func<TItem, string> LabelOf { get; set; } = _ => string.Empty;
+    /// <summary>Clave estable y única entre todos los nodos: identifica expansión y selección.</summary>
+    [Parameter, EditorRequired] public Func<TItem, string> KeyOf { get; set; } = _ => string.Empty;
+    /// <summary>true si el nodo se expande (carpeta); false si es hoja seleccionable.</summary>
+    [Parameter, EditorRequired] public Func<TItem, bool> IsBranch { get; set; } = _ => false;
+    /// <summary>Clave de la hoja seleccionada.</summary>
+    [Parameter] public string? SelectedKey { get; set; }
+    /// <summary>Se invoca al pulsar una hoja (las ramas solo se expanden).</summary>
+    [Parameter] public EventCallback<TItem> OnSelect { get; set; }
+
+    private readonly HashSet<string> _expanded = [];
+
+    private RenderFragment RenderLevel(IReadOnlyList<TItem> items, int depth) => __builder =>
+    {
+        <ul class="ds-tree">
+            @foreach (var item in items)
+            {
+                var current = item;
+                var key = KeyOf(current);
+                <li @key="key">
+                    @if (IsBranch(current))
+                    {
+                        var open = _expanded.Contains(key);
+                        <ListRow Depth="depth" Icon="@(open ? IconName.FolderOpen : IconName.Folder)"
+                                 Expanded="open" OnSelect="() => Toggle(key)">@LabelOf(current)</ListRow>
+                        if (open)
+                        {
+                            @RenderLevel(ChildrenOf(current), depth + 1)
+                        }
+                    }
+                    else
+                    {
+                        <ListRow Depth="depth" Icon="IconName.FileText" IsSelected="@(key == SelectedKey)"
+                                 OnSelect="() => OnSelect.InvokeAsync(current)">@LabelOf(current)</ListRow>
+                    }
+                </li>
+            }
+        </ul>
+    };
+
+    private void Toggle(string key)
+    {
+        if (!_expanded.Remove(key)) _expanded.Add(key);
+    }
+}

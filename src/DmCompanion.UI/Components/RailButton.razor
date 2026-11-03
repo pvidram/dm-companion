@@ -1,0 +1,19 @@
+<button @attributes="AdditionalAttributes" type="button" class="@CssClass" aria-pressed="@(IsPressed ? "true" : "false")"
+        aria-label="@Label" title="@Label" @onclick="OnToggle">
+    <Icon Name="Icon" />
+</button>
+
+@code {
+    [Parameter, EditorRequired] public IconName Icon { get; set; }
+    /// <summary>Nombre accesible y tooltip (el botón solo tiene icono).</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>Estado de alternancia; se refleja en aria-pressed.</summary>
+    [Parameter] public bool IsPressed { get; set; }
+    /// <summary>Se invoca al pulsar; el llamador cambia IsPressed.</summary>
+    [Parameter] public EventCallback OnToggle { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el elemento raíz. Los que fija el componente (aria-*, disabled…) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string CssClass => AttributeMerge.Class("ds-rail-button", AdditionalAttributes);
+}

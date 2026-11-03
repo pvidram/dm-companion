@@ -1,0 +1,44 @@
+.ds-button, .ds-icon-button, .ds-rail-button {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+    min-width: var(--touch-min); min-height: var(--touch-min);
+    border: 1px solid transparent; border-radius: var(--radius-control);
+    font: inherit; font-weight: 600; cursor: pointer;
+    transition: background-color 120ms, border-color 120ms, color 120ms;
+}
+.ds-button { padding: 0 var(--space-4); }
+.ds-button:disabled, .ds-icon-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.ds-button--combat, .ds-button--damage, .ds-button--heal, .ds-icon-button--combat {
+    min-width: var(--touch-combat); min-height: var(--touch-combat);
+}
+
+.ds-button--primary { background-color: var(--button-primary-bg); color: var(--button-text-on-fill); }
+.ds-button--secondary { background-color: transparent; color: var(--text-ink); border-color: var(--text-ink-secondary); }
+.ds-button--damage { background-color: var(--button-damage-bg); color: var(--button-text-on-fill); }
+.ds-button--heal { background-color: var(--button-heal-bg); color: var(--button-text-on-fill); }
+
+.ds-icon-button { background-color: transparent; color: var(--text-ink); }
+.ds-icon-button .ds-icon { width: 1.5em; height: 1.5em; }
+
+/* Sobre la madera (raíl y franja) los controles de pergamino no contrastan: variantes con tokens de madera. */
+:is(.ds-frame__rail, .ds-frame__strip) .ds-button--secondary { color: var(--text-on-wood); border-color: var(--text-on-wood); }
+:is(.ds-frame__rail, .ds-frame__strip) .ds-icon-button { color: var(--text-on-wood); }
+:is(.ds-frame__rail, .ds-frame__strip) .ds-button--primary { background-color: var(--accent-on-wood); color: var(--text-ink); }
+
+.ds-rail-button {
+    width: var(--touch-combat); height: var(--touch-combat);
+    background-color: transparent; color: var(--text-on-wood);
+}
+.ds-rail-button .ds-icon { width: 1.75em; height: 1.75em; }
+.ds-rail-button[aria-pressed="true"] { background-color: var(--accent-on-wood); color: var(--text-ink); }
+
+@media (hover: hover) {
+    .ds-button--primary:hover:not(:disabled) { background-color: var(--button-primary-hover); }
+    .ds-button--secondary:hover:not(:disabled) { background-color: var(--surface-sheet-sunken); }
+    .ds-button--damage:hover:not(:disabled) { background-color: var(--button-damage-hover); }
+    .ds-button--heal:hover:not(:disabled) { background-color: var(--button-heal-hover); }
+    .ds-icon-button:hover:not(:disabled) { background-color: var(--surface-sheet-sunken); }
+    :is(.ds-frame__rail, .ds-frame__strip) .ds-button--secondary:hover:not(:disabled),
+    :is(.ds-frame__rail, .ds-frame__strip) .ds-icon-button:hover:not(:disabled) { background-color: var(--border-frame); }
+    :is(.ds-frame__rail, .ds-frame__strip) .ds-button--primary:hover:not(:disabled) { background-color: var(--accent-on-wood); }
+    .ds-rail-button:hover:not([aria-pressed="true"]) { background-color: var(--border-frame); }
+}

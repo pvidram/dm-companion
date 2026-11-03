@@ -1,0 +1,18 @@
+@inherits DmComponentBase
+@inject PortraitUrlProvider Portraits
+
+<TokenAvatar Name="@Entity.Title" Faction="Faction.Pc" PortraitUrl="@_result.DataUrl" />
+@if (ShowNotice && _result.Status == PortraitStatus.TooLarge)
+{
+    <InlineNotice Kind="NoticeKind.Warning">El retrato supera los 512 KB y no se muestra. Usa una imagen más ligera.</InlineNotice>
+}
+
+@code {
+    [Parameter, EditorRequired] public VaultEntity Entity { get; set; } = default!;
+    /// <summary>En la ficha, avisa de que el retrato no se muestra por su tamaño.</summary>
+    [Parameter] public bool ShowNotice { get; set; }
+
+    private PortraitResult _result = new(null, PortraitStatus.None);
+
+    protected override async Task OnParametersSetAsync() => _result = await Portraits.GetAsync(Entity.Portrait);
+}

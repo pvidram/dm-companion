@@ -1,0 +1,38 @@
+@inherits DmComponentBase
+
+@if (Entity is { } entity)
+{
+    <article class="note-reader">
+        <h3 data-testid="note-title">@entity.Title</h3>
+        <p>
+            @EntityTypes.ToKey(entity.Type)
+            @if (entity.IsSecret)
+            {
+                <ConditionTag Name="secreta" />
+            }
+        </p>
+        @if (entity.ParseError is { } error)
+        {
+            <InlineNotice Kind="NoticeKind.Warning">@error</InlineNotice>
+        }
+        <NoteBody Entity="entity" />
+        @{
+            var backlinks = Index.GetBacklinks(entity.RelativePath);
+        }
+        @if (backlinks.Count > 0)
+        {
+            <h4>Enlaces entrantes</h4>
+            <div data-testid="backlinks">
+                @foreach (var source in backlinks)
+                {
+                    var path = source.RelativePath;
+                    <ListRow Icon="IconName.FileText" OnSelect="() => Shell.RequestOpenNote(path)">@source.Title</ListRow>
+                }
+            </div>
+        }
+    </article>
+}
+
+@code {
+    [Parameter] public VaultEntity? Entity { get; set; }
+}

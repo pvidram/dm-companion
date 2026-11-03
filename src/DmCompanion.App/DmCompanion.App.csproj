@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <!-- Solo Android: la app es una cáscara para la tablet. -->
+        <TargetFrameworks>net10.0-android</TargetFrameworks>
+
+        <OutputType>Exe</OutputType>
+        <RootNamespace>DmCompanion.App</RootNamespace>
+        <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
+        <!-- Disable MAUI CSS handling so Blazor can handle it -->
+        <EnableDefaultCssItems>false</EnableDefaultCssItems>
+        <MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+        <ApplicationTitle>DM Companion</ApplicationTitle>
+        <ApplicationId>es.pauvidal.dmcompanion</ApplicationId>
+        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+        <ApplicationVersion>1</ApplicationVersion>
+
+        <SupportedOSPlatformVersion>30.0</SupportedOSPlatformVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+        <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\DmCompanion.Core\DmCompanion.Core.csproj" />
+        <ProjectReference Include="..\DmCompanion.Infrastructure\DmCompanion.Infrastructure.csproj" />
+        <ProjectReference Include="..\DmCompanion.Screens\DmCompanion.Screens.csproj" />
+        <ProjectReference Include="..\DmCompanion.UI\DmCompanion.UI.csproj" />
+    </ItemGroup>
+
+</Project>
