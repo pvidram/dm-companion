@@ -1,4 +1,8 @@
 @inherits DmComponentBase
+@using System.Reflection
+@using DmCompanion.Screens.Platform
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider Services
 
 <TableFrame>
     <Map>
@@ -9,6 +13,16 @@
             @if (Host.LastError is { } error)
             {
                 <InlineNotice Kind="NoticeKind.Error">@error</InlineNotice>
+            }
+
+            <p>Versión: @Version</p>
+            @if (Services.GetService<ILogFolder>() is { IsAvailable: true } logs)
+            {
+                <Button Variant="ButtonVariant.Secondary" OnClick="() => OpenLogs(logs)">Abrir carpeta de registros</Button>
+                @if (_logsNotice is { } logsNotice)
+                {
+                    <InlineNotice Kind="NoticeKind.Warning">@logsNotice</InlineNotice>
+                }
             }
 
             @if (Host.Current is { } vault)
@@ -79,6 +93,17 @@
 </TableFrame>
 
 @code {
+    private string? _logsNotice;
+
+    private void OpenLogs(ILogFolder logs) =>
+        _logsNotice = logs.Open() ? null : "No se pudo abrir la carpeta de registros. Ábrela a mano desde el Explorador.";
+
+    // Sin el sufijo «+commit» que añade el SDK a la versión informativa.
+    private static string Version =>
+        Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is { Length: > 0 } raw
+            ? raw.Split('+')[0]
+            : "—";
+
     private static IEnumerable<(string Path, string Warning)> SheetWarnings(VaultService vault) =>
         vault.Index.Entities
             .Where(entity => entity.Type is EntityType.Pc or EntityType.Npc or EntityType.Monster)

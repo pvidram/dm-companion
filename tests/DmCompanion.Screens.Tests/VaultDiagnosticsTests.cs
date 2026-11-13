@@ -76,4 +76,85 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         var cut = await RenderAsync();
         cut.Markup.Should().Contain("Personajes/Lyra.md: stats.skills.stealth: valor desconocido");
     }
+
+    [Fact]
+    public async Task With_a_log_folder_it_shows_the_open_button()
+    {
+        Services.AddSingleton<ILogFolder>(new FakeLogFolder());
+        var cut = await RenderAsync();
+
+        cut.FindAll("button").Should().Contain(b => b.TextContent.Contains("Abrir carpeta de registros"));
+    }
+
+    [Fact]
+    public async Task The_log_folder_button_calls_open()
+    {
+        var logs = new FakeLogFolder();
+        Services.AddSingleton<ILogFolder>(logs);
+        var cut = await RenderAsync();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click();
+
+        logs.Opens.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task When_the_log_folder_cannot_be_opened_it_shows_a_notice()
+    {
+        Services.AddSingleton<ILogFolder>(new FakeLogFolder { Succeeds = false });
+        var cut = await RenderAsync();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click();
+
+        cut.Markup.Should().Contain("No se pudo abrir la carpeta de registros");
+    }
+
+    [Fact]
+    public async Task When_the_log_folder_opens_there_is_no_notice()
+    {
+        Services.AddSingleton<ILogFolder>(new FakeLogFolder());
+        var cut = await RenderAsync();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click();
+
+        cut.Markup.Should().NotContain("No se pudo abrir la carpeta de registros");
+    }
+
+    [Fact]
+    public async Task Without_a_log_folder_it_shows_no_button()
+    {
+        var cut = await RenderAsync();
+
+        cut.Markup.Should().NotContain("Abrir carpeta de registros");
+    }
+
+    [Fact]
+    public async Task With_an_unavailable_log_folder_it_shows_no_button()
+    {
+        Services.AddSingleton<ILogFolder>(new FakeLogFolder { IsAvailable = false });
+        var cut = await RenderAsync();
+
+        cut.Markup.Should().NotContain("Abrir carpeta de registros");
+    }
+
+    [Fact]
+    public async Task It_shows_the_version()
+    {
+        var cut = await RenderAsync();
+
+        cut.Markup.Should().Contain("Versión:");
+    }
+
+    private sealed class FakeLogFolder : ILogFolder
+    {
+        public bool IsAvailable { get; init; } = true;
+        public int Opens { get; private set; }
+        public bool Succeeds { get; init; } = true;
+
+        public bool Open()
+        {
+            Opens++;
+            return Succeeds;
+        }
+    }
 }

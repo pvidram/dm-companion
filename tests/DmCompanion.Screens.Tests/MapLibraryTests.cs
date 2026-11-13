@@ -78,6 +78,14 @@ public sealed class MapLibraryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateBlank_rejects_a_windows_reserved_name()
+    {
+        var result = await _library.CreateBlankAsync("CON");
+
+        result.Status.Should().Be(MapOpStatus.InvalidName);
+    }
+
+    [Fact]
     public async Task CreateBlank_twice_gives_NameTaken()
     {
         await _library.CreateBlankAsync("Cueva");

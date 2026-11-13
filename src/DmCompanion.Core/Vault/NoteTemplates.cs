@@ -46,11 +46,30 @@ public static class NoteTemplates
 
 public static class NoteFileName
 {
+    public const int MaxLength = 120;
+
     private static readonly char[] Invalid = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '#', '^', '[', ']'];
+
+    private static readonly HashSet<string> Reserved = new(
+        ["CON", "PRN", "AUX", "NUL", .. Enumerable.Range(1, 9).Select(i => $"COM{i}"), .. Enumerable.Range(1, 9).Select(i => $"LPT{i}")],
+        StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Nombre reservado de Windows: la parte antes del primer punto es CON, NUL, COM1…</summary>
+    public static bool IsReserved(string name)
+    {
+        var dot = name.IndexOf('.');
+        return Reserved.Contains(dot < 0 ? name : name[..dot]);
+    }
 
     public static string FromTitle(string title)
     {
-        var cleaned = new string(title.Where(c => !Invalid.Contains(c) && !char.IsControl(c)).ToArray()).Trim().TrimStart('.').TrimEnd('.').Trim();
-        return cleaned.Length == 0 ? "Sin título" : cleaned;
+        var cleaned = Tidy(new string(title.Where(c => !Invalid.Contains(c) && !char.IsControl(c)).ToArray()));
+        if (cleaned.Length > MaxLength) cleaned = Tidy(cleaned[..MaxLength]);
+        if (cleaned.Length == 0) return "Sin título";
+        if (!IsReserved(cleaned)) return cleaned;
+        var dot = cleaned.IndexOf('.');
+        return dot < 0 ? cleaned + "_" : cleaned[..dot] + "_" + cleaned[dot..];
     }
+
+    private static string Tidy(string value) => value.Trim().TrimStart('.').TrimEnd('.').Trim();
 }

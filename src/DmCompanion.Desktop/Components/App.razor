@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="_content/DmCompanion.UI/ui.css" />
+    <link rel="stylesheet" href="_content/DmCompanion.Screens/css/screens.css" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["DmCompanion.Desktop.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="_content/DmCompanion.Screens/js/wikilinks.js"></script>
+    <script src="_content/DmCompanion.Screens/lib/konva/konva.min.js"></script>
+    <script src="_content/DmCompanion.Screens/js/map-measure.js"></script>
+    <script src="_content/DmCompanion.Screens/js/map-canvas.js"></script>
+</body>
+
+</html>

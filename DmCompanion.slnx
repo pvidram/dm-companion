@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/DmCompanion.App/DmCompanion.App.csproj" />
     <Project Path="src/DmCompanion.Core/DmCompanion.Core.csproj" />
+    <Project Path="src/DmCompanion.Desktop/DmCompanion.Desktop.csproj" />
     <Project Path="src/DmCompanion.DevHost/DmCompanion.DevHost.csproj" />
     <Project Path="src/DmCompanion.Infrastructure/DmCompanion.Infrastructure.csproj" />
     <Project Path="src/DmCompanion.Screens/DmCompanion.Screens.csproj" />
@@ -9,6 +10,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DmCompanion.Core.Tests/DmCompanion.Core.Tests.csproj" />
+    <Project Path="tests/DmCompanion.Desktop.Tests/DmCompanion.Desktop.Tests.csproj" />
     <Project Path="tests/DmCompanion.DevHost.Tests/DmCompanion.DevHost.Tests.csproj" />
     <Project Path="tests/DmCompanion.Infrastructure.Tests/DmCompanion.Infrastructure.Tests.csproj" />
     <Project Path="tests/DmCompanion.Screens.Tests/DmCompanion.Screens.Tests.csproj" />

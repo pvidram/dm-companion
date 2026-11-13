@@ -44,7 +44,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
 {
     var server = app.Services.GetRequiredService<IServer>();
     // Solo Kestrel abre sockets: un servidor en memoria (TestServer) no tiene direcciones que vigilar.
-    if (server is not KestrelServer) return;
+    if (!KestrelDetection.IsKestrel(server)) return;
 
     // Una feature ausente o vacía cuenta como no loopback: se detiene.
     var addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses ?? [];

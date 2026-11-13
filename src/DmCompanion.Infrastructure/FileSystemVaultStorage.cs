@@ -8,6 +8,8 @@ namespace DmCompanion.Infrastructure;
 public sealed class FileSystemVaultStorage : IVaultStorage
 {
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+    private static readonly StringComparison PathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
     private readonly string _rootWithSeparator;
 
     public FileSystemVaultStorage(string rootPath)
@@ -193,7 +195,7 @@ public sealed class FileSystemVaultStorage : IVaultStorage
     private bool TryResolveConfined(string normalizedPath, out string fullPath)
     {
         fullPath = Path.GetFullPath(Path.Combine(RootPath, normalizedPath));
-        if (!fullPath.StartsWith(_rootWithSeparator, StringComparison.Ordinal)) return false;
+        if (!fullPath.StartsWith(_rootWithSeparator, PathComparison)) return false;
 
         // Se rechaza cualquier enlace simbólico en cualquier tramo (carpetas intermedias y fichero final): resolver
         // destinos no canoniza las carpetas intermedias y permite cadenas de enlaces que escapan del vault.

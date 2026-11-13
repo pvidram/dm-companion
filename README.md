@@ -27,6 +27,7 @@ Es un proyecto personal: funciona sin conexión, sin cuentas y sin nube. La sinc
 | `src/DmCompanion.Screens` | Pantallas Razor compartidas entre la app y el DevHost |
 | `src/DmCompanion.App` | Aplicación MAUI para Android, que solo contiene la UI y el puente con la plataforma |
 | `src/DmCompanion.DevHost` | Host Blazor para probar las pantallas en el navegador, solo para desarrollo ([README](src/DmCompanion.DevHost/README.md)) |
+| `src/DmCompanion.Desktop` | Versión de PC para Windows: host Blazor Server que abre el navegador, se publica como `.exe` autocontenido (guía en [docs/guia-version-pc.md](docs/guia-version-pc.md)) |
 | `samples/vault-demo` | Vault de ejemplo para los tests y las pruebas manuales (notas, dos mapas, una imagen suelta y la nota de campaña) |
 
 ## Entorno
@@ -75,6 +76,7 @@ dotnet test tests/DmCompanion.Infrastructure.Tests
 dotnet test tests/DmCompanion.Screens.Tests
 dotnet test tests/DmCompanion.DevHost.Tests
 dotnet test tests/DmCompanion.UI.Tests
+dotnet test tests/DmCompanion.Desktop.Tests
 node --test tests/js/*.test.js   # tests de JS (medición del mapa)
 
 # Pantallas en el navegador: http://localhost:5180
@@ -109,6 +111,14 @@ adb install -r src/DmCompanion.App/bin/Release/net10.0-android/publish/es.pauvid
 ```
 
 Cada equipo firma los APK con su propia clave de depuración. Si la app ya está instalada desde otro equipo, `adb install -r` falla con `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Para instalarla, desinstálala antes con `adb uninstall es.pauvidal.dmcompanion`. Las notas no se pierden, porque el vault está fuera de la app, pero sí las preferencias de la app.
+
+### Versión de PC (Windows)
+
+```bash
+scripts/publish-desktop.sh   # genera dist/dm_companion_pc.zip (win-x64, autocontenido)
+```
+
+`dist/` no se commitea.
 
 ## Documentación
 

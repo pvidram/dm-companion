@@ -27,7 +27,7 @@ public sealed class PortraitUrlProvider(VaultHost host, VaultFileUrls urls, ILog
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            logger.LogWarning(ex, "No se pudo leer el retrato «{Path}»; se muestra sin retrato.", portraitPath);
+            logger.LogWarning("No se pudo leer un retrato; se muestra sin retrato ({ExceptionType}).", ex.GetType().Name);
             return Missing;
         }
     }

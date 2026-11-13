@@ -1,7 +1,11 @@
 @page "/"
 @inherits DmComponentBase
 @using DmCompanion.Screens.Platform
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
 @inject IStorageAccess Storage
+@inject IServiceProvider Services
+@inject ILogger<Home> Logger
 
 <PageTitle>DM Companion</PageTitle>
 
@@ -22,6 +26,10 @@ else if (_isOpening)
         </Overlays>
     </TableFrame>
 }
+else if (Host.Current is null && ShowWelcome)
+{
+    <WelcomeScreen OnOpenOwn="OpenOwn" OnTrySample="TrySampleAsync" Error="@_sampleError" />
+}
 else if (Host.Current is null)
 {
     <VaultPicker />
@@ -35,6 +43,36 @@ else
     private bool _hasAccess;
     private bool _isOpening;
     private bool _notGranted;
+    private bool _ownVaultChosen;
+    private string? _sampleError;
+
+    private ISampleVault? Sample => Services.GetService<ISampleVault>() is { IsAvailable: true } sample ? sample : null;
+
+    private bool ShowWelcome => Sample is not null && Host.SavedPath is null && !_ownVaultChosen;
+
+    private void OpenOwn() => _ownVaultChosen = true;
+
+    private async Task TrySampleAsync()
+    {
+        if (Sample is not { } sample) return;
+        _sampleError = null;
+        _isOpening = true;
+        try
+        {
+            var path = await sample.PrepareAsync();
+            await Host.OpenAsync(path);
+            if (Host.Current is null) _sampleError = Host.LastError ?? "No se pudo abrir el vault de ejemplo.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logger.LogWarning("No se pudo preparar el vault de ejemplo ({Error}).", ex.GetType().Name);
+            _sampleError = "No se pudo preparar el vault de ejemplo.";
+        }
+        finally
+        {
+            _isOpening = false;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

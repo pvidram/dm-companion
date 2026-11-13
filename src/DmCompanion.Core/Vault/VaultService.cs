@@ -183,7 +183,7 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            logger.LogWarning(ex, "El original {Path} ya no existe; se conserva la copia en conflicto", conflict.OriginalRelativePath);
+            logger.LogWarning("El original de una copia en conflicto ya no existe; se conserva la copia ({ExceptionType})", ex.GetType().Name);
             return false;
         }
     }
@@ -252,7 +252,7 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning(ex, "No se pudo aplicar el cambio de {Path}", change.RelativePath);
+            logger.LogWarning("No se pudo aplicar un cambio del vault ({ExceptionType})", ex.GetType().Name);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
@@ -309,7 +309,7 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                logger.LogWarning(ex, "Se omite la nota ilegible {Path}", file.RelativePath);
+                logger.LogWarning("Se omite una nota ilegible ({ExceptionType})", ex.GetType().Name);
             }
         });
 
@@ -349,7 +349,7 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
             catch (IOException ex) when (attempt < MaxReadAttempts)
             {
                 // Syncthing puede tener el fichero bloqueado un instante mientras lo sustituye.
-                logger.LogDebug(ex, "Reintentando la lectura de {Path} (intento {Attempt})", relativePath, attempt);
+                logger.LogDebug("Reintentando la lectura de una nota (intento {Attempt}, {ExceptionType})", attempt, ex.GetType().Name);
                 await Task.Delay(200 * attempt, ct);
             }
         }

@@ -160,7 +160,7 @@ public sealed class VaultHost(IVaultServiceFactory factory, IAppPreferences pref
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Fallo al liberar el vault anterior; se ignora.");
+            logger.LogWarning("Fallo al liberar el vault anterior; se ignora ({ExceptionType}).", ex.GetType().Name);
         }
     }
 

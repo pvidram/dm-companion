@@ -6,6 +6,7 @@ using DmCompanion.Screens.Platform;
 using DmCompanion.Screens.Services;
 using DmCompanion.UI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DmCompanion.Screens.Tests;
@@ -206,6 +207,187 @@ public sealed class HomeTests : BunitContext, IAsyncLifetime
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Cambiar vault"), Timeout);
 
         factory.Creates.Should().Be(1);
+    }
+
+    [Fact]
+    public void Without_sample_vault_it_shows_the_picker()
+    {
+        var cut = Render<Home>();
+
+        cut.Markup.Should().NotContain("Bienvenido a DM Companion");
+    }
+
+    [Fact]
+    public void With_a_sample_vault_and_no_saved_path_it_shows_the_welcome()
+    {
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root));
+
+        var cut = Render<Home>();
+
+        cut.Markup.Should().Contain("Bienvenido a DM Companion");
+    }
+
+    [Fact]
+    public void With_a_sample_vault_it_does_not_show_the_picker_yet()
+    {
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root));
+
+        var cut = Render<Home>();
+
+        cut.Markup.Should().NotContain("Usar esta carpeta");
+    }
+
+    [Fact]
+    public void With_a_saved_path_it_skips_the_welcome()
+    {
+        _preferences.Set("vault_path", _vault.Root);
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root));
+
+        var cut = Render<Home>();
+
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Cambiar vault"), Timeout);
+    }
+
+    [Fact]
+    public void Open_own_vault_moves_to_the_picker()
+    {
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root));
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Abrir mi vault")).Click();
+
+        cut.Markup.Should().Contain("Usar esta carpeta");
+    }
+
+    [Fact]
+    public void Try_sample_prepares_it_and_opens_the_returned_path()
+    {
+        var sample = new FakeSampleVault(_vault.Root);
+        Services.AddSingleton<ISampleVault>(sample);
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Cambiar vault"), Timeout);
+        sample.Prepares.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Try_sample_opens_the_vault_at_the_returned_path()
+    {
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root));
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        var host = Services.GetRequiredService<VaultHost>();
+        await cut.WaitForAssertionAsync(() => host.Current!.RootPath.Should().Be(_vault.Root), Timeout);
+    }
+
+    [Theory]
+    [InlineData(typeof(IOException))]
+    [InlineData(typeof(UnauthorizedAccessException))]
+    public void Try_sample_failure_shows_the_notice(Type exceptionType)
+    {
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root) { Failure = (Exception)Activator.CreateInstance(exceptionType)! });
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("No se pudo preparar el vault de ejemplo."), Timeout);
+    }
+
+    [Fact]
+    public void Try_sample_failure_logs_only_the_exception_type()
+    {
+        var logger = new CapturingLogger();
+        Services.AddSingleton<ILogger<Home>>(logger);
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root) { Failure = new IOException("C:\\secreto\\ruta") });
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        cut.WaitForAssertion(() => logger.Text.Should().Contain("IOException").And.NotContain("secreto"), Timeout);
+    }
+
+    [Fact]
+    public void Try_sample_failure_opens_nothing()
+    {
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(_vault.Root) { Failure = new IOException() });
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("No se pudo preparar"), Timeout);
+        Services.GetRequiredService<VaultHost>().Current.Should().BeNull();
+    }
+
+    [Fact]
+    public void Try_sample_with_an_invalid_path_shows_the_open_error()
+    {
+        Services.AddSingleton<ISampleVault>(new FakeSampleVault(Path.Combine(_vault.Root, "no-existe")));
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("No se puede abrir el vault"), Timeout);
+    }
+
+    [Fact]
+    public void Try_sample_shows_the_loading_state_while_preparing()
+    {
+        var sample = new GatedSampleVault();
+        Services.AddSingleton<ISampleVault>(sample);
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        cut.WaitForAssertion(() => cut.Markup.Should().Contain("Abriendo el vault"), Timeout);
+        sample.Gate.SetResult(_vault.Root);
+    }
+
+    [Fact]
+    public void Try_sample_hides_the_welcome_buttons_while_preparing()
+    {
+        var sample = new GatedSampleVault();
+        Services.AddSingleton<ISampleVault>(sample);
+        var cut = Render<Home>();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Probar con el vault de ejemplo")).Click();
+
+        cut.WaitForAssertion(() => cut.Markup.Should().NotContain("Probar con el vault de ejemplo"), Timeout);
+        sample.Gate.SetResult(_vault.Root);
+    }
+
+    private sealed class GatedSampleVault : ISampleVault
+    {
+        public bool IsAvailable => true;
+        public TaskCompletionSource<string> Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<string> PrepareAsync() => Gate.Task;
+    }
+
+    private sealed class CapturingLogger : ILogger<Home>
+    {
+        private readonly List<string> _lines = [];
+        public string Text => string.Join('\n', _lines);
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            _lines.Add(formatter(state, exception) + (exception is null ? "" : " " + exception));
+    }
+
+    private sealed class FakeSampleVault(string path) : ISampleVault
+    {
+        public bool IsAvailable => true;
+        public int Prepares { get; private set; }
+        public Exception? Failure { get; init; }
+
+        public Task<string> PrepareAsync()
+        {
+            Prepares++;
+            return Failure is null ? Task.FromResult(path) : Task.FromException<string>(Failure);
+        }
     }
 
     private static AngleSharp.Dom.IElement ButtonWith(IRenderedComponent<Home> cut, string text) =>

@@ -1,0 +1,23 @@
+<TableFrame>
+    <Map>
+        <div class="ds-frame__layer ds-frame__layer--placeholder"></div>
+    </Map>
+    <Overlays>
+        <Parchment Title="Bienvenido a DM Companion" Size="ParchmentSize.Wide">
+            @if (Error is { } error)
+            {
+                <InlineNotice Kind="NoticeKind.Error">@error</InlineNotice>
+            }
+
+            <p>Prueba la app con un vault de ejemplo o elige la carpeta de tu propio vault de Obsidian.</p>
+            <Button Variant="ButtonVariant.Primary" OnClick="OnTrySample">Probar con el vault de ejemplo</Button>
+            <Button Variant="ButtonVariant.Secondary" OnClick="OnOpenOwn">Abrir mi vault</Button>
+        </Parchment>
+    </Overlays>
+</TableFrame>
+
+@code {
+    [Parameter] public EventCallback OnOpenOwn { get; set; }
+    [Parameter] public EventCallback OnTrySample { get; set; }
+    [Parameter] public string? Error { get; set; }
+}

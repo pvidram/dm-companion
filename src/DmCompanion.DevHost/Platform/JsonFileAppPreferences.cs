@@ -43,7 +43,7 @@ public sealed class JsonFileAppPreferences(string filePath, ILogger<JsonFileAppP
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            logger?.LogWarning(ex, "No se puede leer {File}; se trata como vacío.", filePath);
+            logger?.LogWarning("No se puede leer {File}; se trata como vacío ({Error}).", Path.GetFileName(filePath), ex.GetType().Name);
         }
         return _values;
     }
