@@ -13,6 +13,8 @@ namespace DmCompanion.Screens.Services;
 public sealed class MapSession : IAsyncDisposable
 {
     public static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(750);
+    public static readonly TimeSpan ReloadRetryDelay = TimeSpan.FromMilliseconds(250);
+    public const int ReloadRetries = 3;
 
     private readonly VaultHost _host;
     private readonly IAppPreferences _prefs;
@@ -31,6 +33,10 @@ public sealed class MapSession : IAsyncDisposable
     private bool _overwrite;
     private bool _failureNotice;
     private bool _disposed;
+    // Cada evento del watcher abre una época; abrir, cerrar o desechar la sesión también. Un reintento de recarga
+    // solo sigue vivo mientras su época sea la vigente: así no pisa una recarga posterior ni actúa sobre otro mapa.
+    private int _reloadEpoch;
+    private readonly CancellationTokenSource _lifetime = new();
     // Se marca con el gate tomado y se notifica tras soltarlo: un suscriptor nunca corre con el gate ocupado.
     private int _changedPending;
 
@@ -155,8 +161,18 @@ public sealed class MapSession : IAsyncDisposable
     // false si quedan cambios sin guardar: entonces el mapa sigue abierto.
     private async Task<bool> TryCloseAsync()
     {
+        // Desechada: el guardado final ya se hizo y el gate no existe; cerrar de nuevo no debe abortar el cambio de vault.
+        if (IsDisposed) return true;
         StopTimer();
-        await _ioGate.WaitAsync();
+        try
+        {
+            await _ioGate.WaitAsync();
+        }
+        catch (ObjectDisposedException) when (IsDisposed)
+        {
+            // El dispose terminó entre la comprobación y el gate: su guardado final ya se hizo.
+            return true;
+        }
         try
         {
             for (;;)
@@ -206,7 +222,7 @@ public sealed class MapSession : IAsyncDisposable
     {
         lock (_lock)
         {
-            if (IsReadOnly || Editor is not { } editor || !change(editor)) return;
+            if (_disposed || IsReadOnly || Editor is not { } editor || !change(editor)) return;
             _revision++;
             ScheduleSave();
         }
@@ -233,7 +249,26 @@ public sealed class MapSession : IAsyncDisposable
         RaiseChanged();
     }
 
+    /// <summary>No hace nada una vez desechada la sesión: el gate ya no existe y un guardado tardío no debe escribir.</summary>
     public async Task FlushAsync()
+    {
+        if (IsDisposed) return;
+        try
+        {
+            await FlushCoreAsync();
+        }
+        catch (ObjectDisposedException) when (IsDisposed)
+        {
+            // Se desechó entre la comprobación y el gate: no queda nada que guardar.
+        }
+    }
+
+    private bool IsDisposed
+    {
+        get { lock (_lock) return _disposed; }
+    }
+
+    private async Task FlushCoreAsync()
     {
         StopTimer();
         await _ioGate.WaitAsync();
@@ -338,23 +373,33 @@ public sealed class MapSession : IAsyncDisposable
 
     private async Task<(MapState State, bool ReadOnly, string? Notice, DateTime? Mtime)> LoadStateAsync(VaultService vault, string path)
     {
+        var load = await ReadStateAsync(vault, path);
+        return (load.State, load.ReadOnly, load.Notice, load.Mtime);
+    }
+
+    // Transient: la lectura falló o el contenido no es válido; en una recarga externa puede ser un escritor a medias.
+    // Una versión de formato no soportada no es transitoria: no mejora esperando.
+    private sealed record StateLoad(MapState State, bool ReadOnly, string? Notice, DateTime? Mtime, bool Transient = false, bool Missing = false);
+
+    private async Task<StateLoad> ReadStateAsync(VaultService vault, string path)
+    {
         try
         {
-            if (await vault.StatAsync(path) is null) return (MapState.Empty, false, null, null);
+            if (await vault.StatAsync(path) is null) return new StateLoad(MapState.Empty, false, null, null, Missing: true);
             var file = await vault.ReadRawAsync(path);
             var read = MapStateSerializer.Read(file.Content);
             return read.Status switch
             {
-                MapStateReadStatus.Ok => (read.State, false, null, file.LastWriteTimeUtc),
-                MapStateReadStatus.FutureVersion => (read.State, true,
+                MapStateReadStatus.Ok => new StateLoad(read.State, false, null, file.LastWriteTimeUtc),
+                MapStateReadStatus.FutureVersion => new StateLoad(read.State, true,
                     "El mapa se guardó con una versión más nueva de la app: se abre en solo lectura.", file.LastWriteTimeUtc),
-                _ => (MapState.Empty, true,
-                    "El fichero de estado del mapa no es válido: se abre en solo lectura y no se modificará.", file.LastWriteTimeUtc),
+                _ => new StateLoad(MapState.Empty, true,
+                    "El fichero de estado del mapa no es válido: se abre en solo lectura y no se modificará.", file.LastWriteTimeUtc, Transient: true),
             };
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return (MapState.Empty, true, $"No se pudo leer el estado del mapa: {ex.Message}", null);
+            return new StateLoad(MapState.Empty, true, $"No se pudo leer el estado del mapa: {ex.Message}", null, Transient: true);
         }
     }
 
@@ -362,34 +407,60 @@ public sealed class MapSession : IAsyncDisposable
     {
         if (Current is not { } current || !string.Equals(VaultPaths.Normalize(change.RelativePath), current.StatePath, StringComparison.OrdinalIgnoreCase))
             return;
-        _ = ReloadObservedAsync();
+        var epoch = Interlocked.Increment(ref _reloadEpoch);
+        _ = ReloadObservedAsync(epoch);
     }
 
-    private async Task ReloadObservedAsync()
+    // Una lectura vacía o inválida no se aplica al momento: puede ser un escritor no atómico a medias. El gate se suelta
+    // durante la espera, y cada intento vuelve a comprobarlo todo (mtime, cambios locales, mapa abierto).
+    private async Task ReloadObservedAsync(int epoch)
     {
         try
         {
-            await ReloadAsync();
+            for (var attempt = 0; attempt <= ReloadRetries; attempt++)
+            {
+                if (attempt > 0)
+                {
+                    await Task.Delay(ReloadRetryDelay, _time, _lifetime.Token);
+                    if (Volatile.Read(ref _reloadEpoch) != epoch) return;
+                }
+                if (!await ReloadAsync(epoch, lastAttempt: attempt == ReloadRetries)) return;
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            // La sesión se ha desechado: los reintentos pendientes se abandonan.
+        }
+        catch (ObjectDisposedException) when (IsDisposed)
+        {
+            // El gate se liberó con esta recarga en espera: la sesión ya no existe.
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _logger.LogWarning("No se pudo recargar el mapa tras un cambio externo ({ExceptionType}).", ex.GetType().FullName);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError("Fallo inesperado al recargar el mapa ({ExceptionType}).", ex.GetType().FullName);
+        }
     }
 
-    private async Task ReloadAsync()
+    // true si la lectura fue inválida y conviene reintentarla.
+    private async Task<bool> ReloadAsync(int epoch, bool lastAttempt)
     {
+        if (IsDisposed) return false;
         await _ioGate.WaitAsync();
         try
         {
-            if (_vault is not { } vault || Current is not { } current) return;
+            if (IsDisposed || Volatile.Read(ref _reloadEpoch) != epoch) return false;
+            if (_vault is not { } vault || Current is not { } current) return false;
             var info = await vault.StatAsync(current.StatePath);
             // Escritura propia (o ráfaga repetida del watcher): mismo mtime, nada que hacer.
-            if (info?.LastWriteTimeUtc == _expectedWrite) return;
+            if (info?.LastWriteTimeUtc == _expectedWrite) return false;
             if (info is null)
             {
                 lock (_lock) _expectedWrite = null;
-                return;
+                return false;
             }
 
             // La comprobación de Dirty y la foto de la revisión van en el mismo lock: un Mutate no puede colarse entre ambas.
@@ -404,9 +475,20 @@ public sealed class MapSession : IAsyncDisposable
             if (dirty)
             {
                 SetNotice("El mapa ha cambiado en disco; el próximo guardado lo sobrescribirá con tus cambios.", failure: false);
-                return;
+                return false;
             }
-            var (state, readOnly, notice, mtime) = await LoadStateAsync(vault, current.StatePath);
+            var load = await ReadStateAsync(vault, current.StatePath);
+            // Borrado entre los dos stat: como si no existiera, se conserva el estado.
+            if (load.Missing)
+            {
+                lock (_lock) _expectedWrite = null;
+                return false;
+            }
+            // Se conserva el estado anterior sin tocar IsReadOnly ni _expectedWrite: el siguiente intento vuelve a leer.
+            if (load.Transient && !lastAttempt) return true;
+            // Un resultado final inválido no recuerda el mtime: la escritura completa posterior con el mismo mtime se relee.
+            var (state, readOnly, notice) = (load.State, load.ReadOnly, load.Notice);
+            var mtime = load.Transient ? null : load.Mtime;
             bool mutatedMeanwhile;
             lock (_lock)
             {
@@ -421,9 +503,10 @@ public sealed class MapSession : IAsyncDisposable
             if (mutatedMeanwhile)
             {
                 SetNotice("El mapa ha cambiado en disco; el próximo guardado lo sobrescribirá con tus cambios.", failure: false);
-                return;
+                return false;
             }
             MarkChanged();
+            return false;
         }
         finally
         {
@@ -434,6 +517,7 @@ public sealed class MapSession : IAsyncDisposable
 
     private void Detach()
     {
+        Interlocked.Increment(ref _reloadEpoch);
         if (_vault is { } vault) vault.FileChanged -= OnFileChanged;
     }
 
@@ -464,10 +548,18 @@ public sealed class MapSession : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        _disposed = true;
-        await FlushAsync();
-        Detach();
+        // Idempotente: solo la primera llamada guarda y libera; el host de escritorio puede desechar dos veces.
+        lock (_lock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+        }
+        // Primero se desengancha el watcher y se cancelan los reintentos: una recarga nueva no puede colarse tras el guardado final.
+        lock (_lock) Detach();
+        await _lifetime.CancelAsync();
+        await FlushCoreAsync();
         _timer?.Dispose();
+        _lifetime.Dispose();
         _ioGate.Dispose();
     }
 }

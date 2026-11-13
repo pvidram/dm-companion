@@ -92,6 +92,316 @@ public sealed class MapSessionTests : IAsyncLifetime
         (_session.Current!.Width, _session.Current.Height, raised, _session.Editor).Should().Be((4000, 3000, 0, editor));
     }
 
+    [Fact]
+    public async Task DisposeAsync_called_twice_does_not_throw()
+    {
+        var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        await session.DisposeAsync();
+
+        var second = async () => await session.DisposeAsync();
+
+        await second.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task FlushAsync_after_dispose_does_not_throw_and_does_not_write()
+    {
+        SeedState(StatePath, StateWithToken());
+        var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        await session.DisposeAsync();
+        _factory.Writes.Clear();
+        session.Mutate(e => e.MoveToken("t1", 55, 55));
+
+        var flush = async () => await session.FlushAsync();
+
+        await flush.Should().NotThrowAsync();
+        _factory.Writes.Should().BeEmpty();
+    }
+
+    // Escritor externo no atómico: deja el fichero con ese contenido y ese mtime, sin renombrar.
+    private void WriteExternallyInPlace(string path, string content, DateTime mtime)
+    {
+        File.WriteAllText(_vault.PathOf(path), content);
+        File.SetLastWriteTimeUtc(_vault.PathOf(path), mtime);
+    }
+
+    // Abre el mapa, escribe `content` en el sitio y espera a que la sesión haya intentado leerlo.
+    private async Task OpenAndWriteInPlaceAsync(string content, DateTime mtime)
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+        WriteExternallyInPlace(StatePath, content, mtime);
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.ReadsStarted) > reads);
+    }
+
+    // Avanza un reintento y espera a que conste que se ha vuelto a leer: el intento anterior ya terminó.
+    private async Task AdvanceOneRetryAsync()
+    {
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+        await WaitUntilAsync(() =>
+        {
+            _time.Advance(MapSession.ReloadRetryDelay);
+            return Volatile.Read(ref _factory.ReadsStarted) > reads;
+        });
+    }
+
+    // El retardo del reintento corre en el FakeTimeProvider: se avanza hasta que la condición se cumple.
+    private async Task PumpRetriesUntilAsync(Func<bool> condition) =>
+        await WaitUntilAsync(() =>
+        {
+            _time.Advance(MapSession.ReloadRetryDelay);
+            return condition();
+        });
+
+    [Fact]
+    public async Task Truncated_external_file_completed_later_with_the_same_mtime_is_reloaded_and_stays_writable()
+    {
+        var mtime = DateTime.UtcNow.AddMinutes(1);
+        await OpenAndWriteInPlaceAsync("", mtime);
+
+        WriteExternallyInPlace(StatePath, MapStateSerializer.Write(StateWithToken(x: 99)), mtime);
+        await PumpRetriesUntilAsync(() => _session.Editor!.State.Tokens is [{ X: 99 }]);
+
+        _session.IsReadOnly.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Invalid_read_during_an_external_reload_does_not_raise_Changed()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        var raised = 0;
+        _session.Changed += (_, _) => Interlocked.Increment(ref raised);
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+
+        WriteExternallyInPlace(StatePath, "", DateTime.UtcNow.AddMinutes(1));
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.ReadsStarted) > reads);
+        await AdvanceOneRetryAsync();
+
+        Volatile.Read(ref raised).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Invalid_read_during_an_external_reload_keeps_the_previous_state_and_stays_writable()
+    {
+        await OpenAndWriteInPlaceAsync("", DateTime.UtcNow.AddMinutes(1));
+        await AdvanceOneRetryAsync();
+
+        (_session.IsReadOnly, _session.Editor!.State.Tokens.Count).Should().Be((false, 1));
+    }
+
+    [Fact]
+    public async Task External_file_still_invalid_after_the_retries_leaves_the_map_read_only_with_a_notice()
+    {
+        await OpenAndWriteInPlaceAsync("{ no es json", DateTime.UtcNow.AddMinutes(1));
+
+        await PumpRetriesUntilAsync(() => _session.IsReadOnly);
+
+        _session.Notice.Should().Contain("no es válido");
+    }
+
+    [Fact]
+    public async Task External_file_with_a_newer_version_goes_read_only_without_waiting_for_retries()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        var future = MapStateSerializer.Write(StateWithToken()).Replace("\"version\":1", "\"version\":2");
+
+        WriteExternallyInPlace(StatePath, future, DateTime.UtcNow.AddMinutes(1));
+        await WaitUntilAsync(() => _session.IsReadOnly);
+
+        _session.Notice.Should().Contain("más nueva");
+    }
+
+    [Fact]
+    public async Task Closing_the_map_does_not_reread_on_the_pending_retries()
+    {
+        await OpenAndWriteInPlaceAsync("", DateTime.UtcNow.AddMinutes(1));
+        await _session.CloseAsync();
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+
+        _time.Advance(MapSession.ReloadRetryDelay * (MapSession.ReloadRetries + 1));
+        await Task.Delay(100);
+
+        Volatile.Read(ref _factory.ReadsStarted).Should().Be(reads);
+    }
+
+    [Fact]
+    public async Task A_later_valid_external_reload_is_not_reread_by_the_pending_retries_of_an_earlier_one()
+    {
+        await OpenAndWriteInPlaceAsync("", DateTime.UtcNow.AddMinutes(1));
+
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
+        await WaitUntilAsync(() => _session.Editor!.State.Tokens is [{ X: 99 }]);
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+        _time.Advance(MapSession.ReloadRetryDelay * (MapSession.ReloadRetries + 1));
+        await Task.Delay(200);
+
+        (Volatile.Read(ref _factory.ReadsStarted), _session.IsReadOnly).Should().Be((reads, false));
+    }
+
+    [Fact]
+    public async Task First_dispose_saves_pending_changes_and_the_second_does_not_write_again()
+    {
+        SeedState(StatePath, StateWithToken());
+        var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        _factory.Writes.Clear();
+        session.Mutate(e => e.MoveToken("t1", 55, 55));
+
+        await session.DisposeAsync();
+        var afterFirst = _factory.Writes.Count;
+        await session.DisposeAsync();
+
+        (afterFirst, _factory.Writes.Count).Should().Be((1, 1));
+    }
+
+    [Fact]
+    public async Task External_changes_after_dispose_are_not_read()
+    {
+        SeedState(StatePath, StateWithToken());
+        var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        await session.DisposeAsync();
+        // Sesión testigo: su recarga es la señal positiva de que el watcher ya despachó el cambio.
+        await _session.OpenAsync(MapNote);
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
+        await WaitUntilAsync(() => _session.Editor!.State.Tokens is [{ X: 99 }]);
+
+        Volatile.Read(ref _factory.ReadsStarted).Should().Be(reads + 1);
+    }
+
+    [Fact]
+    public async Task A_pending_retry_does_not_act_on_another_map_opened_meanwhile()
+    {
+        await OpenAndWriteInPlaceAsync("", DateTime.UtcNow.AddMinutes(1));
+        await AdvanceOneRetryAsync();
+        await AdvanceOneRetryAsync();
+        // Al reintento de A solo le queda el último intento, que aplicaría el fallo como solo lectura.
+        SeedState(OtherStatePath, StateWithToken());
+        await _session.OpenAsync(OtherNote);
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+        WriteExternallyInPlace(OtherStatePath, "", DateTime.UtcNow.AddMinutes(2));
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.ReadsStarted) > reads);
+
+        await AdvanceOneRetryAsync();
+        await Task.Delay(100);
+
+        (_session.IsReadOnly, _session.Editor!.State.Tokens.Count).Should().Be((false, 1));
+    }
+
+    [Fact]
+    public async Task Local_edit_with_a_pending_retry_wins_with_a_notice_and_overwrites_the_file()
+    {
+        await OpenAndWriteInPlaceAsync("", DateTime.UtcNow.AddMinutes(1));
+        _session.Mutate(e => e.MoveToken("t1", 77, 77));
+
+        await PumpRetriesUntilAsync(() => _session.Notice is not null);
+        _time.Advance(MapSession.SaveDelay);
+        await WaitUntilAsync(() => ReadFile(StatePath).Contains("77"));
+
+        (_session.IsReadOnly, _session.Editor!.State.Tokens is [{ X: 77 }]).Should().Be((false, true));
+    }
+
+    [Theory]
+    [InlineData(typeof(IOException))]
+    [InlineData(typeof(UnauthorizedAccessException))]
+    public async Task A_failing_read_during_an_external_reload_is_transient_and_recovers(Type failure)
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _factory.ReadFailure = (Exception)Activator.CreateInstance(failure, "lectura fallida (simulada)")!;
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.ReadsStarted) > reads);
+        await AdvanceOneRetryAsync();
+        var keptWhileFailing = (_session.IsReadOnly, _session.Editor!.State.Tokens is [{ X: 10 }]);
+        _factory.ReadFailure = null;
+        await PumpRetriesUntilAsync(() => _session.Editor!.State.Tokens is [{ X: 99 }]);
+
+        (keptWhileFailing, _session.IsReadOnly).Should().Be(((false, true), false));
+    }
+
+    [Fact]
+    public async Task Final_invalid_read_does_not_remember_the_mtime_so_the_completed_file_with_the_same_mtime_is_reloaded()
+    {
+        var mtime = DateTime.UtcNow.AddMinutes(1);
+        await OpenAndWriteInPlaceAsync("{ no es json", mtime);
+        await PumpRetriesUntilAsync(() => _session.IsReadOnly);
+
+        WriteExternallyInPlace(StatePath, MapStateSerializer.Write(StateWithToken(x: 99)), mtime);
+        await WaitUntilAsync(() => _session.Editor!.State.Tokens is [{ X: 99 }]);
+
+        _session.IsReadOnly.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task File_deleted_between_the_two_stats_of_a_reload_keeps_the_previous_state()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _factory.DeleteAfterNextStateStat = _vault.PathOf(StatePath);
+
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
+        await WaitUntilAsync(() => _factory.DeleteAfterNextStateStat is null);
+        await Task.Delay(100);
+
+        (_session.IsReadOnly, _session.Editor!.State.Tokens is [{ X: 10 }]).Should().Be((false, true));
+    }
+
+    [Fact]
+    public async Task Closing_the_container_after_the_session_is_disposed_does_not_abort_the_vault_switch()
+    {
+        var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        await session.DisposeAsync();
+
+        var switched = await _host.OpenAsync(_second.Root);
+
+        switched.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Dispose_during_a_slow_open_with_a_late_edit_finishes_and_saves_that_edit()
+    {
+        SeedState(StatePath, StateWithToken());
+        SeedState(OtherStatePath, StateWithToken());
+        var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        _factory.ReadDelay = TimeSpan.FromMilliseconds(500);
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+        var opening = session.OpenAsync(OtherNote);
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.ReadsStarted) > reads);
+
+        session.Mutate(e => e.MoveToken("t1", 77, 77));
+        var disposing = session.DisposeAsync().AsTask();
+        var both = Task.WhenAll(opening, disposing);
+        var finished = await Task.WhenAny(both, Task.Delay(TimeSpan.FromSeconds(5))) == both;
+
+        (finished, finished && ReadFile(StatePath).Contains("77")).Should().Be((true, true));
+    }
+
+    [Fact]
+    public async Task Mutate_after_dispose_changes_nothing_and_raises_no_Changed()
+    {
+        SeedState(StatePath, StateWithToken());
+        var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        await session.DisposeAsync();
+        var raised = 0;
+        session.Changed += (_, _) => raised++;
+
+        session.Mutate(e => e.MoveToken("t1", 55, 55));
+
+        (raised, session.Editor!.State.Tokens is [{ X: 10 }]).Should().Be((0, true));
+    }
+
     private static void WriteNote(TempVault vault, string path, string name)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(vault.PathOf(path))!);
@@ -103,6 +413,17 @@ public sealed class MapSessionTests : IAsyncLifetime
 
     private void SeedState(string path, MapState state) =>
         File.WriteAllText(_vault.PathOf(path), MapStateSerializer.Write(state));
+
+    // Cambio externo atómico, como el de Syncthing: contenido y mtime finales en un temporal y renombrado.
+    // Con WriteAllText + SetLastWriteTime el watcher puede leer el fichero truncado o con el mtime provisional.
+    private void ReplaceExternally(string path, MapState state)
+    {
+        var target = _vault.PathOf(path);
+        var temp = target + ".tmp";
+        File.WriteAllText(temp, MapStateSerializer.Write(state));
+        File.SetLastWriteTimeUtc(temp, DateTime.UtcNow.AddMinutes(1));
+        File.Move(temp, target, overwrite: true);
+    }
 
     private string ReadFile(string path) => File.ReadAllText(_vault.PathOf(path));
 
@@ -199,8 +520,7 @@ public sealed class MapSessionTests : IAsyncLifetime
         var raised = 0;
         _session.Changed += (_, _) => Interlocked.Increment(ref raised);
 
-        SeedState(StatePath, StateWithToken(x: 99));
-        File.SetLastWriteTimeUtc(_vault.PathOf(StatePath), DateTime.UtcNow.AddMinutes(1));
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
 
         // Changed se notifica tras soltar el gate, es decir, después de cambiar el Editor: se espera al evento, no solo al estado.
         await WaitUntilAsync(() => Volatile.Read(ref raised) > 0);
@@ -229,8 +549,7 @@ public sealed class MapSessionTests : IAsyncLifetime
         await _session.OpenAsync(MapNote);
         _session.Mutate(e => e.MoveToken("t1", 11, 11));
 
-        SeedState(StatePath, StateWithToken(x: 99));
-        File.SetLastWriteTimeUtc(_vault.PathOf(StatePath), DateTime.UtcNow.AddMinutes(1));
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
         await WaitUntilAsync(() => _session.Notice is not null);
         await _session.FlushAsync();
 
@@ -405,8 +724,7 @@ public sealed class MapSessionTests : IAsyncLifetime
         _factory.ReadDelay = TimeSpan.FromMilliseconds(600);
         var reads = _factory.ReadsStarted;
 
-        SeedState(StatePath, StateWithToken(x: 99));
-        File.SetLastWriteTimeUtc(_vault.PathOf(StatePath), DateTime.UtcNow.AddMinutes(1));
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
         await WaitUntilAsync(() => _factory.ReadsStarted > reads);
         _session.Mutate(e => e.MoveToken("t1", 12, 12));
         await WaitUntilAsync(() => _session.Notice is not null);
@@ -496,6 +814,8 @@ public sealed class MapSessionTests : IAsyncLifetime
         public int ReadsStarted;
         public volatile bool FailWrites;
         public volatile bool CrashWrites;
+        public volatile Exception? ReadFailure;
+        public volatile string? DeleteAfterNextStateStat;
 
         public VaultService Create(string rootPath) => new(
             new CountingStorage(new FileSystemVaultStorage(rootPath), this),
@@ -512,6 +832,7 @@ public sealed class MapSessionTests : IAsyncLifetime
             if (MapPaths.IsStateFile(p))
             {
                 Interlocked.Increment(ref owner.ReadsStarted);
+                if (owner.ReadFailure is { } failure) throw failure;
                 if (owner.ReadDelay > TimeSpan.Zero) await Task.Delay(owner.ReadDelay, ct);
             }
             return await inner.ReadAsync(p, ct);
@@ -519,7 +840,13 @@ public sealed class MapSessionTests : IAsyncLifetime
         public Task<byte[]> ReadBytesAsync(string p, CancellationToken ct = default) => inner.ReadBytesAsync(p, ct);
         public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> f, CancellationToken ct = default) => inner.ListFilesAsync(f, ct);
         public Task<Stream> OpenReadAsync(string p, CancellationToken ct = default) => inner.OpenReadAsync(p, ct);
-        public Task<VaultFileInfo?> StatAsync(string p, CancellationToken ct = default) => inner.StatAsync(p, ct);
+        public async Task<VaultFileInfo?> StatAsync(string p, CancellationToken ct = default)
+        {
+            var info = await inner.StatAsync(p, ct);
+            if (MapPaths.IsStateFile(p) && info is not null && Interlocked.Exchange(ref owner.DeleteAfterNextStateStat, null) is { } path)
+                File.Delete(path);
+            return info;
+        }
         public Task<WriteResult> WriteBytesAsync(string p, Stream c, WritePrecondition pre, CancellationToken ct = default) => inner.WriteBytesAsync(p, c, pre, ct);
         public Task<bool> MoveAsync(string a, string b, CancellationToken ct = default) => inner.MoveAsync(a, b, ct);
         public Task<IReadOnlyList<SyncConflict>> FindConflictsAsync(CancellationToken ct = default) => inner.FindConflictsAsync(ct);
