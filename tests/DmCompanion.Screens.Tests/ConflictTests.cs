@@ -213,11 +213,14 @@ public sealed class ConflictTests : BunitContext, IAsyncLifetime
         var cut = Render<DmShell>();
         cut.WaitForAssertion(() => cut.FindAll("button").First(b => b.TextContent.Trim() == "Revisar"), Timeout);
         await cut.InvokeAsync(() => Shell.OpenConflicts());
+        // El vault de ejemplo ya trae el conflicto de una nota, que va delante: se elige el del mapa en el desplegable.
+        cut.WaitForAssertion(() => Resolver(cut).TextContent.Should().Contain(CopyText), Timeout);
+        var select = Resolver(cut).QuerySelector("select")!;
+        select.Change(select.QuerySelectorAll("option").First(o => o.TextContent == State).GetAttribute("value"));
 
         cut.WaitForAssertion(() =>
         {
-            var texts = cut.FindAll(".ds-dialog").First(d => d.TextContent.Contains("Conflictos de sincronización"))
-                .QuerySelectorAll("section p").Select(p => p.TextContent).ToList();
+            var texts = Resolver(cut).QuerySelectorAll("section p").Select(p => p.TextContent).ToList();
             texts.Should().HaveCount(2);
             texts[0].Should().StartWith("1 token, 0 trazos, modificado el ");
             texts[1].Should().StartWith("0 tokens, 2 trazos, modificado el ");

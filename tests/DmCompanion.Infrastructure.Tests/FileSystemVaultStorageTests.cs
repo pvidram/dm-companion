@@ -324,6 +324,22 @@ public sealed class FileSystemVaultStorageTests : IDisposable
         (await _storage.FindConflictsAsync()).Should().Contain(new SyncConflict("Mapas/X.state.json", conflict));
     }
 
+    [Fact]
+    public async Task FindConflicts_returns_conflicts_ordered_by_path_regardless_of_file_system_order()
+    {
+        string[] created =
+        [
+            "Zona/Z.sync-conflict-20261112-101500-ABCDEF1.md",
+            "Mapas/X.sync-conflict-20261112-101500-ABCDEF1.state.json",
+            "Archivo/A.sync-conflict-20261112-101500-ABCDEF1.md",
+            "Mapas/B.sync-conflict-20261112-101500-ABCDEF1.state.json",
+        ];
+        foreach (var path in created) await _storage.WriteAsync(path, "{}", WritePrecondition.MustNotExist);
+
+        (await _storage.FindConflictsAsync()).Select(c => c.ConflictRelativePath)
+            .Should().BeInAscendingOrder(StringComparer.Ordinal);
+    }
+
     private bool TrySymlink(string link, string target, bool directory = false)
     {
         try
