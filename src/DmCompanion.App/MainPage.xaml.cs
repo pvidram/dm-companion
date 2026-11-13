@@ -11,6 +11,10 @@ public partial class MainPage : ContentPage
 		InitializeComponent();
 	}
 
+	// Los ficheros del vault (retratos, mapas) se sirven por /_vault/…; el resto de peticiones sigue su curso.
+	private void OnWebResourceRequested(object? sender, WebViewWebResourceRequestedEventArgs e) =>
+		Handler?.MauiContext?.Services.GetService<VaultFileRequestHandler>()?.Handle(e);
+
 	// El botón atrás de Android pasa por Blazor para respetar el texto sin guardar y los diálogos abiertos.
 	protected override bool OnBackButtonPressed()
 	{

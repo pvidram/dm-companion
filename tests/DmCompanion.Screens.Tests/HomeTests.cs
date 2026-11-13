@@ -28,8 +28,13 @@ public sealed class HomeTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IFolderBrowser, DirectoryBrowser>();
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
+        Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<MapSession>();
+        Services.AddSingleton<MapLibrary>();
+        Services.AddScoped<MapCanvasInterop>();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Task.CompletedTask;
@@ -141,7 +146,7 @@ public sealed class HomeTests : BunitContext, IAsyncLifetime
 
         var host = Services.GetRequiredService<VaultHost>();
         await cut.WaitForAssertionAsync(() => host.Current.Should().NotBeNull(), Timeout);
-        host.Current!.Index.Count.Should().Be(8);
+        host.Current!.Index.Count.Should().Be(11);
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Cambiar vault"), Timeout);
     }
 

@@ -1,0 +1,116 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Maps
+@using Microsoft.Extensions.Logging
+@inject MapLibrary Library
+@inject MapSession Session
+@inject ILogger<MapsPanel> Log
+
+<Parchment Title="Mapas" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Maps)"
+           OnClose="@(() => Shell.Toggle(OverlayPanel.Maps))">
+    <ChildContent>
+        @if (_catalog.Maps.Count == 0 && _catalog.OrphanImages.Count == 0)
+        {
+            <EmptyState Icon="IconName.Map" Title="Sin mapas">Crea un mapa en blanco o importa una imagen.</EmptyState>
+        }
+        @foreach (var map in _catalog.Maps)
+        {
+            var path = map.NotePath;
+            var name = map.Name;
+            <div class="maps-panel__row" data-testid="map-row">
+                <ListRow Icon="IconName.Map" IsSelected="@(Session.Current?.NotePath == path)" OnSelect="() => OpenAsync(path)">@name</ListRow>
+                <IconButton Icon="IconName.Pencil" Label="@($"Renombrar {name}")" OnClick="() => Shell.RequestMapName(MapNameMode.Rename, path, name)" />
+                <IconButton Icon="IconName.Trash2" Label="@($"Borrar {name}")" OnClick="() => Shell.RequestDeleteMap(path)" />
+            </div>
+        }
+        @if (_catalog.OrphanImages.Count > 0)
+        {
+            <h3>Imágenes sin mapa</h3>
+            @foreach (var image in _catalog.OrphanImages)
+            {
+                var imagePath = image;
+                <div class="maps-panel__row" data-testid="orphan-row">
+                    <span class="maps-panel__orphan">@imagePath</span>
+                    <Button OnClick="() => CreateFromImageAsync(imagePath)">Crear mapa</Button>
+                </div>
+            }
+        }
+        @if (_notice is { } notice)
+        {
+            <InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice>
+        }
+    </ChildContent>
+    <Actions>
+        <Button Icon="IconName.Plus" OnClick="() => Shell.RequestMapName(MapNameMode.NewBlank)">Nuevo mapa</Button>
+        <Button Icon="IconName.FileText" OnClick="() => Shell.RequestMapName(MapNameMode.NewFromImport)">Importar imagen</Button>
+    </Actions>
+</Parchment>
+
+@code {
+    private MapCatalog _catalog = new([], []);
+    private string? _notice;
+    private int _loadSequence;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Session.Changed += OnSessionChanged;
+        OnVaultChanged();
+    }
+
+    // El catálogo solo se relee con el panel abierto: listar imágenes recorre el vault.
+    protected override void OnVaultChanged()
+    {
+        if (Shell.ActivePanel == OverlayPanel.Maps) _ = ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var sequence = ++_loadSequence;
+        try
+        {
+            var catalog = await Library.LoadAsync();
+            await InvokeAsync(() =>
+            {
+                if (sequence != _loadSequence) return;
+                _catalog = catalog;
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras cargaba.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al cargar el catálogo de mapas ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    private async Task OpenAsync(string notePath)
+    {
+        await Session.OpenAsync(notePath);
+        if (Session.Current?.NotePath == notePath) Shell.ClosePanel(OverlayPanel.Maps);
+        else _notice = Session.Notice ?? "No se pudo abrir el mapa.";
+    }
+
+    private async Task CreateFromImageAsync(string imagePath)
+    {
+        var result = await Library.CreateFromImageAsync(imagePath);
+        if (result.Status == MapOpStatus.Ok && result.NotePath is { } notePath)
+        {
+            _notice = null;
+            await OpenAsync(notePath);
+        }
+        else _notice = result.ErrorText;
+    }
+
+    private void OnSessionChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged).ContinueWith(
+        task => Log.LogError("Fallo al repintar el panel de mapas ({ExceptionType}).", task.Exception?.GetBaseException().GetType().FullName),
+        TaskContinuationOptions.OnlyOnFaulted);
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        base.Dispose();
+    }
+}

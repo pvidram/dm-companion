@@ -1,0 +1,49 @@
+@inherits DmComponentBase
+@inject MapLibrary Library
+@inject MapSession Session
+
+<ConfirmDialog Title="Borrar mapa" Destructive="true" ConfirmText="Borrar"
+               Message="@DeleteMessage" IsOpen="@(Shell.DeletingMapPath is not null)"
+               OnConfirm="DeleteAsync" OnCancel="CancelDelete" />
+<ConfirmDialog Title="Descartar cambios del mapa" Destructive="true" ConfirmText="Descartar cambios"
+               Message="Los cambios del mapa que no se han podido guardar se perderán y el mapa se cerrará."
+               IsOpen="@Shell.DiscardingMap"
+               OnConfirm="DiscardAsync" OnCancel="Shell.CancelDiscardMap" />
+
+@code {
+    private string? _error;
+
+    private string DeleteMessage
+    {
+        get
+        {
+            var name = Shell.DeletingMapPath is { } path ? Index.Get(path)?.Title ?? path : string.Empty;
+            var message = $"¿Borrar el mapa «{name}»? Se borran su nota y sus tokens y trazos; la imagen se conserva.";
+            return _error is null ? message : $"{message} {_error}";
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (Shell.DeletingMapPath is not { } path) return;
+        var result = await Library.DeleteAsync(path);
+        if (result.Status == MapOpStatus.Ok)
+        {
+            _error = null;
+            Shell.CancelDeleteMap();
+        }
+        else _error = result.ErrorText;
+    }
+
+    private void CancelDelete()
+    {
+        _error = null;
+        Shell.CancelDeleteMap();
+    }
+
+    private async Task DiscardAsync()
+    {
+        await Session.DiscardAndCloseAsync();
+        Shell.CancelDiscardMap();
+    }
+}

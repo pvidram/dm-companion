@@ -38,7 +38,7 @@ public sealed class VaultHostTests : IAsyncLifetime
     {
         await _host.OpenAsync(_first.Root);
 
-        _host.Current!.Index.Count.Should().Be(8);
+        _host.Current!.Index.Count.Should().Be(11);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class VaultHostSwapTests : IAsyncLifetime
 
         opened.Should().BeFalse();
         _host.Current.Should().BeSameAs(previous);
-        previous!.Index.Count.Should().Be(8);
+        previous!.Index.Count.Should().Be(11);
     }
 
     [Fact]

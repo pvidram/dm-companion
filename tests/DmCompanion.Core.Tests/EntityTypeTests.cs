@@ -12,6 +12,7 @@ public class EntityTypeTests
     [InlineData("map", EntityType.Map)]
     [InlineData("rule", EntityType.Rule)]
     [InlineData("monster", EntityType.Monster)]
+    [InlineData("campaign", EntityType.Campaign)]
     [InlineData("note", EntityType.Note)]
     public void Parse_recognises_known_types_ignoring_case_and_spaces(string raw, EntityType expected) =>
         EntityTypes.Parse(raw).Should().Be(expected);

@@ -20,6 +20,39 @@
                     <dd>Notas: @Index.Count</dd>
                 </dl>
 
+                <h3>Campaña</h3>
+                <dl>
+                    <dt>Sistema activo</dt>
+                    <dd>@vault.ActiveSystem.DisplayName</dd>
+                    <dt>Nota de campaña</dt>
+                    <dd>@(vault.Campaign.CampaignPath ?? "sin nota de campaña")</dd>
+                </dl>
+                @if (vault.Campaign.DiscardedPaths.Count > 0)
+                {
+                    <p>Campañas descartadas:</p>
+                    <ul>
+                        @foreach (var path in vault.Campaign.DiscardedPaths)
+                        {
+                            <li>@path</li>
+                        }
+                    </ul>
+                }
+
+                <h3>Avisos de fichas</h3>
+                @if (SheetWarnings(vault).ToList() is { Count: > 0 } warnings)
+                {
+                    <ul>
+                        @foreach (var (path, warning) in warnings)
+                        {
+                            <li>@path: @warning</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p>Sin avisos.</p>
+                }
+
                 <h3>Conflictos de sincronización</h3>
                 @if (vault.Conflicts.Count == 0)
                 {
@@ -44,3 +77,12 @@
         </Parchment>
     </Overlays>
 </TableFrame>
+
+@code {
+    private static IEnumerable<(string Path, string Warning)> SheetWarnings(VaultService vault) =>
+        vault.Index.Entities
+            .Where(entity => entity.Type is EntityType.Pc or EntityType.Npc or EntityType.Monster)
+            .OrderBy(entity => entity.RelativePath, StringComparer.Ordinal)
+            .SelectMany(entity => vault.ActiveSystem.Evaluate(entity.Frontmatter).Warnings
+                .Select(warning => (entity.RelativePath, warning)));
+}

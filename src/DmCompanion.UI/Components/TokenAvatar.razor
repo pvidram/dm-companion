@@ -1,4 +1,4 @@
-<span class="ds-token ds-token--@FactionVisuals.CssModifier(Faction)">
+<span class="@CssClass">
     @if (string.IsNullOrWhiteSpace(PortraitUrl))
     {
         <span class="ds-token__initial" aria-hidden="true">@Initial</span>
@@ -7,6 +7,11 @@
     {
         <img class="ds-token__portrait" src="@PortraitUrl" alt="" />
     }
+    @if (IsHidden)
+    {
+        <span class="ds-token__hidden-badge"><Icon Name="IconName.EyeOff" /></span>
+        <span class="ds-visually-hidden">(oculto)</span>
+    }
 </span>
 
 @code {
@@ -14,6 +19,11 @@
     [Parameter, EditorRequired] public Faction Faction { get; set; }
     /// <summary>Retrato; sin él se muestra la inicial.</summary>
     [Parameter] public string? PortraitUrl { get; set; }
+    /// <summary>Oculto a los jugadores (solo vista DM): contenido atenuado e insignia EyeOff, no solo color. Igual que en Konva.</summary>
+    [Parameter] public bool IsHidden { get; set; }
+
+    private string CssClass =>
+        $"ds-token ds-token--{FactionVisuals.CssModifier(Faction)}" + (IsHidden ? " ds-token--hidden" : string.Empty);
 
     private string Initial =>
         Name.Trim() is { Length: > 0 } trimmed ? char.ToUpperInvariant(trimmed[0]).ToString() : "?";

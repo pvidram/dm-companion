@@ -46,4 +46,48 @@ public class VaultPathsTests
     [Fact]
     public void FileTitle_is_file_name_without_extension() =>
         VaultPaths.FileTitle("Historia/Sesión 1.md").Should().Be("Sesión 1");
+
+    [Theory]
+    [InlineData("Mapas/Cripta.md", "Mapas/Cripta.md")]
+    [InlineData("Historia/Sesión 1 - Llegada.md", "Historia/Sesión 1 - Llegada.md")]
+    [InlineData(@"Mapas\Cripta olvidada.png", "Mapas/Cripta olvidada.png")]
+    public void TryNormalizeSafe_accepts_relative_paths(string path, string expected)
+    {
+        VaultPaths.TryNormalizeSafe(path, out var normalized).Should().BeTrue();
+        normalized.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("/etc/passwd")]
+    [InlineData(@"\Mapas\x.png")]
+    [InlineData("../fuera.md")]
+    [InlineData("Mapas/../../x.png")]
+    [InlineData(@"Mapas/..\..\x.png")]
+    [InlineData("C:/Windows/x.png")]
+    [InlineData("Mapas/a:b.png")]
+    [InlineData(".obsidian/app.json")]
+    [InlineData("Mapas/.oculto/x.png")]
+    [InlineData("Mapas//x.png")]
+    [InlineData("Mapas/")]
+    public void TryNormalizeSafe_rejects_unsafe_paths(string? path) =>
+        VaultPaths.TryNormalizeSafe(path, out _).Should().BeFalse();
+
+    [Fact]
+    public void Conflict_of_a_double_extension_state_file_is_detected_and_resolved_to_its_original()
+    {
+        const string conflict = "Mapas/X.sync-conflict-20261112-101500-ABCDEF1.state.json";
+        VaultPaths.IsConflictFile(conflict).Should().BeTrue();
+        VaultPaths.GetConflictOriginal(conflict).Should().Be("Mapas/X.state.json");
+    }
+
+    [Fact]
+    public void Syncthing_conflict_of_a_state_file_uses_the_last_extension()
+    {
+        const string conflict = "Mapas/X.state.sync-conflict-20261112-101500-ABCDEF1.json";
+        VaultPaths.IsConflictFile(conflict).Should().BeTrue();
+        VaultPaths.GetConflictOriginal(conflict).Should().Be("Mapas/X.state.json");
+    }
 }

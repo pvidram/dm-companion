@@ -31,7 +31,7 @@ public sealed class DevHostSmokeTests : IDisposable
 
         var html = await client.GetStringAsync("/diag");
 
-        html.Should().Contain("Notas: 8");
+        html.Should().Contain("Notas: 11");
     }
 
     [Fact]

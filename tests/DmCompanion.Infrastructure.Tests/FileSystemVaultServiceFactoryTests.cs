@@ -15,7 +15,7 @@ public sealed class FileSystemVaultServiceFactoryTests : IDisposable
         await using var service = _factory.Create(_vault.Root);
         await service.LoadAsync();
 
-        service.Index.Count.Should().Be(8);
+        service.Index.Count.Should().Be(11);
     }
 
     [Fact]

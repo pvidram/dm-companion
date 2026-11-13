@@ -1,6 +1,6 @@
 namespace DmCompanion.Core.Vault;
 
-public enum EntityType { Note, Session, Pc, Npc, Location, Map, Rule, Monster }
+public enum EntityType { Note, Session, Pc, Npc, Location, Map, Rule, Monster, Campaign }
 
 public static class EntityTypes
 {

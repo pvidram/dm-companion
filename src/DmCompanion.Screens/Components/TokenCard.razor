@@ -1,0 +1,319 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.GameSystems
+@using DmCompanion.Core.Maps
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject ILogger<TokenCard> Log
+
+<QuickCard Title="@(_token?.Name ?? string.Empty)" Faction="@(_token is null ? null : TokenSideMapping.ToFaction(_token.Side))"
+           X="@(Shell.TokenCard?.X ?? 0)" Y="@(Shell.TokenCard?.Y ?? 0)" IsOpen="@(_token is not null)" OnClose="Shell.CloseTokenCard">
+    @if (_token is { } token)
+    {
+        <p data-testid="token-side">@FactionVisuals.Label(TokenSideMapping.ToFaction(token.Side))</p>
+        @if (_editing)
+        {
+            <Select TValue="TokenSide" Label="Bando" @bind-Value="_side" Options="Sides" LabelOf="SideLabel" />
+            <Select TValue="int" Label="Tamaño" @bind-Value="_size" Options="Sizes" LabelOf="SizeLabel" />
+            @if (token.Source is null)
+            {
+                <TextField Label="Nombre" @bind-Value="_name" />
+                <TextField Label="AC (opcional)" @bind-Value="_ac" />
+                <TextField Label="HP (opcional)" @bind-Value="_hp" />
+            }
+            <div class="token-card__actions">
+                <Button Variant="ButtonVariant.Primary" Disabled="@(!CanSave(token))" OnClick="Save">Guardar</Button>
+                <Button OnClick="@(() => _editing = false)">Cancelar</Button>
+            </div>
+        }
+        else
+        {
+            @if (token.Source is { } source)
+            {
+                @if (Index.Get(source) is { } entity)
+                {
+                    var values = ActiveSystem.Evaluate(entity.Frontmatter);
+                    @HpRow(token, ActiveSystem.HitPoints.Label, ActiveSystem.HitPoints.Max(values))
+                    <div class="ds-stats" data-testid="token-stats">
+                        @foreach (var stat in QuickStats(values))
+                        {
+                            var value = values.ById[stat.Id];
+                            <div title="@(value.Source == StatSource.Missing ? value.Reason : null)">
+                                <StatBadge Label="@stat.Label" Value="@value.Display" />
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <InlineNotice Kind="NoticeKind.Warning">Nota no encontrada</InlineNotice>
+                }
+            }
+            else
+            {
+                @HpRow(token, GenericSystemRule.Label, token.Hp)
+                <div class="ds-stats" data-testid="token-stats">
+                    <StatBadge Label="AC" Value="@Text(token.Ac)" />
+                </div>
+            }
+            <div class="token-card__actions">
+                @if (token.Source is { } note && Index.Get(note) is { } target)
+                {
+                    <Button Icon="IconName.ScrollText" OnClick="@(() => SeeMore(target))">Ver más</Button>
+                }
+                @if (!Session.IsReadOnly)
+                {
+                    <Button Icon="IconName.Pencil" OnClick="@(() => StartEdit(token))">Editar</Button>
+                    <Button Variant="ButtonVariant.Damage" Icon="IconName.Trash2" OnClick="Remove">Quitar del mapa</Button>
+                }
+            </div>
+        }
+    }
+</QuickCard>
+
+@code {
+    // El genérico no depende del sistema activo: su máximo es su propio hp.
+    private static readonly HitPointsRule GenericSystemRule = new GenericSystem("generic").HitPoints;
+    private static readonly IReadOnlyList<TokenSide> Sides = [TokenSide.Pc, TokenSide.Ally, TokenSide.Enemy];
+    private static readonly IReadOnlyList<int> Sizes = [1, 2, 3];
+
+    private MapToken? _token;
+    private string? _editingTokenId;
+    private bool _editing;
+    private TokenSide _side;
+    private int _size;
+    private string _name = string.Empty;
+    private string _ac = string.Empty;
+    private string _hp = string.Empty;
+
+    private bool _editingHp;
+    private bool _focusHpInput;
+    private string _hpText = string.Empty;
+    private string? _hpNotice;
+    private ElementReference _hpInput;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Session.Changed += OnSessionChanged;
+        Canvas.TokenTapped += OnTokenTapped;
+        Sync();
+    }
+
+    // La tarjeta sigue al token por id: si cambia el estado del mapa, sus datos se releen en cada pintado.
+    protected override void OnVaultChanged() => Sync();
+
+    private void Sync()
+    {
+        _token = Shell.TokenCard is { } request ? Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == request.TokenId) : null;
+        if (_token is null || _token.Id != _editingTokenId) (_editing, _editingHp, _hpNotice) = (false, false, null);
+        _editingTokenId = _token?.Id;
+    }
+
+    private void OnSessionChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                Sync();
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar la tarjeta del token ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    // Llega desde JS (hilo de Blazor o no): se vuelve al dispatcher y se observa la tarea.
+    private void OnTokenTapped(object? sender, TokenTappedEventArgs e) => _ = OpenAsync(e);
+
+    private async Task OpenAsync(TokenTappedEventArgs tap)
+    {
+        try
+        {
+            var area = await Canvas.HostRectAsync();
+            await InvokeAsync(() =>
+            {
+                if (Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == tap.Id) is not { } token) return;
+                var (relX, relY) = area is { } r ? (tap.ScreenX - r.Left, tap.ScreenY - r.Top) : (tap.ScreenX, tap.ScreenY);
+                var (x, y) = area is { } a ? TokenPlacement.CardPositionNear(relX, relY, a.Width, a.Height) : (relX, relY);
+                Shell.OpenTokenCard(new TokenCardRequest(token.Id, x, y));
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el toque.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al abrir la tarjeta del token ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    private IGameSystem ActiveSystem => Host.Current?.ActiveSystem ?? GameSystemRegistry.Default.Get("dnd5e");
+
+    // Stats con ShowInQuickCard del sistema activo, en el orden del sistema. La de vida va aparte, en la fila editable.
+    private IEnumerable<StatDefinition> QuickStats(StatValues values) =>
+        ActiveSystem.Definition.Stats
+            .Where(s => s.ShowInQuickCard && s.Id != ActiveSystem.HitPoints.StatId && values.ById.ContainsKey(s.Id))
+            .ToList();
+
+    // Valor mostrado: el actual guardado (o el máximo si no hay) nunca por encima del máximo vigente.
+    private static int ShownHp(MapToken token, int max) => Math.Min(token.HpCurrent ?? max, max);
+
+    private RenderFragment HpRow(MapToken token, string label, int? max) => @<div>
+        <div class="token-card__hp" data-testid="token-hp">
+            <span class="token-card__hp-label">@label</span>@(" ")
+            @if (max is not { } maximum)
+            {
+                <span class="ds-numeric">@StatFormat.Dash</span>
+            }
+            else if (_editingHp && !Session.IsReadOnly)
+            {
+                <input @ref="_hpInput" class="ds-field__input ds-numeric token-card__hp-input" type="text" inputmode="decimal" autocomplete="off"
+                       aria-label="@($"{label} actuales: número, o con + o − para sumar o restar")" placeholder="@ShownHp(token, maximum)"
+                       data-testid="token-hp-input" value="@_hpText" @oninput="OnHpInput"
+                       @onkeydown="@(e => OnHpKeyDown(e, token, maximum))" @onkeydown:stopPropagation="true" @onblur="@(() => ApplyHp(token, maximum))" />
+            }
+            else if (Session.IsReadOnly)
+            {
+                <span class="ds-numeric" data-testid="token-hp-value">@ShownHp(token, maximum)</span>
+            }
+            else
+            {
+                <button type="button" class="token-card__hp-value ds-numeric" data-testid="token-hp-value" @onclick="StartHpEdit">@ShownHp(token, maximum)</button>
+            }
+            @if (max is { } total)
+            {
+                @(" ")<span class="ds-numeric">/ @total</span>
+            }
+        </div>
+        @if (_hpNotice is { } notice)
+        {
+            <div data-testid="token-hp-notice"><InlineNotice Kind="NoticeKind.Warning">@notice</InlineNotice></div>
+        }
+    </div>;
+
+    private void StartHpEdit()
+    {
+        if (Session.IsReadOnly) return;
+        (_editingHp, _focusHpInput, _hpText, _hpNotice) = (true, true, string.Empty, null);
+    }
+
+    private void OnHpInput(ChangeEventArgs e) => _hpText = e.Value?.ToString() ?? string.Empty;
+
+    // stopPropagation: QuickCard cierra la tarjeta con Esc, y aquí Esc solo cancela la edición.
+    private void OnHpKeyDown(KeyboardEventArgs e, MapToken token, int max)
+    {
+        if (e.Key == "Enter") ApplyHp(token, max);
+        else if (e.Key == "Escape") _editingHp = false;
+    }
+
+    // Enter y perder el foco llegan los dos: con _editingHp ya en false (Esc, o Enter seguido de blur) no se aplica dos veces.
+    private void ApplyHp(MapToken token, int max)
+    {
+        if (!_editingHp) return;
+        _editingHp = false;
+        if (string.IsNullOrWhiteSpace(_hpText)) return;
+        // El token se relee dentro del Mutate: una recarga externa puede haber cambiado sus HP entre el render y el Enter.
+        var text = _hpText;
+        var invalid = false;
+        Session.Mutate(editor =>
+        {
+            var current = editor.State.Tokens.FirstOrDefault(t => t.Id == token.Id);
+            if (current is null) return false;
+            var result = HpEntry.Apply(ShownHp(current, max), max, text);
+            if (!result.Ok)
+            {
+                invalid = true;
+                return false;
+            }
+
+            return editor.SetHp(token.Id, result.Value, max);
+        });
+        if (invalid) _hpNotice = "Escribe un número, o con + o − para sumar o restar.";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusHpInput) return;
+        _focusHpInput = false;
+        try
+        {
+            await _hpInput.FocusAsync();
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or ObjectDisposedException)
+        {
+            // Sin foco la entrada sigue funcionando: solo hay que tocar el campo.
+        }
+    }
+
+    private static string Text(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? StatFormat.Dash;
+
+    private static string SideLabel(TokenSide side) => FactionVisuals.Label(TokenSideMapping.ToFaction(side));
+
+    private static string SizeLabel(int size) => $"{size}×{size}";
+
+    private static bool TryParseStat(string text, out int? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        if (!int.TryParse(text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)) return false;
+        value = parsed;
+        return true;
+    }
+
+    private bool CanSave(MapToken token) =>
+        token.Source is not null || (!string.IsNullOrWhiteSpace(_name) && TryParseStat(_ac, out _) && TryParseStat(_hp, out _));
+
+    private void StartEdit(MapToken token)
+    {
+        (_side, _size) = (token.Side, token.Size);
+        (_name, _ac, _hp) = (token.Name, token.Ac?.ToString(CultureInfo.InvariantCulture) ?? string.Empty, token.Hp?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+        _editing = true;
+    }
+
+    private void Save()
+    {
+        if (_token is not { } token || !CanSave(token)) return;
+        TryParseStat(_ac, out var ac);
+        TryParseStat(_hp, out var hp);
+        var edit = new TokenEdit(_side, _size, token.Source is null ? _name.Trim() : null, ac, hp);
+        Session.Mutate(editor => editor.UpdateToken(token.Id, edit));
+        _editing = false;
+    }
+
+    private void Remove()
+    {
+        if (_token is not { } token) return;
+        Session.Mutate(editor => editor.RemoveToken(token.Id));
+        Shell.CloseTokenCard();
+    }
+
+    private void SeeMore(VaultEntity entity)
+    {
+        Shell.CloseTokenCard();
+        if (entity.Type == EntityType.Pc)
+        {
+            Shell.SelectPc(entity.RelativePath);
+            if (Shell.ActivePanel != OverlayPanel.Players) Shell.Toggle(OverlayPanel.Players);
+        }
+        else _ = Shell.RequestOpenNote(entity.RelativePath);
+    }
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Canvas.TokenTapped -= OnTokenTapped;
+        base.Dispose();
+    }
+}

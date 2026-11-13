@@ -28,3 +28,17 @@
 /* Capa a toda el área del mapa: para el lienzo de Konva o marcadores de posición. */
 .ds-frame__layer { position: absolute; inset: 0; }
 .ds-frame__layer--placeholder { background-color: var(--surface-sheet-sunken); }
+
+/* Barra flotante del mapa: madera sobre el mapa (z 5), por debajo de pergaminos y tarjetas. */
+.ds-map-toolbar {
+    position: absolute; top: var(--space-4); z-index: var(--z-toolbar);
+    display: flex; flex-direction: column; gap: var(--space-2);
+    max-height: calc(100% - 2 * var(--space-4)); overflow-y: auto;
+    padding: var(--space-1);
+    background-color: var(--surface-frame-raised); border: 1px solid var(--border-frame);
+    border-radius: var(--radius-control); box-shadow: var(--elevation-1);
+}
+.ds-map-toolbar--right { right: var(--space-4); }
+.ds-map-toolbar--left { left: var(--space-4); }
+.ds-map-toolbar__group { display: flex; flex-direction: column; gap: var(--space-1); }
+.ds-map-toolbar__group + .ds-map-toolbar__group { padding-top: var(--space-2); border-top: 1px solid var(--border-frame); }

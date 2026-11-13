@@ -39,7 +39,7 @@ public sealed class DevVaultSeederTests : IAsyncLifetime
 
         await seeder.StartAsync();
 
-        host.Current!.Index.Count.Should().Be(8);
+        host.Current!.Index.Count.Should().Be(11);
     }
 
     [Fact]

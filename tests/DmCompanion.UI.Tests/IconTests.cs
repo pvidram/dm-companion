@@ -12,9 +12,13 @@ public class IconTests : UiTestContext
     public void Every_icon_name_has_its_svg_packaged(IconName name) =>
         File.Exists(UiAssets.PathOf("icons/" + IconFiles.FileName(name))).Should().BeTrue();
 
-    [Fact]
-    public void File_name_is_the_kebab_case_of_the_icon_name() =>
-        IconFiles.FileName(IconName.ScrollText).Should().Be("scroll-text.svg");
+    [Theory]
+    [InlineData(IconName.ScrollText, "scroll-text.svg")]
+    [InlineData(IconName.Trash2, "trash-2.svg")]
+    [InlineData(IconName.Undo2, "undo-2.svg")]
+    [InlineData(IconName.Grid3X3, "grid-3-x-3.svg")]
+    public void File_name_is_the_kebab_case_of_the_icon_name(IconName name, string expected) =>
+        IconFiles.FileName(name).Should().Be(expected);
 
     [Fact]
     public void Icon_points_its_mask_at_the_packaged_svg()

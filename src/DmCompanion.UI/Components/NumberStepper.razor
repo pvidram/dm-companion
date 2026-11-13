@@ -1,0 +1,73 @@
+@using System.Globalization
+
+<div @attributes="AdditionalAttributes" class="@CssClass" role="group" aria-labelledby="@_labelId">
+    <span id="@_labelId" class="ds-field__label">@Label</span>
+    <div class="ds-stepper__controls">
+        <IconButton Icon="IconName.Minus" Label="@($"Disminuir {Label}")" Combat="true" Disabled="AtMin" OnClick="DecrementAsync" />
+        <input @key="_inputKey" class="ds-field__input ds-stepper__input ds-numeric" type="text" inputmode="decimal"
+               aria-label="@AccessibleName" value="@Format(Value)" @onchange="OnChangeAsync" />
+        @if (Unit is not null)
+        {
+            <span class="ds-stepper__unit" aria-hidden="true">@Unit</span>
+        }
+        <IconButton Icon="IconName.Plus" Label="@($"Aumentar {Label}")" Combat="true" Disabled="AtMax" OnClick="IncrementAsync" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public double Value { get; set; }
+    /// <summary>Recibe el valor ya redondeado a Decimals y limitado a [Min, Max]. Permite @bind-Value.</summary>
+    [Parameter] public EventCallback<double> ValueChanged { get; set; }
+    [Parameter] public double Step { get; set; } = 1;
+    /// <summary>Decimales que se muestran y a los que se redondea (AwayFromZero).</summary>
+    [Parameter] public int Decimals { get; set; }
+    [Parameter] public double? Min { get; set; }
+    [Parameter] public double? Max { get; set; }
+    /// <summary>Unidad que se muestra tras el campo (p. ej. «px»); se añade al nombre accesible.</summary>
+    [Parameter] public string? Unit { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el elemento raíz. Los que fija el componente (role, aria-*) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private readonly string _labelId = $"ds-stepper-{Guid.NewGuid():N}";
+    private int _inputKey;
+
+    private bool AtMin => Min is { } min && Value <= min;
+    private bool AtMax => Max is { } max && Value >= max;
+    private string AccessibleName => Unit is null ? Label : $"{Label} ({Unit})";
+    private string CssClass => AttributeMerge.Class("ds-stepper", AdditionalAttributes);
+
+    private string Format(double value) =>
+        NoNegativeZero(Math.Round(value, Decimals, MidpointRounding.AwayFromZero))
+            .ToString("F" + Decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+
+    // -0 se formatea como «-0»: se normaliza a +0.
+    private static double NoNegativeZero(double value) => value == 0 ? 0 : value;
+
+    // En decimal: 70.2 + 0.1 en double da 70.30000000000001.
+    private Task DecrementAsync() => ValueChanged.InvokeAsync(Normalize((decimal)Value - (decimal)Step));
+    private Task IncrementAsync() => ValueChanged.InvokeAsync(Normalize((decimal)Value + (decimal)Step));
+
+    private async Task OnChangeAsync(ChangeEventArgs args)
+    {
+        var raw = args.Value?.ToString() ?? string.Empty;
+        if (decimal.TryParse(raw.Trim().Replace(',', '.'), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out var typed))
+        {
+            var normalized = Normalize(typed);
+            await ValueChanged.InvokeAsync(normalized);
+            if (Format(normalized) == raw) return;
+        }
+        // Si el valor renderizado no cambia, Blazor no toca el DOM y el campo conservaría lo tecleado: se recrea el input.
+        _inputKey++;
+    }
+
+    private double Normalize(decimal value)
+    {
+        var rounded = (double)Math.Round(value, Decimals, MidpointRounding.AwayFromZero);
+        if (Min is { } min && rounded < min) return min;
+        if (Max is { } max && rounded > max) return max;
+        return NoNegativeZero(rounded);
+    }
+}

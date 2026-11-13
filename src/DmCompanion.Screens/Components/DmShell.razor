@@ -1,4 +1,5 @@
 @inherits DmComponentBase
+@inject MapSession Maps
 
 <TableFrame>
     <Rail>
@@ -6,6 +7,8 @@
                     OnToggle="@(() => Shell.Toggle(OverlayPanel.Players))" />
         <RailButton Icon="IconName.ScrollText" Label="Notas" IsPressed="@(Shell.ActivePanel == OverlayPanel.Notes)"
                     OnToggle="@(() => Shell.Toggle(OverlayPanel.Notes))" />
+        <RailButton Icon="IconName.Map" Label="Mapas" IsPressed="@(Shell.ActivePanel == OverlayPanel.Maps)"
+                    OnToggle="@(() => Shell.Toggle(OverlayPanel.Maps))" />
         <RailButton Icon="IconName.FolderOpen" Label="Cambiar vault" OnToggle="ForgetAsync" />
     </Rail>
     <Strip>
@@ -18,20 +21,31 @@
         }
     </Strip>
     <Map>
-        <div class="ds-frame__layer ds-frame__layer--placeholder">El mapa llegará en la fase 2</div>
+        <MapCanvas OnAddToken="Shell.OpenAddToken" />
     </Map>
     <Overlays>
         <NotesPanel />
         <PlayersPanel />
+        <TokenCard />
+        <MapsPanel />
     </Overlays>
     <Dialogs>
         <NewNoteDialog />
+        <MapNameDialog />
+        <MapConfirmDialogs />
         <ConflictResolver />
+        <AddTokenDialog />
         <EditorDialogs />
     </Dialogs>
 </TableFrame>
 
 @code {
+    // Al entrar en el shell se recupera el último mapa del vault (si hay uno recordado y aún no hay otro abierto).
+    protected override async Task OnInitializedAsync()
+    {
+        if (Maps.Current is null) await Maps.OpenLastAsync();
+    }
+
     private static string ConflictText(int count) =>
         count == 1 ? "1 conflicto de sincronización" : $"{count} conflictos de sincronización";
 

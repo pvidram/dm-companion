@@ -1,4 +1,5 @@
 using System.Text;
+using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
 
@@ -20,7 +21,7 @@ public sealed class FileSystemVaultStorage : IVaultStorage
 
     public Task<IReadOnlyList<VaultFile>> ListMarkdownFilesAsync(CancellationToken ct = default) =>
         Task.Run<IReadOnlyList<VaultFile>>(() => EnumerateRelativePaths()
-            .Where(VaultPaths.IsIndexable)
+            .Where(path => VaultPaths.IsIndexable(path) && IsSafe(path))
             .Select(path => new VaultFile(path, File.GetLastWriteTimeUtc(ToFullPath(path))))
             .ToList(), ct);
 
@@ -33,6 +34,21 @@ public sealed class FileSystemVaultStorage : IVaultStorage
         return new VaultFileContent(VaultPaths.Normalize(relativePath), content, lastWrite);
     }
 
+    public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> predicate, CancellationToken ct = default) =>
+        Task.Run<IReadOnlyList<VaultFile>>(() => EnumerateRelativePaths()
+            .Where(path => IsSafe(path) && predicate(path))
+            .Select(path => new VaultFile(path, File.GetLastWriteTimeUtc(ToFullPath(path))))
+            .ToList(), ct);
+
+    public Task<Stream> OpenReadAsync(string relativePath, CancellationToken ct = default) =>
+        Task.FromResult<Stream>(new FileStream(ToFullPath(relativePath), new FileStreamOptions
+        {
+            Mode = FileMode.Open,
+            Access = FileAccess.Read,
+            Share = FileShare.ReadWrite | FileShare.Delete,
+            Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+        }));
+
     public Task<byte[]> ReadBytesAsync(string relativePath, CancellationToken ct = default) =>
         File.ReadAllBytesAsync(ToFullPath(relativePath), ct);
 
@@ -42,7 +58,59 @@ public sealed class FileSystemVaultStorage : IVaultStorage
         return Task.FromResult<VaultFileInfo?>(info.Exists ? new VaultFileInfo(info.Length, info.LastWriteTimeUtc) : null);
     }
 
-    public async Task<WriteResult> WriteAsync(string relativePath, string content, WritePrecondition precondition, CancellationToken ct = default)
+    public Task<WriteResult> WriteAsync(string relativePath, string content, WritePrecondition precondition, CancellationToken ct = default) =>
+        WriteAtomicAsync(relativePath, precondition, tempPath => File.WriteAllTextAsync(tempPath, content, Utf8NoBom, ct));
+
+    public Task<WriteResult> WriteBytesAsync(string relativePath, Stream content, WritePrecondition precondition, CancellationToken ct = default) =>
+        WriteAtomicAsync(relativePath, precondition, async tempPath =>
+        {
+            await using var target = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+            await content.CopyToAsync(target, ct);
+        });
+
+    public Task<bool> MoveAsync(string fromRelativePath, string toRelativePath, CancellationToken ct = default)
+    {
+        var from = ToFullPath(fromRelativePath);
+        var to = ToFullPath(toRelativePath);
+        if (string.Equals(from, to, StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult(from != to && MoveChangingCase(from, to));
+        if (File.Exists(to)) return Task.FromResult(false);
+        Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+        try
+        {
+            File.Move(from, to, overwrite: false);
+            return Task.FromResult(true);
+        }
+        catch (IOException) when (File.Exists(to))
+        {
+            return Task.FromResult(false);
+        }
+    }
+
+    // En un sistema que no distingue mayúsculas (Android /sdcard) origen y destino son el mismo fichero: se pasa por un nombre temporal.
+    // Si ya hay una entrada con el nombre exacto de destino, es otro fichero (sistema que sí las distingue) y no se toca.
+    private static bool MoveChangingCase(string from, string to)
+    {
+        var directory = Path.GetDirectoryName(to)!;
+        var targetName = Path.GetFileName(to);
+        if (Directory.EnumerateFileSystemEntries(directory).Any(entry => Path.GetFileName(entry) == targetName)) return false;
+
+        var temp = Path.Combine(directory, $".{targetName}.{Guid.NewGuid():N}.dmc.tmp");
+        File.Move(from, temp, overwrite: false);
+        try
+        {
+            File.Move(temp, to, overwrite: false);
+        }
+        catch
+        {
+            File.Move(temp, from, overwrite: false);
+            throw;
+        }
+        return true;
+    }
+
+    // Escritura atómica: Syncthing nunca ve un fichero a medio escribir. Nombre único para que escrituras concurrentes no colisionen.
+    private async Task<WriteResult> WriteAtomicAsync(string relativePath, WritePrecondition precondition, Func<string, Task> writeTemp)
     {
         var fullPath = ToFullPath(relativePath);
         var early = CheckPrecondition(fullPath, precondition);
@@ -50,11 +118,10 @@ public sealed class FileSystemVaultStorage : IVaultStorage
 
         var directory = Path.GetDirectoryName(fullPath)!;
         Directory.CreateDirectory(directory);
-        // Escritura atómica: Syncthing nunca ve un fichero a medio escribir. Nombre único para que escrituras concurrentes no colisionen.
         var tempPath = Path.Combine(directory, $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.dmc.tmp");
         try
         {
-            await File.WriteAllTextAsync(tempPath, content, Utf8NoBom, ct);
+            await writeTemp(tempPath);
 
             // Reevaluar justo antes de mover para estrechar la ventana de carrera.
             var late = CheckPrecondition(fullPath, precondition);
@@ -98,7 +165,8 @@ public sealed class FileSystemVaultStorage : IVaultStorage
 
     public Task<IReadOnlyList<SyncConflict>> FindConflictsAsync(CancellationToken ct = default) =>
         Task.Run<IReadOnlyList<SyncConflict>>(() => EnumerateRelativePaths()
-            .Where(path => VaultPaths.IsMarkdown(path) && !VaultPaths.IsExcluded(path) && VaultPaths.IsConflictFile(path))
+            .Where(path => (VaultPaths.IsMarkdown(path) || MapPaths.IsStateFile(VaultPaths.GetConflictOriginal(path)))
+                && !VaultPaths.IsExcluded(path) && VaultPaths.IsConflictFile(path) && IsSafe(path))
             .Select(path => new SyncConflict(VaultPaths.GetConflictOriginal(path), path))
             .ToList(), ct);
 
@@ -109,14 +177,35 @@ public sealed class FileSystemVaultStorage : IVaultStorage
     }
 
     private IEnumerable<string> EnumerateRelativePaths() =>
-        Directory.EnumerateFiles(RootPath, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
+        Directory.EnumerateFiles(RootPath, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint })
             .Select(fullPath => VaultPaths.Normalize(Path.GetRelativePath(RootPath, fullPath)));
 
+    // Toda operación pasa por aquí: ruta segura (sin «..», absolutas, «:» ni segmentos ocultos) y sin enlaces que salgan de la raíz.
     private string ToFullPath(string relativePath)
     {
-        var fullPath = Path.GetFullPath(Path.Combine(RootPath, VaultPaths.Normalize(relativePath)));
-        if (!fullPath.StartsWith(_rootWithSeparator, StringComparison.Ordinal))
-            throw new ArgumentException($"La ruta «{relativePath}» queda fuera del vault.", nameof(relativePath));
+        if (!VaultPaths.TryNormalizeSafe(relativePath, out var normalized) || !TryResolveConfined(normalized, out var fullPath))
+            throw new UnauthorizedAccessException($"La ruta «{relativePath}» no es válida o queda fuera del vault.");
         return fullPath;
     }
+
+    private bool TryResolveConfined(string normalizedPath, out string fullPath)
+    {
+        fullPath = Path.GetFullPath(Path.Combine(RootPath, normalizedPath));
+        if (!fullPath.StartsWith(_rootWithSeparator, StringComparison.Ordinal)) return false;
+
+        // Se rechaza cualquier enlace simbólico en cualquier tramo (carpetas intermedias y fichero final): resolver
+        // destinos no canoniza las carpetas intermedias y permite cadenas de enlaces que escapan del vault.
+        var current = RootPath;
+        foreach (var segment in normalizedPath.Split('/'))
+        {
+            current = Path.Combine(current, segment);
+            var info = new FileInfo(current);
+            // Primero el enlace (también si está colgante); un tramo que no existe no puede ser un enlace ni tener nada debajo.
+            if (info.LinkTarget is not null) return false;
+            if (!info.Exists && !Directory.Exists(current)) break;
+        }
+        return true;
+    }
+
+    private bool IsSafe(string path) => VaultPaths.TryNormalizeSafe(path, out var normalized) && TryResolveConfined(normalized, out _);
 }

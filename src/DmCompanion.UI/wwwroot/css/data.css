@@ -3,7 +3,11 @@
     padding: var(--space-1) var(--space-3); border-radius: var(--radius-control);
     background-color: var(--surface-sheet-sunken); color: var(--text-ink);
 }
-.ds-stat__label { font-size: var(--font-size-small); color: var(--text-ink-secondary); }
+.ds-stat__label {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    font-size: var(--font-size-small); color: var(--text-ink-secondary);
+}
+.ds-stat__manual { width: 0.9em; height: 0.9em; }
 .ds-stat__value { font-size: var(--font-size-h3); font-weight: 700; }
 
 .ds-hp { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
@@ -21,12 +25,14 @@
 @container parchment (min-width: 600px) {
     .ds-stats--split { grid-template-columns: 1fr 1fr; }
 }
+.ds-stats-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.ds-stats__heading { font-size: var(--font-size-h3); color: var(--text-ink); }
 
 /* Anillos por bando: continuo (PJ), discontinuo (aliado), doble (enemigo). Konva usa las mismas formas. */
 .ds-token {
     display: inline-grid; place-items: center; flex: none;
     width: calc(40px * var(--ui-scale)); height: calc(40px * var(--ui-scale));
-    border-radius: 50%; overflow: hidden;
+    position: relative; border-radius: 50%;
     background-color: var(--surface-sheet-sunken); color: var(--text-ink);
     font-family: var(--font-heading); font-weight: 600; font-size: var(--font-size-h3);
     outline: 1px solid var(--faction-outline-on-sheet); outline-offset: 0;
@@ -35,7 +41,16 @@
 .ds-token--pc { border: 3px solid var(--faction-pc); }
 .ds-token--ally { border: 3px dashed var(--faction-ally); }
 .ds-token--enemy { border: 6px double var(--faction-enemy); }
-.ds-token__portrait { width: 100%; height: 100%; object-fit: cover; }
+.ds-token__portrait { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+/* Oculto (vista DM): contenido atenuado e insignia con EyeOff; el anillo conserva forma y color. Konva pinta lo mismo. */
+.ds-token--hidden :is(.ds-token__portrait, .ds-token__initial) { opacity: var(--map-token-hidden-opacity); }
+.ds-token__hidden-badge {
+    position: absolute; right: -6px; bottom: -6px;
+    display: grid; place-items: center; width: 55%; height: 55%;
+    border-radius: 50%; background-color: var(--map-hidden-badge-bg); color: var(--map-hidden-badge-icon);
+    outline: 1px solid var(--faction-outline-on-wood);
+}
+.ds-token__hidden-badge .ds-icon { width: 70%; height: 70%; }
 
 .ds-initiative {
     display: inline-flex; align-items: center; gap: var(--space-1);

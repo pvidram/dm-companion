@@ -20,7 +20,7 @@ public sealed class PortraitUrlProviderTests : IAsyncLifetime
     public PortraitUrlProviderTests()
     {
         _host = new VaultHost(_factory, new InMemoryAppPreferences(), NullLogger<VaultHost>.Instance);
-        _provider = new PortraitUrlProvider(_host, _logger);
+        _provider = new PortraitUrlProvider(_host, new VaultFileUrls(_host), _logger);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -54,26 +54,40 @@ public sealed class PortraitUrlProviderTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Small_png_becomes_a_data_url()
+    public async Task Png_becomes_a_virtual_vault_url_with_the_modification_stamp()
+    {
+        var vault = await OpenVaultAsync(SmallPng);
+        var result = await _provider.GetAsync(Portrait);
+        var stamp = File.GetLastWriteTimeUtc(vault.PathOf(Portrait)).Ticks;
+        (result.Status, result.Url).Should().Be((PortraitStatus.Ok, $"/_vault/_assets/lyra.png?v={stamp}"));
+        _factory.ReadCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_two_megabyte_portrait_is_ok_and_is_not_inlined()
+    {
+        await OpenVaultAsync(new byte[2 * 1024 * 1024]);
+        var result = await _provider.GetAsync(Portrait);
+        result.Status.Should().Be(PortraitStatus.Ok);
+        result.Url.Should().StartWith("/_vault/").And.NotStartWith("data:");
+    }
+
+    [Fact]
+    public async Task Modification_time_changes_the_url()
+    {
+        var vault = await OpenVaultAsync(SmallPng);
+        var first = await _provider.GetAsync(Portrait);
+        File.SetLastWriteTimeUtc(vault.PathOf(Portrait), DateTime.UtcNow.AddMinutes(5));
+        var second = await _provider.GetAsync(Portrait);
+        second.Url.Should().NotBe(first.Url);
+    }
+
+    [Fact]
+    public async Task Leading_slash_is_normalized_instead_of_being_missing()
     {
         await OpenVaultAsync(SmallPng);
-        var result = await _provider.GetAsync(Portrait);
-        (result.Status, result.DataUrl).Should().Be((PortraitStatus.Ok, "data:image/png;base64," + Convert.ToBase64String(SmallPng)));
-    }
-
-    [Fact]
-    public async Task Oversized_file_is_too_large_and_its_bytes_are_never_read()
-    {
-        await OpenVaultAsync(new byte[512 * 1024 + 1]);
-        var result = await _provider.GetAsync(Portrait);
-        (result.Status, result.DataUrl, _factory.ReadCount).Should().Be((PortraitStatus.TooLarge, null, 0));
-    }
-
-    [Fact]
-    public async Task File_of_exactly_the_limit_is_accepted()
-    {
-        await OpenVaultAsync(new byte[512 * 1024]);
-        (await _provider.GetAsync(Portrait)).Status.Should().Be(PortraitStatus.Ok);
+        var result = await _provider.GetAsync("/" + Portrait);
+        (result.Status, result.Url).Should().Match<(PortraitStatus, string?)>(t => t.Item1 == PortraitStatus.Ok && t.Item2!.StartsWith("/_vault/_assets/lyra.png"));
     }
 
     [Fact]
@@ -91,17 +105,6 @@ public sealed class PortraitUrlProviderTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_rejected_path_is_logged_as_a_warning_and_returns_missing()
-    {
-        await OpenVaultAsync(SmallPng);
-        // Una ruta fuera del vault hace que el almacenamiento lance ArgumentException.
-        var result = await _provider.GetAsync("../fuera.png");
-
-        result.Status.Should().Be(PortraitStatus.Missing);
-        _logger.Warnings.Should().Be(1);
-    }
-
-    [Fact]
     public async Task Unknown_extension_is_missing()
     {
         var vault = await OpenVaultAsync(null);
@@ -113,55 +116,6 @@ public sealed class PortraitUrlProviderTests : IAsyncLifetime
     [Fact]
     public async Task Without_an_open_vault_it_is_missing() =>
         (await _provider.GetAsync(Portrait)).Status.Should().Be(PortraitStatus.Missing);
-
-    [Fact]
-    public async Task Second_call_without_changes_does_not_reread()
-    {
-        await OpenVaultAsync(SmallPng);
-        await _provider.GetAsync(Portrait);
-        await _provider.GetAsync(Portrait);
-        _factory.ReadCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task New_modification_time_rereads()
-    {
-        var vault = await OpenVaultAsync(SmallPng);
-        await _provider.GetAsync(Portrait);
-        byte[] changed = [0x89, 0x50, 9, 9];
-        WritePortrait(vault, changed);
-        File.SetLastWriteTimeUtc(vault.PathOf(Portrait), DateTime.UtcNow.AddMinutes(5));
-
-        var result = await _provider.GetAsync(Portrait);
-        (result.DataUrl, _factory.ReadCount).Should().Be(("data:image/png;base64," + Convert.ToBase64String(changed), 2));
-    }
-
-    [Fact]
-    public async Task Switching_vaults_never_returns_the_other_vaults_image()
-    {
-        byte[] other = [0x89, 0x50, 7, 7, 7];
-        await OpenVaultAsync(SmallPng);
-        var first = await _provider.GetAsync(Portrait);
-        var second = await OpenVaultAsync(other);
-        // Mismo mtime en ambos vaults: solo la raíz distingue las entradas de la caché.
-        File.SetLastWriteTimeUtc(second.PathOf(Portrait), File.GetLastWriteTimeUtc(_vaults[0].PathOf(Portrait)));
-        _ = first;
-
-        var result = await _provider.GetAsync(Portrait);
-        result.DataUrl.Should().Be("data:image/png;base64," + Convert.ToBase64String(other));
-    }
-
-    [Theory]
-    [InlineData("a.jpg", "image/jpeg")]
-    [InlineData("a.JPEG", "image/jpeg")]
-    [InlineData("a.webp", "image/webp")]
-    [InlineData("a.gif", "image/gif")]
-    public async Task Mime_type_follows_the_extension(string name, string mime)
-    {
-        var vault = await OpenVaultAsync(null);
-        File.WriteAllBytes(vault.PathOf(name), SmallPng);
-        (await _provider.GetAsync(name)).DataUrl.Should().StartWith($"data:{mime};base64,");
-    }
 
     private sealed class CountingFactory : IVaultServiceFactory
     {
@@ -194,6 +148,11 @@ public sealed class PortraitUrlProviderTests : IAsyncLifetime
         public Task<VaultFileInfo?> StatAsync(string relativePath, CancellationToken ct = default) => inner.StatAsync(relativePath, ct);
         public Task<WriteResult> WriteAsync(string relativePath, string content, WritePrecondition precondition, CancellationToken ct = default) =>
             inner.WriteAsync(relativePath, content, precondition, ct);
+        public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> predicate, CancellationToken ct = default) => inner.ListFilesAsync(predicate, ct);
+        public Task<Stream> OpenReadAsync(string relativePath, CancellationToken ct = default) => inner.OpenReadAsync(relativePath, ct);
+        public Task<WriteResult> WriteBytesAsync(string relativePath, Stream content, WritePrecondition precondition, CancellationToken ct = default) =>
+            inner.WriteBytesAsync(relativePath, content, precondition, ct);
+        public Task<bool> MoveAsync(string fromRelativePath, string toRelativePath, CancellationToken ct = default) => inner.MoveAsync(fromRelativePath, toRelativePath, ct);
         public Task<IReadOnlyList<SyncConflict>> FindConflictsAsync(CancellationToken ct = default) => inner.FindConflictsAsync(ct);
         public Task DeleteAsync(string relativePath, CancellationToken ct = default) => inner.DeleteAsync(relativePath, ct);
     }

@@ -19,6 +19,33 @@ public sealed class VaultHost(IVaultServiceFactory factory, IAppPreferences pref
 
     public event EventHandler? Changed;
 
+    // Handlers que deben terminar antes de cambiar o cerrar el vault (p. ej. guardar el mapa abierto).
+    private readonly List<Func<Task>> _beforeSwitch = [];
+
+    public void AddBeforeSwitch(Func<Task> handler)
+    {
+        lock (_beforeSwitch) _beforeSwitch.Add(handler);
+    }
+
+    private async Task RunBeforeSwitchAsync()
+    {
+        Func<Task>[] handlers;
+        lock (_beforeSwitch) handlers = [.. _beforeSwitch];
+        foreach (var handler in handlers)
+        {
+            try
+            {
+                await handler();
+            }
+            catch (Exception ex) when (ex is not MapSaveFailedException)
+            {
+                // Falla cerrado: si un handler (p. ej. el guardado del mapa) falla, no se cambia de vault. Solo el tipo, sin mensaje.
+                logger.LogError("Fallo un handler previo al cambio de vault ({ExceptionType}).", ex.GetType().FullName);
+                throw new MapSaveFailedException("No se pudo completar el cierre previo al cambio de vault.");
+            }
+        }
+    }
+
     // Serializa aperturas: dos toques seguidos no deben dejar un servicio huérfano.
     private readonly SemaphoreSlim _openGate = new(1, 1);
 
@@ -34,21 +61,32 @@ public sealed class VaultHost(IVaultServiceFactory factory, IAppPreferences pref
     private async Task<bool> OpenCoreAsync(string path, bool skipIfCurrent)
     {
         await _openGate.WaitAsync();
+        VaultService? pending = null;
         try
         {
             if (skipIfCurrent && Current is { } open && SamePath(open.RootPath, path)) return true;
             // Si Create o LoadAsync fallan, el nuevo servicio ya se ha limpiado solo (LoadAsync libera el watcher).
             var service = factory.Create(path);
+            pending = service;
             await service.LoadAsync();
             // Primero se asigna el nuevo y luego se libera el anterior (best-effort): un Dispose que
             // lance nunca deja Current a medias ni deja huérfano el watcher del nuevo.
+            await RunBeforeSwitchAsync();
             var previous = Current;
             service.Changed += OnServiceChanged;
             Current = service;
             LastError = null;
             preferences.Set(PathKey, path);
+            pending = null;
             await ReleaseAsync(previous);
             return true;
+        }
+        catch (MapSaveFailedException ex)
+        {
+            // Los cambios del mapa no se han podido guardar: el vault actual sigue abierto y el nuevo se libera.
+            await ReleaseAsync(pending);
+            LastError = $"No se cambia de vault: {ex.Message}";
+            return false;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -67,8 +105,13 @@ public sealed class VaultHost(IVaultServiceFactory factory, IAppPreferences pref
         await _openGate.WaitAsync();
         try
         {
+            await RunBeforeSwitchAsync();
             await CloseAsync();
             preferences.Remove(PathKey);
+        }
+        catch (MapSaveFailedException ex)
+        {
+            LastError = $"No se olvida el vault: {ex.Message}";
         }
         finally
         {
@@ -82,6 +125,15 @@ public sealed class VaultHost(IVaultServiceFactory factory, IAppPreferences pref
         await _openGate.WaitAsync();
         try
         {
+            try
+            {
+                await RunBeforeSwitchAsync();
+            }
+            catch (MapSaveFailedException ex)
+            {
+                // La app se cierra: no hay donde avisar; el fallo queda en el log.
+                logger.LogError("No se pudo guardar el mapa al cerrar ({ExceptionType}).", ex.GetType().FullName);
+            }
             await CloseAsync();
         }
         finally

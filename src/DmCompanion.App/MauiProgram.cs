@@ -22,9 +22,15 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IStorageAccess, AndroidStorageAccess>();
 		builder.Services.AddSingleton<IAppPreferences, MauiAppPreferences>();
 		builder.Services.AddSingleton<VaultHost>();
+		builder.Services.AddSingleton<MapSession>();
+		builder.Services.AddSingleton<MapLibrary>();
+		builder.Services.AddSingleton<IImagePicker, MauiImagePicker>();
 		builder.Services.AddScoped<ShellState>();
 		builder.Services.AddScoped<WikilinkInterop>();
+		builder.Services.AddScoped<MapCanvasInterop>();
 		builder.Services.AddScoped<BackNavigation>();
+		builder.Services.AddSingleton<VaultFileUrls>();
+		builder.Services.AddSingleton<VaultFileRequestHandler>();
 		builder.Services.AddSingleton<PortraitUrlProvider>();
 
 		// Release también necesita sink: sin él los errores no llegan a `adb logcat -s DmCompanion`.

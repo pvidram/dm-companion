@@ -26,3 +26,34 @@
 @media (hover: hover) {
     .ds-list-row:hover:not([aria-current="true"]) { background-color: var(--surface-sheet-raised); }
 }
+
+/* Casilla: input nativo transparente sobre toda la etiqueta (objetivo ≥ 48 px). La marca es una forma (✓), no solo color. */
+.ds-checkbox {
+    position: relative; display: inline-flex; align-items: center; gap: var(--space-3);
+    min-height: var(--touch-min); color: var(--text-ink); cursor: pointer;
+}
+.ds-checkbox__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+.ds-checkbox__box {
+    position: relative; flex: none; width: 24px; height: 24px;
+    border: 2px solid var(--text-ink-secondary); border-radius: 4px; background-color: var(--surface-sheet-raised);
+}
+.ds-checkbox__input:checked + .ds-checkbox__box { background-color: var(--accent-on-sheet); border-color: var(--accent-on-sheet); }
+.ds-checkbox__input:checked + .ds-checkbox__box::after {
+    content: ""; position: absolute; left: 6px; top: 1px; width: 7px; height: 13px;
+    border: solid var(--button-text-on-fill); border-width: 0 3px 3px 0; transform: rotate(45deg);
+}
+.ds-checkbox__input:focus-visible + .ds-checkbox__box { outline: 3px solid var(--accent-on-sheet); outline-offset: 2px; }
+.ds-checkbox:has(.ds-checkbox__input:disabled) { cursor: not-allowed; opacity: 0.6; }
+
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-checkbox { color: var(--text-on-wood); }
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-checkbox__box { border-color: var(--text-on-wood); background-color: transparent; }
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-checkbox__input:checked + .ds-checkbox__box { background-color: var(--accent-on-wood); border-color: var(--accent-on-wood); }
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-checkbox__input:checked + .ds-checkbox__box::after { border-color: var(--text-ink); }
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-checkbox__input:focus-visible + .ds-checkbox__box { outline-color: var(--accent-on-wood); }
+
+/* Stepper: ± de 56 px a los lados de un campo numérico corto. */
+.ds-stepper { display: flex; flex-direction: column; gap: var(--space-1); color: var(--text-ink); }
+.ds-stepper__controls { display: flex; align-items: center; gap: var(--space-2); }
+.ds-stepper__input { width: 8ch; min-height: var(--touch-combat); text-align: center; }
+.ds-stepper__unit { color: var(--text-ink-secondary); font-size: var(--font-size-small); }
+.ds-stepper .ds-icon-button { border-color: var(--text-ink-secondary); }

@@ -1,0 +1,150 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Maps
+@using Microsoft.Extensions.Logging
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject ILogger<MapControls> Log
+
+@if (Session.Editor is { } editor)
+{
+    var grid = editor.State.Grid;
+    var readOnly = Session.IsReadOnly;
+    var mode = EffectiveMode;
+    var tool = Canvas.Tool;
+    <MapToolbar Label="Herramientas del mapa" Edge="MapToolbarEdge.Right" class="map-controls">
+        <MapToolbarGroup Label="Modo">
+            <IconButton Icon="IconName.Hand" Label="Navegar" IsPressed="@(mode == MapMode.Navigate)" OnClick="() => SetModeAsync(MapMode.Navigate)" />
+            @if (!readOnly)
+            {
+                <IconButton Icon="IconName.Pencil" Label="Dibujar" IsPressed="@(mode == MapMode.Draw)" OnClick="() => SetModeAsync(MapMode.Draw)" />
+            }
+            <IconButton Icon="IconName.Ruler" Label="Medir" IsPressed="@(mode == MapMode.Measure)" OnClick="() => SetModeAsync(MapMode.Measure)" />
+        </MapToolbarGroup>
+
+        @if (mode == MapMode.Draw)
+        {
+            <MapToolbarGroup Label="Color">
+                @for (var i = 0; i < Palette.Count; i++)
+                {
+                    var color = Palette[i];
+                    <button type="button" class="map-controls__swatch" style="background-color: @color"
+                            aria-label="Color @(i + 1)" title="@ColorNames[i]" aria-pressed="@Pressed(!tool.Eraser && tool.Color == color)"
+                            @onclick="() => ChooseAsync(tool with { Color = color, Eraser = false })"></button>
+                }
+            </MapToolbarGroup>
+            <MapToolbarGroup Label="Grosor">
+                @foreach (var width in Widths)
+                {
+                    var dot = Format(width + 4);
+                    <button type="button" class="map-controls__width" aria-label="Grosor @Format(width)"
+                            aria-pressed="@Pressed(!tool.Eraser && tool.Width == width)"
+                            @onclick="() => ChooseAsync(tool with { Width = width, Eraser = false })">
+                        <span class="map-controls__dot" style="width: @(dot)px; height: @(dot)px"></span>
+                    </button>
+                }
+            </MapToolbarGroup>
+            <MapToolbarGroup Label="Trazos">
+                <IconButton Icon="IconName.Eraser" Label="Goma" IsPressed="@tool.Eraser" OnClick="() => ChooseAsync(tool with { Eraser = !tool.Eraser })" />
+                <IconButton Icon="IconName.Undo2" Label="Deshacer" Disabled="@(!editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
+                <IconButton Icon="IconName.Redo2" Label="Rehacer" Disabled="@(!editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
+            </MapToolbarGroup>
+        }
+
+        <MapToolbarGroup Label="Cuadrícula">
+            <Checkbox Label="Cuadrícula" Value="grid.Enabled" Disabled="readOnly"
+                      ValueChanged="on => ChangeGrid(g => g with { Enabled = on })" />
+            <IconButton Icon="IconName.Settings" Label="Ajustes de cuadrícula" Disabled="readOnly" IsPressed="@(_gridOpen && !readOnly)"
+                        OnClick="() => _gridOpen = !_gridOpen" aria-expanded="@Pressed(_gridOpen && !readOnly)" />
+        </MapToolbarGroup>
+
+        <MapToolbarGroup Label="Mapa">
+            @if (!readOnly)
+            {
+                <IconButton Icon="IconName.UserPlus" Label="Añadir token" OnClick="OnAddToken" />
+            }
+            <IconButton Icon="IconName.Maximize" Label="Ajustar a pantalla" OnClick="() => Canvas.FitAsync()" />
+        </MapToolbarGroup>
+    </MapToolbar>
+
+    @if (_gridOpen && !readOnly)
+    {
+        <div class="map-controls__panel" role="group" aria-label="Ajustes de la cuadrícula">
+            <NumberStepper Label="Tamaño de casilla" Unit="px" Min="MinCell" Max="MaxCell" Value="grid.CellSize"
+                           ValueChanged="size => ChangeGrid(g => Resized(g, size))" />
+            <NumberStepper Label="Desplazamiento X" Unit="px" Min="0" Max="grid.CellSize" Value="grid.OffsetX"
+                           ValueChanged="x => ChangeGrid(g => g with { OffsetX = x })" />
+            <NumberStepper Label="Desplazamiento Y" Unit="px" Min="0" Max="grid.CellSize" Value="grid.OffsetY"
+                           ValueChanged="y => ChangeGrid(g => g with { OffsetY = y })" />
+        </div>
+    }
+}
+
+@code {
+    /// <summary>Colores de la tinta: valores de los tokens del design system (tinta, rojo, azul, verde, latón y hueso).</summary>
+    public static readonly IReadOnlyList<string> Palette = [DrawTool.DefaultColor, "#9E2B25", "#3E6A8E", "#4F7A4A", "#C9A24A", "#E8DCC2"];
+    private static readonly string[] ColorNames = ["Tinta", "Rojo", "Azul", "Verde", "Latón", "Hueso"];
+    public static readonly IReadOnlyList<double> Widths = [3, 6, 12];
+
+    private const double MinCell = 20;
+    private const double MaxCell = 200;
+
+    /// <summary>«Añadir token» de la barra; lo conecta el diálogo de la Task 10.</summary>
+    [Parameter] public EventCallback OnAddToken { get; set; }
+
+    private bool _gridOpen;
+
+    // En solo lectura no se dibuja: aunque se recordara Dibujar, se muestra y se comporta como Navegar.
+    private MapMode EffectiveMode => Session.IsReadOnly && Canvas.Mode == MapMode.Draw ? MapMode.Navigate : Canvas.Mode;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Session.Changed += OnSessionChanged;
+    }
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        base.Dispose();
+    }
+
+    // Llega desde hilos del watcher o del temporizador de guardado: hay que volver al dispatcher.
+    private void OnSessionChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // La barra ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar la barra del mapa ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    private Task SetModeAsync(MapMode mode) => Canvas.SetModeAsync(mode, Canvas.Tool);
+
+    private Task ChooseAsync(DrawTool tool) => Canvas.SetModeAsync(MapMode.Draw, tool);
+
+    private void ChangeGrid(Func<GridSettings, GridSettings> change) =>
+        Session.Mutate(editor =>
+        {
+            var current = editor.State.Grid;
+            var next = change(current);
+            if (next == current || !MapStateSerializer.IsValidGrid(next)) return false;
+            editor.SetGrid(next);
+            return true;
+        });
+
+    // Con una casilla más pequeña el desplazamiento no puede pasarse de ella.
+    private static GridSettings Resized(GridSettings grid, double size) =>
+        grid with { CellSize = size, OffsetX = Math.Min(grid.OffsetX, size), OffsetY = Math.Min(grid.OffsetY, size) };
+
+    private static string Format(double value) => value.ToString(CultureInfo.InvariantCulture);
+    private static string Pressed(bool value) => value ? "true" : "false";
+}

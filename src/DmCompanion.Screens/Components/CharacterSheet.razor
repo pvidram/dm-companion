@@ -1,44 +1,83 @@
 @inherits DmComponentBase
+@using DmCompanion.Core.GameSystems
 
 <article class="character-sheet">
-    <PcPortrait Entity="Entity" ShowNotice="true" />
+    <PcPortrait Entity="Entity" />
     <h3 data-testid="pc-title">@Entity.Title</h3>
     @if (Entity.ParseError is { } error)
     {
         <InlineNotice Kind="NoticeKind.Warning">@error</InlineNotice>
     }
-    <div class="ds-stats">
-        <StatBadge Label="AC" Value="@Show(_stats.ArmorClass)" />
-        <StatBadge Label="HP" Value="@Show(_stats.HitPoints)" />
-        <StatBadge Label="Velocidad" Value="@Show(_stats.Speed)" />
-        <StatBadge Label="Iniciativa" Value="@(_stats.InitiativeBonus is { } bonus ? Signed(bonus) : "—")" />
-    </div>
-    <div class="ds-stats" data-testid="abilities">
-        @foreach (var ability in Enum.GetValues<Ability>())
+    @if (_system.IsKnown)
+    {
+        @if (_values.Warnings.Count > 0)
         {
-            <StatBadge Label="@Labels[ability]"
-                       Value="@(_stats.AbilityScores.TryGetValue(ability, out var score) ? $"{score} ({Signed(CharacterStats.Modifier(score))})" : "—")" />
+            <details data-testid="sheet-warnings">
+                <summary>Esta ficha tiene @_values.Warnings.Count @(_values.Warnings.Count == 1 ? "aviso" : "avisos")</summary>
+                <InlineNotice Kind="NoticeKind.Warning">
+                    <ul>
+                        @foreach (var warning in _values.Warnings)
+                        {
+                            <li>@warning</li>
+                        }
+                    </ul>
+                </InlineNotice>
+            </details>
         }
-    </div>
+        @foreach (var group in _system.Definition.Groups)
+        {
+            @if (!UnheadedGroups.Contains(group.Id))
+            {
+                <h4>@group.Label</h4>
+            }
+            <div class="ds-stats" data-testid="@group.Id">
+                @foreach (var stat in StatsOf(group))
+                {
+                    var value = _values.ById[stat.Id];
+                    <div title="@(value.Source == StatSource.Missing ? value.Reason : null)">
+                        <StatBadge Label="@LabelOf(group, stat)" Value="@value.Display" />
+                    </div>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        @foreach (var warning in _values.Warnings)
+        {
+            <InlineNotice Kind="NoticeKind.Warning">@warning</InlineNotice>
+        }
+        <div class="ds-stats" data-testid="generic-stats">
+            @foreach (var value in _values.ById.Values)
+            {
+                <StatBadge Label="@value.Id" Value="@value.Display" />
+            }
+        </div>
+    }
     <NoteBody Entity="Entity" />
 </article>
 
 @code {
-    private static readonly Dictionary<Ability, string> Labels = new()
-    {
-        [Ability.Str] = "FUE", [Ability.Dex] = "DES", [Ability.Con] = "CON",
-        [Ability.Int] = "INT", [Ability.Wis] = "SAB", [Ability.Cha] = "CAR",
-    };
+    private static readonly HashSet<string> UnheadedGroups = ["basic", "abilities"];
+    private static readonly StringComparer SpanishOrder = StringComparer.Create(CultureInfo.GetCultureInfo("es-ES"), false);
 
-    private CharacterStats _stats = default!;
+    private IGameSystem _system = default!;
+    private StatValues _values = StatValues.Empty;
 
     [Parameter, EditorRequired] public VaultEntity Entity { get; set; } = default!;
 
-    protected override void OnParametersSet() => _stats = CharacterStats.FromFrontmatter(Entity.Frontmatter);
+    protected override void OnParametersSet()
+    {
+        _system = Host.Current?.ActiveSystem ?? GameSystemRegistry.Default.Get("dnd5e");
+        _values = _system.Evaluate(Entity.Frontmatter);
+    }
 
-    private static string Show(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? "—";
+    private IEnumerable<StatDefinition> StatsOf(DmCompanion.Core.GameSystems.StatGroup group)
+    {
+        var stats = _system.Definition.Stats.Where(s => s.GroupId == group.Id && _values.ById.ContainsKey(s.Id));
+        return group.Order == GroupOrder.Alphabetical ? stats.OrderBy(s => s.Label, SpanishOrder) : stats;
+    }
 
-    // U+2212: el guion de resta tipográfico, no el guion medio.
-    private static string Signed(int value) =>
-        value < 0 ? "−" + (-value).ToString(CultureInfo.InvariantCulture) : "+" + value.ToString(CultureInfo.InvariantCulture);
+    private static string LabelOf(DmCompanion.Core.GameSystems.StatGroup group, StatDefinition stat) =>
+        group.Order == GroupOrder.Alphabetical && stat.Abbreviation is { } abbreviation ? $"{stat.Label} · {abbreviation}" : stat.Label;
 }

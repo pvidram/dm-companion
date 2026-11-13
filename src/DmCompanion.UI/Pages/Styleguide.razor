@@ -6,6 +6,7 @@
         <RailButton Icon="IconName.Swords" Label="Combate" IsPressed="@(_open == Sample.Combat)" OnToggle="() => Toggle(Sample.Combat)" />
         <RailButton Icon="IconName.Folder" Label="Listas" IsPressed="@(_open == Sample.Lists)" OnToggle="() => Toggle(Sample.Lists)" />
         <RailButton Icon="IconName.ScrollText" Label="Contenido" IsPressed="@(_open == Sample.Content)" OnToggle="() => Toggle(Sample.Content)" />
+        <RailButton Icon="IconName.Map" Label="Mapa" IsPressed="@(_open == Sample.Map)" OnToggle="() => Toggle(Sample.Map)" />
         <RailButton Icon="IconName.Tv" Label="Vista TV" IsPressed="_tv" OnToggle="() => _tv = !_tv" />
     </Rail>
     <Strip>
@@ -15,6 +16,19 @@
     </Strip>
     <Map><div class="ds-frame__layer ds-frame__layer--placeholder"></div></Map>
     <Overlays>
+        <MapToolbar Label="Herramientas del mapa">
+            <MapToolbarGroup>
+                <IconButton Icon="IconName.UserPlus" Label="Añadir token" OnClick="ShowAdded" />
+                <IconButton Icon="IconName.Ruler" Label="Regla" IsPressed="@(_tool == Tool.Ruler)" OnClick="() => ToggleTool(Tool.Ruler)" />
+                <IconButton Icon="IconName.Grid3X3" Label="Cuadrícula" IsPressed="_grid" OnClick="() => _grid = !_grid" />
+                <IconButton Icon="IconName.Crosshair" Label="Calibrar" IsPressed="@(_tool == Tool.Calibrate)" OnClick="() => ToggleTool(Tool.Calibrate)" />
+            </MapToolbarGroup>
+            <MapToolbarGroup Label="Zoom">
+                <IconButton Icon="IconName.ZoomIn" Label="Acercar" />
+                <IconButton Icon="IconName.ZoomOut" Label="Alejar" />
+                <IconButton Icon="IconName.Maximize" Label="Ajustar a la vista" />
+            </MapToolbarGroup>
+        </MapToolbar>
         <Parchment Title="Controles" IsOpen="@(_open == Sample.Controls)" OnClose="Close"><ControlsSample OnOpenDialog="() => _confirm = true" /></Parchment>
         <Parchment Title="Combate" Size="ParchmentSize.Wide" IsOpen="@(_open == Sample.Combat)" OnClose="Close"><CombatSample /></Parchment>
         <Parchment Title="Listas" IsOpen="@(_open == Sample.Lists)" OnClose="Close"><ListsSample /></Parchment>
@@ -22,6 +36,8 @@
             <ChildContent><ContentSample /></ChildContent>
             <Actions><Button Variant="ButtonVariant.Primary" Icon="IconName.Tv">Mostrar en TV</Button></Actions>
         </Parchment>
+        <Parchment Title="Mapa" IsOpen="@(_open == Sample.Map)" OnClose="Close"><MapSample OnRemove="ShowRemoved" /></Parchment>
+        <Toast Message="_toast" OnAction="_ => _toast = null" OnDismissed="_ => _toast = null" />
     </Overlays>
     <Dialogs>
         <ConfirmDialog Title="Conflicto de escritura" Message="La nota ha cambiado en disco. ¿Sobrescribir?"
@@ -31,12 +47,19 @@
 </TableFrame>
 
 @code {
-    private enum Sample { None, Controls, Combat, Lists, Content }
+    private enum Sample { None, Controls, Combat, Lists, Content, Map }
+    private enum Tool { None, Ruler, Calibrate }
 
     private Sample _open = Sample.Controls;
     private bool _tv;
     private bool _confirm;
+    private Tool _tool;
+    private bool _grid = true;
+    private ToastMessage? _toast;
 
     private void Toggle(Sample sample) => _open = _open == sample ? Sample.None : sample;
     private void Close() => _open = Sample.None;
+    private void ToggleTool(Tool tool) => _tool = _tool == tool ? Tool.None : tool;
+    private void ShowAdded() => _toast = new ToastMessage("2 añadidos, 3 ya estaban");
+    private void ShowRemoved() => _toast = new ToastMessage("Goblin quitado del mapa", "Deshacer", ActionIcon: IconName.Undo2);
 }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
+using DmCompanion.Core.GameSystems;
 using DmCompanion.Core.Vault.Storage;
 using Microsoft.Extensions.Logging;
 
@@ -22,13 +23,21 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
     private Task? _consumer;
     private int _state; // 0 = nuevo, 1 = cargado, 2 = liberado
     private VaultIndex _index = VaultIndex.Empty;
+    private CampaignInfo _campaign = CampaignResolver.Resolve(VaultIndex.Empty);
     private IReadOnlyList<SyncConflict> _conflicts = [];
 
     public event EventHandler? Changed;
 
+    // Cambios de ficheros que no son notas Markdown (estado del mapa, imágenes). No reindexan.
+    public event EventHandler<VaultChange>? FileChanged;
+
     public string RootPath => storage.RootPath;
 
     public VaultIndex Index { get { lock (_gate) return _index; } }
+
+    public CampaignInfo Campaign { get { lock (_gate) return _campaign; } }
+
+    public IGameSystem ActiveSystem => GameSystemRegistry.Default.Get(Campaign.SystemId);
 
     public IReadOnlyList<SyncConflict> Conflicts { get { lock (_gate) return _conflicts; } }
 
@@ -68,6 +77,54 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
     public Task<byte[]> ReadBytesAsync(string relativePath, CancellationToken ct = default) =>
         storage.ReadBytesAsync(relativePath, ct);
 
+    public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> predicate, CancellationToken ct = default) =>
+        storage.ListFilesAsync(predicate, ct);
+
+    public Task<Stream> OpenReadAsync(string relativePath, CancellationToken ct = default) =>
+        storage.OpenReadAsync(relativePath, ct);
+
+    public Task<WriteResult> WriteBytesAsync(string relativePath, Stream content, WritePrecondition precondition, CancellationToken ct = default) =>
+        storage.WriteBytesAsync(relativePath, content, precondition, ct);
+
+    // Mover o borrar una nota la quita ya del índice, sin esperar al watcher: el panel de mapas relee el catálogo justo después.
+    public async Task<bool> MoveAsync(string fromRelativePath, string toRelativePath, CancellationToken ct = default)
+    {
+        var moved = await storage.MoveAsync(fromRelativePath, toRelativePath, ct);
+        if (!moved) return false;
+        // El destino se indexa ya: quien mueve una nota puede necesitarla en el índice antes de que el watcher la vea.
+        if (VaultPaths.IsIndexable(toRelativePath))
+        {
+            try
+            {
+                var file = await storage.ReadAsync(toRelativePath, ct);
+                SetIndex(current => current.Upsert(VaultEntityFactory.Create(file.RelativePath, file.Content, file.LastWriteTimeUtc)));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning("No se pudo indexar {Path} tras moverla; lo hará el watcher ({ExceptionType})", toRelativePath, ex.GetType().FullName);
+            }
+        }
+        ForgetIndexed(fromRelativePath);
+        return true;
+    }
+
+    public async Task DeleteAsync(string relativePath, CancellationToken ct = default)
+    {
+        await storage.DeleteAsync(relativePath, ct);
+        ForgetIndexed(relativePath);
+    }
+
+    private void ForgetIndexed(string relativePath)
+    {
+        if (!VaultPaths.IsIndexable(relativePath)) return;
+        SetIndex(current => current.Remove(relativePath));
+        RaiseChanged();
+    }
+
+    // Escritura de ficheros de texto que no son notas (el .state.json del mapa): sin reindexar.
+    public Task<WriteResult> WriteAsync(string relativePath, string content, WritePrecondition precondition, CancellationToken ct = default) =>
+        storage.WriteAsync(relativePath, content, precondition, ct);
+
     public Task<VaultFileInfo?> StatAsync(string relativePath, CancellationToken ct = default) =>
         storage.StatAsync(relativePath, ct);
 
@@ -79,7 +136,7 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
         if (VaultPaths.IsIndexable(relativePath))
         {
             var entity = VaultEntityFactory.Create(relativePath, content, result.LastWriteTimeUtc);
-            lock (_gate) _index = _index.Upsert(entity);
+            SetIndex(current => current.Upsert(entity));
         }
         RaiseChanged();
         return result;
@@ -90,7 +147,7 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
         var directory = VaultPaths.Normalize(folder ?? NoteTemplates.DefaultFolder(type)).TrimEnd('/');
         var fileName = NoteFileName.FromTitle(title) + ".md";
         var relativePath = directory.Length == 0 ? fileName : $"{directory}/{fileName}";
-        var result = await SaveAsync(relativePath, NoteTemplates.Create(type, title), WritePrecondition.MustNotExist, ct);
+        var result = await SaveAsync(relativePath, NoteTemplates.Create(type, title, ActiveSystem), WritePrecondition.MustNotExist, ct);
         return new CreateNoteResult(relativePath, result.Status);
     }
 
@@ -185,6 +242,11 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
     {
         try
         {
+            if (change.Kind != VaultChangeKind.Rescan && !VaultPaths.IsMarkdown(change.RelativePath))
+            {
+                await ApplyFileAsync(change, ct);
+                return;
+            }
             await ApplyAsync(change, ct);
             RaiseChanged();
         }
@@ -197,6 +259,16 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
             // Sin `ex`: leer o parsear una nota puede lanzar mensajes que citen su texto, y las notas pueden tener secretos.
             logger.LogError("Error inesperado ({ExceptionType}) al aplicar el cambio {Kind} de {Path}", ex.GetType().FullName, change.Kind, change.RelativePath);
         }
+    }
+
+    private async Task ApplyFileAsync(VaultChange change, CancellationToken ct)
+    {
+        if (VaultPaths.IsConflictFile(change.RelativePath))
+        {
+            await RefreshConflictsAsync(ct);
+            RaiseChanged();
+        }
+        RaiseFileChanged(change);
     }
 
     private async Task ApplyAsync(VaultChange change, CancellationToken ct)
@@ -213,17 +285,14 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
         }
         if (change.Kind == VaultChangeKind.Deleted)
         {
-            lock (_gate) _index = _index.Remove(change.RelativePath);
+            SetIndex(current => current.Remove(change.RelativePath));
             return;
         }
 
         var file = await ReadWithRetryAsync(change.RelativePath, ct);
-        lock (_gate)
-        {
-            _index = file is null
-                ? _index.Remove(change.RelativePath)
-                : _index.Upsert(VaultEntityFactory.Create(file.RelativePath, file.Content, file.LastWriteTimeUtc));
-        }
+        SetIndex(current => file is null
+            ? current.Remove(change.RelativePath)
+            : current.Upsert(VaultEntityFactory.Create(file.RelativePath, file.Content, file.LastWriteTimeUtc)));
     }
 
     private async Task RebuildAsync(CancellationToken ct)
@@ -245,8 +314,18 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
         });
 
         var index = VaultIndex.Build(entities);
-        lock (_gate) _index = index;
+        SetIndex(_ => index);
         await RefreshConflictsAsync(ct);
+    }
+
+    // Único punto de escritura del índice: la campaña se recalcula siempre con él, bajo el mismo bloqueo.
+    private void SetIndex(Func<VaultIndex, VaultIndex> update)
+    {
+        lock (_gate)
+        {
+            _index = update(_index);
+            _campaign = CampaignResolver.Resolve(_index);
+        }
     }
 
     private async Task RefreshConflictsAsync(CancellationToken ct)
@@ -272,6 +351,23 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
                 // Syncthing puede tener el fichero bloqueado un instante mientras lo sustituye.
                 logger.LogDebug(ex, "Reintentando la lectura de {Path} (intento {Attempt})", relativePath, attempt);
                 await Task.Delay(200 * attempt, ct);
+            }
+        }
+    }
+
+    private void RaiseFileChanged(VaultChange change)
+    {
+        var handlers = FileChanged?.GetInvocationList();
+        if (handlers is null) return;
+        foreach (var handler in handlers)
+        {
+            try
+            {
+                ((EventHandler<VaultChange>)handler)(this, change);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError("Un suscriptor de VaultService.FileChanged ha lanzado una excepción ({ExceptionType})", ex.GetType().FullName);
             }
         }
     }

@@ -25,8 +25,13 @@ public sealed class NoteEditorTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(new InMemoryAppPreferences());
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
+        Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<MapSession>();
+        Services.AddSingleton<MapLibrary>();
+        Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<WikilinkInterop>();
     }
 

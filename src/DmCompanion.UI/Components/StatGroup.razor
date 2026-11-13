@@ -1,0 +1,16 @@
+<section class="ds-stats-group" aria-labelledby="@_titleId">
+    <h3 id="@_titleId" class="ds-stats__heading">@Title</h3>
+    <div class="@GridClass">@ChildContent</div>
+</section>
+
+@code {
+    /// <summary>Encabezado del grupo («Salvaciones», «Habilidades»). Siempre h3: va bajo el h2 del pergamino.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    /// <summary>Dos columnas en pergaminos de 600 px o más (ds-stats--split).</summary>
+    [Parameter] public bool Split { get; set; }
+    /// <summary>StatBadge u otros controles de la rejilla.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private readonly string _titleId = $"ds-stats-group-{Guid.NewGuid():N}";
+    private string GridClass => Split ? "ds-stats ds-stats--split" : "ds-stats";
+}

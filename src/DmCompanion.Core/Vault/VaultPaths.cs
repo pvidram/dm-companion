@@ -7,9 +7,24 @@ public static class VaultPaths
     private const string MarkdownExtension = ".md";
 
     private static readonly Regex ConflictSuffix = new(
-        @"\.sync-conflict-\d{8}-\d{6}-[A-Z0-9]{7}(?=\.[^./]+$|$)", RegexOptions.Compiled);
+        @"\.sync-conflict-\d{8}-\d{6}-[A-Z0-9]{7}(?=\.[^/]+$|$)", RegexOptions.Compiled);
 
     public static string Normalize(string relativePath) => relativePath.Replace('\\', '/').TrimStart('/');
+
+    /// <summary>
+    /// Normaliza una ruta recibida de fuera (p. ej. HTTP). Falla si está vacía, es absoluta, contiene «:» o
+    /// caracteres de control, o tiene segmentos vacíos, «.», «..» u ocultos.
+    /// </summary>
+    public static bool TryNormalizeSafe(string? relativePath, out string normalized)
+    {
+        normalized = string.Empty;
+        if (string.IsNullOrWhiteSpace(relativePath)) return false;
+        var path = relativePath.Replace('\\', '/');
+        if (path.StartsWith('/') || path.Contains(':') || path.Any(char.IsControl)) return false;
+        if (path.Split('/').Any(segment => segment.Length == 0 || segment.StartsWith('.'))) return false;
+        normalized = path;
+        return true;
+    }
 
     public static bool IsExcluded(string relativePath) =>
         Normalize(relativePath).Split('/').Any(segment => segment.StartsWith('.'));

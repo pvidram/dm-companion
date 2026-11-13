@@ -1,0 +1,9 @@
+<div class="ds-map-toolbar__group" role="group" aria-label="@Label">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Nombre accesible opcional del grupo (p. ej. «Zoom»).</summary>
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

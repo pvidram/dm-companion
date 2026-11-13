@@ -1,0 +1,22 @@
+<StatGroup Title="Salvaciones">
+    <StatBadge Label="FUE" Value="+5" />
+    <StatBadge Label="DES" Value="+2" IsManual="true" />
+    <StatBadge Label="SAB" Value="+1" />
+</StatGroup>
+<p>
+    <TokenAvatar Name="Aria" Faction="Faction.Pc" />
+    <TokenAvatar Name="Goblin" Faction="Faction.Enemy" IsHidden="_hidden" />
+</p>
+<Checkbox Label="Oculto" @bind-Value="_hidden" />
+<NumberStepper Label="Celda" Unit="px" Step="0.1" Decimals="1" Min="1" @bind-Value="_cell" />
+<NumberStepper Label="Desplazamiento X" Unit="px" @bind-Value="_offsetX" />
+<p><Button Icon="IconName.Trash2" OnClick="OnRemove">Quitar del mapa</Button></p>
+
+@code {
+    /// <summary>Simula «Quitar del mapa»: la página muestra el aviso con «Deshacer».</summary>
+    [Parameter] public EventCallback OnRemove { get; set; }
+
+    private bool _hidden = true;
+    private double _cell = 70.3;
+    private double _offsetX;
+}

@@ -1,4 +1,5 @@
 @inherits DmComponentBase
+@using DmCompanion.Core.Maps
 @using Microsoft.Extensions.Logging
 @inject ILogger<ConflictResolver> Logger
 
@@ -28,12 +29,26 @@
                     }
                     else
                     {
-                        <pre>@_currentText</pre>
+                        @if (IsState)
+                        {
+                            <p>@Summarize(_currentText, _currentWrite)</p>
+                        }
+                        else
+                        {
+                            <pre>@_currentText</pre>
+                        }
                     }
                 </section>
                 <section>
                     <h3>Copia en conflicto</h3>
-                    <pre>@_copyText</pre>
+                    @if (IsState)
+                    {
+                        <p>@Summarize(_copyText, _copyWrite)</p>
+                    }
+                    else
+                    {
+                        <pre>@_copyText</pre>
+                    }
                 </section>
             </div>
         }
@@ -52,8 +67,23 @@
     private string _currentText = string.Empty;
     private string _copyText = string.Empty;
     private DateTime? _currentWrite;
+    private DateTime? _copyWrite;
     private string? _notice;
     private NoticeKind _noticeKind = NoticeKind.Info;
+
+    // Un conflicto de *.state.json no se renderiza como nota: se resume cada versión.
+    private bool IsState => _selected is { } c && MapPaths.IsStateFile(c.OriginalRelativePath);
+
+    private static string Summarize(string json, DateTime? written)
+    {
+        var read = MapStateSerializer.Read(json);
+        var when = written is { } w ? $"modificado el {w.ToLocalTime():dd/MM/yyyy HH:mm}" : "fecha desconocida";
+        return read.Status == MapStateReadStatus.Invalid
+            ? $"estado no válido, {when}"
+            : $"{Count(read.State.Tokens.Count, "token", "tokens")}, {Count(read.State.Strokes.Count, "trazo", "trazos")}, {when}";
+    }
+
+    private static string Count(int n, string singular, string plural) => $"{n} {(n == 1 ? singular : plural)}";
 
     private IReadOnlyList<SyncConflict> Conflicts => Host.Current?.Conflicts ?? [];
 
@@ -94,6 +124,7 @@
             return;
         }
         var (currentText, currentWrite, copyText) = (string.Empty, (DateTime?)null, string.Empty);
+        var copyWrite = (DateTime?)null;
         var noticeKind = kind ?? NoticeKind.Info;
         if (Host.Current is { } vault)
         {
@@ -108,7 +139,8 @@
                 {
                     currentWrite = null;
                 }
-                copyText = (await vault.ReadRawAsync(conflict.ConflictRelativePath)).Content;
+                var copy = await vault.ReadRawAsync(conflict.ConflictRelativePath);
+                (copyText, copyWrite) = (copy.Content, copy.LastWriteTimeUtc);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -116,8 +148,8 @@
             }
         }
         // Todo el estado se asigna de una vez: un render intermedio nunca ve una versión a medias.
-        (_selected, _currentText, _currentWrite, _copyText, _notice, _noticeKind) =
-            (conflict, currentText, currentWrite, copyText, notice, noticeKind);
+        (_selected, _currentText, _currentWrite, _copyText, _copyWrite, _notice, _noticeKind) =
+            (conflict, currentText, currentWrite, copyText, copyWrite, notice, noticeKind);
         StateHasChanged();
     }
 

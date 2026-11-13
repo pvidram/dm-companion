@@ -52,4 +52,20 @@ public class ButtonTests : UiTestContext
         cut.Find("button").Click();
         toggled.Should().BeTrue();
     }
+
+    [Theory]
+    [InlineData(true, "true")]
+    [InlineData(false, "false")]
+    public void Icon_button_reflects_is_pressed_in_aria_pressed(bool pressed, string expected)
+    {
+        var cut = Render<IconButton>(p => p.Add(x => x.Icon, IconName.Ruler).Add(x => x.Label, "Regla").Add(x => x.IsPressed, pressed));
+        cut.Find("button").GetAttribute("aria-pressed").Should().Be(expected);
+    }
+
+    [Fact]
+    public void Icon_button_without_is_pressed_has_no_aria_pressed()
+    {
+        var cut = Render<IconButton>(p => p.Add(x => x.Icon, IconName.X).Add(x => x.Label, "Cerrar"));
+        cut.Find("button").HasAttribute("aria-pressed").Should().BeFalse();
+    }
 }

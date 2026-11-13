@@ -85,4 +85,46 @@ public sealed class FileSystemVaultWatcherTests : IDisposable
         Directory.Delete(_vault.PathOf("Viejo"), recursive: true);
         (await EventuallyAsync(c => c.Kind == VaultChangeKind.Rescan)).Should().BeTrue("llegó: {0}", Seen());
     }
+
+    [Fact]
+    public async Task Writing_a_state_file_raises_upserted()
+    {
+        Directory.CreateDirectory(_vault.PathOf("Mapas"));
+        await File.WriteAllTextAsync(_vault.PathOf("Mapas/X.state.json"), "{}");
+        (await EventuallyAsync(c => c is { RelativePath: "Mapas/X.state.json", Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task Writing_an_image_raises_upserted()
+    {
+        Directory.CreateDirectory(_vault.PathOf("Mapas"));
+        await File.WriteAllBytesAsync(_vault.PathOf("Mapas/x.png"), [1, 2, 3]);
+        (await EventuallyAsync(c => c is { RelativePath: "Mapas/x.png", Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task Deleting_an_image_raises_deleted_not_a_rescan()
+    {
+        await File.WriteAllBytesAsync(_vault.PathOf("x.png"), [1]);
+        File.Delete(_vault.PathOf("x.png"));
+        (await EventuallyAsync(c => c is { RelativePath: "x.png", Kind: VaultChangeKind.Deleted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task Writing_an_untracked_file_raises_nothing()
+    {
+        await File.WriteAllTextAsync(_vault.PathOf("notas.txt"), "x");
+        await File.WriteAllTextAsync(_vault.PathOf("Marca.md"), "x"); // testigo: cuando llega, ya habría llegado notas.txt
+        (await EventuallyAsync(c => c.RelativePath == "Marca.md")).Should().BeTrue();
+        _changes.Should().NotContain(c => c.RelativePath == "notas.txt");
+    }
+
+    [Fact]
+    public async Task Writing_a_syncthing_state_conflict_raises_upserted()
+    {
+        Directory.CreateDirectory(_vault.PathOf("Mapas"));
+        const string conflict = "Mapas/X.state.sync-conflict-20261112-101500-ABCDEF1.json";
+        await File.WriteAllTextAsync(_vault.PathOf(conflict), "{}");
+        (await EventuallyAsync(c => c is { RelativePath: conflict, Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+    }
 }

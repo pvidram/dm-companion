@@ -29,8 +29,13 @@ public sealed class NoteEditorLogPrivacyTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(new InMemoryAppPreferences());
         Services.AddSingleton<IVaultServiceFactory>(new ExplodingWriteFactory());
         Services.AddSingleton<VaultHost>();
+        Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<MapSession>();
+        Services.AddSingleton<MapLibrary>();
+        Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<WikilinkInterop>();
         Services.AddSingleton<ILogger<NoteEditor>>(_logger);
     }
@@ -85,6 +90,11 @@ public sealed class NoteEditorLogPrivacyTests : BunitContext, IAsyncLifetime
         public Task<VaultFileInfo?> StatAsync(string relativePath, CancellationToken ct = default) => inner.StatAsync(relativePath, ct);
         public Task<WriteResult> WriteAsync(string relativePath, string content, WritePrecondition precondition, CancellationToken ct = default) =>
             throw new InvalidOperationException($"error cerca de «{SecretMarker}»");
+        public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> predicate, CancellationToken ct = default) => inner.ListFilesAsync(predicate, ct);
+        public Task<Stream> OpenReadAsync(string relativePath, CancellationToken ct = default) => inner.OpenReadAsync(relativePath, ct);
+        public Task<WriteResult> WriteBytesAsync(string relativePath, Stream content, WritePrecondition precondition, CancellationToken ct = default) =>
+            inner.WriteBytesAsync(relativePath, content, precondition, ct);
+        public Task<bool> MoveAsync(string fromRelativePath, string toRelativePath, CancellationToken ct = default) => inner.MoveAsync(fromRelativePath, toRelativePath, ct);
         public Task<IReadOnlyList<SyncConflict>> FindConflictsAsync(CancellationToken ct = default) => inner.FindConflictsAsync(ct);
         public Task DeleteAsync(string relativePath, CancellationToken ct = default) => inner.DeleteAsync(relativePath, ct);
     }

@@ -9,6 +9,7 @@ public class TvStylesheetTests
     [Theory]
     [InlineData("dm-only")]
     [InlineData("dm-secret")]
+    [InlineData("ds-token--hidden")]
     public void Tv_stylesheet_hides_dm_content(string cssClass)
     {
         var css = UiAssets.Read("css/tv.css");
@@ -21,5 +22,15 @@ public class TvStylesheetTests
     {
         var imports = Regex.Matches(UiAssets.Read("ui.css"), @"@import\s+url\(""([^""]+)""\)");
         imports[^1].Groups[1].Value.Should().Be("css/tv.css");
+    }
+
+    [Theory]
+    [InlineData("ds-map-toolbar")]
+    [InlineData("ds-toast-region")]
+    public void Tv_stylesheet_hides_dm_tools(string cssClass)
+    {
+        var css = UiAssets.Read("css/tv.css");
+        var rule = new Regex(@"\.tv\s+\." + cssClass + @"\b[^{]*\{[^}]*display:\s*none");
+        rule.IsMatch(css).Should().BeTrue();
     }
 }

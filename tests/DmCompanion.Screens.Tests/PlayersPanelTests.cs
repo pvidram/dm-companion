@@ -25,9 +25,12 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(new InMemoryAppPreferences());
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
+        Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddScoped<WikilinkInterop>();
+        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<MapSession>();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
@@ -131,14 +134,14 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
-    public void Too_large_portrait_shows_the_initial_and_a_notice_in_the_sheet()
+    public void Large_portrait_is_shown_through_a_virtual_url_without_notice()
     {
         Directory.CreateDirectory(_vault.PathOf("_assets"));
-        File.WriteAllBytes(_vault.PathOf(Portrait), new byte[512 * 1024 + 1]);
+        File.WriteAllBytes(_vault.PathOf(Portrait), new byte[2 * 1024 * 1024]);
         var cut = RenderPanel(Lyra);
         cut.WaitForAssertion(() =>
-            (cut.FindAll(".ds-token__portrait").Count, cut.Find(".character-sheet .ds-token__initial").TextContent,
-                cut.FindAll(".character-sheet .ds-notice").Count).Should().Be((0, "L", 1)));
+            (cut.Find(".character-sheet img.ds-token__portrait").GetAttribute("src")!.StartsWith("/_vault/_assets/lyra.png?v="),
+                cut.FindAll(".ds-notice").Count).Should().Be((true, 0)));
     }
 
     [Fact]

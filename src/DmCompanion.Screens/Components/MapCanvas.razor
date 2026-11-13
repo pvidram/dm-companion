@@ -1,0 +1,92 @@
+@inherits DmComponentBase
+@using Microsoft.Extensions.Logging
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject ILogger<MapCanvas> CanvasLog
+
+@if (Session.Current is null)
+{
+    <div class="ds-frame__layer ds-frame__layer--placeholder">
+        <EmptyState Icon="IconName.Map" Title="Abrir o crear un mapa" />
+    </div>
+}
+else
+{
+    <div @ref="_host" class="ds-frame__layer map-canvas"></div>
+    <MapControls OnAddToken="OnAddToken" />
+    @if (Session.Notice is not null || Session.ImageNotice is not null)
+    {
+        <div class="map-canvas__notices">
+            @if (Session.Notice is { } text)
+            {
+                <InlineNotice Kind="NoticeKind.Warning">
+                    @text
+                    @if (Session.HasSaveFailure)
+                    {
+                        <Button OnClick="Shell.RequestDiscardMap">Descartar cambios del mapa</Button>
+                    }
+                </InlineNotice>
+            }
+            @if (Session.ImageNotice is { } imageText)
+            {
+                <InlineNotice Kind="NoticeKind.Warning">@imageText</InlineNotice>
+            }
+        </div>
+    }
+}
+
+@code {
+    /// <summary>«Añadir token» de la barra; lo conecta el diálogo de la Task 10.</summary>
+    [Parameter] public EventCallback OnAddToken { get; set; }
+
+    private ElementReference _host;
+    // El lienzo JS está (o se está) cargando sobre el elemento actual.
+    private bool _loaded;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Session.Changed += OnSessionChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var hasMap = Session.Current is not null;
+        if (hasMap == _loaded) return;
+        _loaded = hasMap;
+        if (hasMap) await Canvas.LoadAsync(_host);
+        else await Canvas.UnloadAsync();
+    }
+
+    // Llega desde hilos del watcher o del temporizador de guardado: hay que volver al dispatcher.
+    private void OnSessionChanged(object? sender, EventArgs e) => _ = RefreshCanvasAsync();
+
+    private async Task RefreshCanvasAsync()
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                // Abrir o cerrar un mapa cambia el DOM (lienzo o estado vacío); lo demás es solo repintar.
+                // Los avisos son DOM de Blazor: se repinta el componente; el lienzo JS solo si cambió el estado.
+                StateHasChanged();
+                if ((Session.Current is not null) == _loaded && _loaded) await Canvas.RenderAsync();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            CanvasLog.LogError("Fallo al repintar el mapa ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        if (_loaded) _ = Canvas.UnloadAsync();
+        base.Dispose();
+    }
+}

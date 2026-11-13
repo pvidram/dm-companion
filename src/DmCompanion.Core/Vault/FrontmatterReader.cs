@@ -21,4 +21,15 @@ public static class FrontmatterReader
         fields.TryGetValue(key, out var value) && value is IReadOnlyDictionary<string, object?> map
             ? map
             : FrontmatterParser.EmptyFields;
+
+    public static object? GetPath(IReadOnlyDictionary<string, object?> fields, string path)
+    {
+        object? current = fields;
+        foreach (var segment in path.Split('.'))
+        {
+            if (current is not IReadOnlyDictionary<string, object?> map || !map.TryGetValue(segment, out current))
+                return null;
+        }
+        return current;
+    }
 }

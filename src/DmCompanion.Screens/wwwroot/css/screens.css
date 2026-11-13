@@ -1,3 +1,32 @@
 .ds-dialog:has(.conflict-columns) { width: min(960px, 100%); }
 .conflict-columns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .conflict-columns pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.map-canvas { overflow: hidden; touch-action: none; background-color: var(--surface-sheet-sunken); }
+/* Barra del mapa a la derecha (columna de ancho fijo); los avisos y el panel de cuadrícula se apartan a su izquierda para no solaparse. */
+:root { --map-controls-width: 9rem; }
+.map-controls { width: var(--map-controls-width); box-sizing: border-box; }
+/* Avisos sobre el mapa: arriba, a la izquierda de la barra, ajustados al contenido. */
+.map-canvas__notices { position: absolute; top: var(--space-3); right: calc(var(--space-4) + var(--map-controls-width) + var(--space-3)); z-index: var(--z-toolbar); display: grid; gap: var(--space-2); max-width: min(32rem, calc(100% - var(--map-controls-width) - 4 * var(--space-4))); }
+/* Ajustes de cuadrícula: abajo, a la izquierda de la barra. */
+.map-controls__panel { position: absolute; bottom: var(--space-4); right: calc(var(--space-4) + var(--map-controls-width) + var(--space-3)); z-index: var(--z-toolbar); display: grid; gap: var(--space-3); width: 20rem; max-width: calc(100% - var(--map-controls-width) - 4 * var(--space-4)); padding: var(--space-3); background-color: var(--surface-sheet-raised); color: var(--text-ink); border: 1px solid var(--border-frame); border-radius: var(--radius-sheet); }
+/* Color y grosor del lápiz: botones táctiles de tamaño mínimo, con contorno y marca de activo que no dependen solo del color. */
+.map-controls__swatch, .map-controls__width { min-width: var(--touch-min); min-height: var(--touch-min); display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 2px solid var(--text-on-wood); border-radius: var(--radius-control); cursor: pointer; background-color: transparent; }
+.map-controls__dot { display: block; border-radius: 50%; background-color: var(--text-on-wood); }
+.map-controls__swatch[aria-pressed="true"], .map-controls__width[aria-pressed="true"] { outline: 3px solid var(--accent-on-wood); outline-offset: 2px; }
+/* Añadir token: pestañas, lista de resultados y aviso de lo añadido. */
+.token-dialog__tabs { display: flex; gap: var(--space-2); }
+.token-dialog__results { display: grid; gap: var(--space-2); max-height: 40vh; overflow-y: auto; }
+.token-dialog__result { display: grid; grid-template-columns: 1fr auto auto; align-items: end; gap: var(--space-3); padding: var(--space-2); border: 1px solid var(--border-frame); border-radius: var(--radius-control); }
+.token-dialog__name { align-self: center; font-weight: 600; }
+.token-dialog__status { margin: 0; color: var(--text-ink); }
+/* Tarjeta rápida del token: botones en fila que pueden saltar de línea. */
+.token-card__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+/* Panel de mapas: fila con la entrada y sus acciones. */
+.maps-panel__row { display: flex; align-items: center; gap: var(--space-2); }
+.maps-panel__row > .ds-list-row, .maps-panel__orphan { flex: 1; min-width: 0; }
+.maps-panel__orphan { overflow-wrap: anywhere; }
+/* HP actuales en la tarjeta del token: «HP 7 / 11», el número es un botón táctil. */
+.token-card__hp { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-2) 0; color: var(--text-ink); font-size: var(--font-size-h3); }
+.token-card__hp-label { color: var(--text-ink-secondary); font-size: var(--font-size-small); }
+.token-card__hp-value { min-width: var(--touch-min); min-height: var(--touch-min); padding: 0 var(--space-3); border: 1px solid var(--text-ink-secondary); border-radius: var(--radius-control); background-color: var(--surface-sheet-sunken); color: var(--text-ink); font: inherit; font-weight: 700; cursor: pointer; }
+.token-card__hp-input { width: 6ch; text-align: center; font-weight: 700; }

@@ -1,0 +1,157 @@
+@inherits DmComponentBase
+@inject MapLibrary Library
+@inject MapSession Session
+@inject IServiceProvider Services
+@using Microsoft.AspNetCore.Components.Forms
+@using DmCompanion.Screens.Platform
+
+<Dialog Title="@TitleText" IsOpen="@(Shell.MapName is not null)" OnClose="Shell.CloseMapName">
+    <ChildContent>
+        @if (Shell.MapName?.Mode == MapNameMode.NewFromImport)
+        {
+            @if (Picker is not null)
+            {
+                <Button OnClick="PickAsync">Elegir imagen</Button>
+            }
+            else
+            {
+                <label class="ds-field">
+                    <span class="ds-field__label">Imagen</span>
+                    <InputFile class="ds-field__input" accept="image/*" OnChange="OnFileChosen" />
+                </label>
+            }
+            @if (_fileName is { } file)
+            {
+                <p data-testid="picked-image">@file</p>
+            }
+        }
+        <TextField Label="Nombre" @bind-Value="_name" />
+        @if (Shell.MapName?.Mode == MapNameMode.Rename)
+        {
+            <InlineNotice Kind="NoticeKind.Info">Los enlaces [[…]] de otras notas que apunten a este mapa no se actualizan.</InlineNotice>
+        }
+        @if (_notice is { } notice)
+        {
+            <InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="_busy" OnClick="AcceptAsync">@(Shell.MapName?.Mode == MapNameMode.Rename ? "Renombrar" : "Crear")</Button>
+        <Button OnClick="Shell.CloseMapName">Cancelar</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private const long MaxImageBytes = 50L * 1024 * 1024;
+
+    private MapNameRequest? _seen;
+    private string _name = string.Empty;
+    private string _suggested = string.Empty;
+    private string? _fileName;
+    private Func<Task<Stream>>? _openImage;
+    private string? _notice;
+    private bool _busy;
+
+    private IImagePicker? Picker => Services.GetService(typeof(IImagePicker)) as IImagePicker;
+
+    private string TitleText => Shell.MapName?.Mode switch
+    {
+        MapNameMode.Rename => "Renombrar mapa",
+        MapNameMode.NewFromImport => "Importar imagen como mapa",
+        _ => "Nuevo mapa",
+    };
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Sync();
+    }
+
+    // Cada petición nueva (otra instancia) reinicia el formulario.
+    protected override void OnVaultChanged() => Sync();
+
+    private void Sync()
+    {
+        if (ReferenceEquals(_seen, Shell.MapName)) return;
+        _seen = Shell.MapName;
+        if (_seen is null) return;
+        _name = _suggested = _seen.SuggestedName;
+        (_fileName, _openImage, _notice) = (null, null, null);
+    }
+
+    private async Task PickAsync()
+    {
+        var picked = await Picker!.PickAsync();
+        if (picked is not null) Choose(picked.FileName, picked.OpenAsync);
+    }
+
+    private void OnFileChosen(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > MaxImageBytes)
+        {
+            _notice = "La imagen supera el máximo de 50 MB.";
+            return;
+        }
+        Choose(file.Name, () => Task.FromResult<Stream>(file.OpenReadStream(MaxImageBytes)));
+    }
+
+    // El nombre propuesto sigue a la imagen mientras el usuario no lo haya escrito él.
+    private void Choose(string fileName, Func<Task<Stream>> open)
+    {
+        (_fileName, _openImage, _notice) = (fileName, open, null);
+        var suggestion = Path.GetFileNameWithoutExtension(fileName);
+        if (string.IsNullOrWhiteSpace(_name) || _name == _suggested) _name = suggestion;
+        _suggested = suggestion;
+    }
+
+    private async Task AcceptAsync()
+    {
+        if (Shell.MapName is not { } request) return;
+        if (request.Mode == MapNameMode.NewFromImport && _openImage is null)
+        {
+            _notice = "Elige una imagen.";
+            return;
+        }
+
+        _busy = true;
+        _notice = null;
+        try
+        {
+            var result = await RunAsync(request);
+            if (result.Status != MapOpStatus.Ok)
+            {
+                _notice = result.ErrorText;
+                return;
+            }
+            Shell.CloseMapName();
+            if (request.Mode != MapNameMode.Rename && result.NotePath is { } notePath)
+            {
+                await Session.OpenAsync(notePath);
+                Shell.ClosePanel(OverlayPanel.Maps);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notice = $"No se pudo leer la imagen: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task<MapOpResult> RunAsync(MapNameRequest request)
+    {
+        switch (request.Mode)
+        {
+            case MapNameMode.Rename:
+                return await Library.RenameAsync(request.NotePath!, _name);
+            case MapNameMode.NewFromImport:
+                await using (var stream = await _openImage!())
+                    return await Library.ImportAsync(_name, Path.GetExtension(_fileName!), stream);
+            default:
+                return await Library.CreateBlankAsync(_name);
+        }
+    }
+}

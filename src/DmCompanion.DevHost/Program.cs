@@ -28,9 +28,13 @@ builder.Services.AddSingleton<IAppPreferences>(sp =>
     new JsonFileAppPreferences(DevHostPaths.PreferencesFile, sp.GetRequiredService<ILogger<JsonFileAppPreferences>>()));
 builder.Services.AddSingleton<IStorageAccess, DevStorageAccess>();
 builder.Services.AddSingleton<VaultHost>();
+builder.Services.AddSingleton<MapSession>();
+builder.Services.AddSingleton<MapLibrary>();
 builder.Services.AddScoped<ShellState>();
 builder.Services.AddScoped<WikilinkInterop>();
+builder.Services.AddScoped<MapCanvasInterop>();
 builder.Services.AddScoped<BackNavigation>();
+builder.Services.AddSingleton<VaultFileUrls>();
 builder.Services.AddSingleton<PortraitUrlProvider>();
 builder.Services.AddSingleton<DevVaultSeeder>();
 
@@ -57,6 +61,7 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapVaultFiles();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddAdditionalAssemblies(typeof(VaultDiagnostics).Assembly, typeof(DmCompanion.UI.Pages.Styleguide).Assembly);

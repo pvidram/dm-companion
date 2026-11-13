@@ -1,0 +1,135 @@
+@implements IDisposable
+@inject TimeProvider Time
+
+<div @attributes="AdditionalAttributes" class="@CssClass" role="status" aria-live="polite">
+    @if (_current is { } message)
+    {
+        <div class="ds-toast" @onfocusin="FocusIn" @onfocusout="FocusOut" @onpointerenter="PointerEnter" @onpointerleave="PointerLeave">
+            <span class="ds-toast__text" @key="message">@message.Text</span>
+            @if (message.ActionLabel is { } actionLabel)
+            {
+                <Button Icon="message.ActionIcon" OnClick="ActAsync">@actionLabel</Button>
+            }
+            <IconButton Icon="IconName.X" Label="Cerrar aviso" OnClick="CloseAsync" />
+        </div>
+    }
+</div>
+
+@code {
+    public static readonly TimeSpan DefaultDuration = TimeSpan.FromSeconds(5);
+
+    /// <summary>Aviso actual; null = ninguno. Uno a la vez: una instancia nueva sustituye a la anterior (ver ToastMessage).</summary>
+    [Parameter] public ToastMessage? Message { get; set; }
+    /// <summary>Se pulsó la acción. El aviso ya se ha ocultado.</summary>
+    [Parameter] public EventCallback<ToastMessage> OnAction { get; set; }
+    /// <summary>El aviso venció, se cerró o lo sustituyó otro aviso, sin pulsar la acción. Ya se ha ocultado.</summary>
+    [Parameter] public EventCallback<ToastMessage> OnDismissed { get; set; }
+
+    /// <summary>Atributos HTML adicionales para la región (elemento raíz). Los que fija el componente (role, aria-live) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private ToastMessage? _received;
+    private ToastMessage? _current;
+    private CancellationTokenSource? _timer;
+    private bool _hasFocus;
+    private bool _hasPointer;
+
+    private string CssClass => AttributeMerge.Class("ds-toast-region", AdditionalAttributes);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(Message, _received)) return;
+        _received = Message;
+        if (Message is null)
+        {
+            // focusout y pointerleave no son fiables en nodos retirados; el padre lo quitó a propósito: sin OnDismissed.
+            Hide();
+            return;
+        }
+
+        var previous = _current;
+        _current = Message;
+        Restart();
+        if (previous is not null) await OnDismissed.InvokeAsync(previous);
+    }
+
+    private void Restart()
+    {
+        CancelTimer();
+        if (_current is null || _hasFocus || _hasPointer) return;
+        _timer = new CancellationTokenSource();
+        _ = ExpireAsync(_current, _timer.Token);
+    }
+
+    private async Task ExpireAsync(ToastMessage message, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(message.Duration ?? DefaultDuration, Time, token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (token.IsCancellationRequested) return;
+                await DismissAsync(message);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
+    private void FocusIn() => SetHover(hasFocus: true, _hasPointer);
+    private void FocusOut() => SetHover(hasFocus: false, _hasPointer);
+    private void PointerEnter() => SetHover(_hasFocus, hasPointer: true);
+    private void PointerLeave() => SetHover(_hasFocus, hasPointer: false);
+
+    // Pausa mientras haya foco o puntero; al soltar ambos, el tiempo vuelve a empezar entero.
+    private void SetHover(bool hasFocus, bool hasPointer)
+    {
+        _hasFocus = hasFocus;
+        _hasPointer = hasPointer;
+        Restart();
+    }
+
+    private Task CloseAsync() => _current is { } message ? DismissAsync(message) : Task.CompletedTask;
+
+    private async Task DismissAsync(ToastMessage message)
+    {
+        if (!ReferenceEquals(message, _current)) return;
+        Hide();
+        await OnDismissed.InvokeAsync(message);
+    }
+
+    private async Task ActAsync()
+    {
+        if (_current is not { } message) return;
+        Hide();
+        await OnAction.InvokeAsync(message);
+    }
+
+    private void Hide()
+    {
+        CancelTimer();
+        _current = null;
+        _hasFocus = false;
+        _hasPointer = false;
+    }
+
+    private void CancelTimer()
+    {
+        _timer?.Cancel();
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    public void Dispose() => CancelTimer();
+}

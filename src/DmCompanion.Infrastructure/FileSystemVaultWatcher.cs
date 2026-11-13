@@ -1,3 +1,4 @@
+using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
 
@@ -57,7 +58,7 @@ public sealed class FileSystemVaultWatcher(string rootPath) : IVaultChangeSource
     private void OnDeleted(string fullPath)
     {
         var relativePath = VaultPaths.Normalize(Path.GetRelativePath(_root, fullPath));
-        if (!VaultPaths.IsMarkdown(relativePath) && !VaultPaths.IsExcluded(relativePath))
+        if (!IsTracked(relativePath) && !VaultPaths.IsExcluded(relativePath))
         {
             RaiseRescan();
             return;
@@ -79,9 +80,13 @@ public sealed class FileSystemVaultWatcher(string rootPath) : IVaultChangeSource
     private void RaiseFile(string fullPath, VaultChangeKind kind)
     {
         var relativePath = VaultPaths.Normalize(Path.GetRelativePath(_root, fullPath));
-        if (!VaultPaths.IsMarkdown(relativePath) || VaultPaths.IsExcluded(relativePath)) return;
+        if (!IsTracked(relativePath) || VaultPaths.IsExcluded(relativePath)) return;
         Changed?.Invoke(this, new VaultChange(relativePath, kind));
     }
+
+    // Notas, estado de mapa e imágenes; cualquier otra cosa se ignora.
+    private static bool IsTracked(string relativePath) =>
+        VaultPaths.IsMarkdown(relativePath) || MapPaths.IsStateFile(VaultPaths.GetConflictOriginal(relativePath)) || MapPaths.IsImage(relativePath);
 
     private void RaiseRescan() => Changed?.Invoke(this, new VaultChange(string.Empty, VaultChangeKind.Rescan));
 }

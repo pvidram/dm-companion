@@ -18,7 +18,7 @@
 
 @code {
     private static readonly IReadOnlyList<EntityType> Types =
-        [EntityType.Note, EntityType.Session, EntityType.Pc, EntityType.Npc, EntityType.Location];
+        [EntityType.Note, EntityType.Session, EntityType.Pc, EntityType.Npc, EntityType.Location, EntityType.Campaign];
 
     private NewNoteRequest? _seen;
     private EntityType _type = EntityType.Note;
@@ -54,6 +54,7 @@
         EntityType.Pc => "Personaje jugador",
         EntityType.Npc => "PNJ",
         EntityType.Location => "Lugar",
+        EntityType.Campaign => "Campaña",
         _ => type.ToString()
     };
 

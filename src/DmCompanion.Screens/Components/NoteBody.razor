@@ -2,6 +2,7 @@
 @using DmCompanion.Core.Rendering
 @using Microsoft.JSInterop
 @inject WikilinkInterop Wikilinks
+@inject MapSession Maps
 
 @if (Entity is { } entity)
 {
@@ -28,11 +29,17 @@
 
     [JSInvokable]
     public Task OnWikilinkClicked(string? target, bool broken) =>
-        InvokeAsync(() =>
+        InvokeAsync(async () =>
         {
             if (string.IsNullOrEmpty(target)) return;
             if (!broken && Index.Resolve(target) is { } existing)
             {
+                if (existing.Type == EntityType.Map)
+                {
+                    await Maps.OpenAsync(existing.RelativePath);
+                    Shell.ClosePanel(OverlayPanel.Notes);
+                    return;
+                }
                 _ = Shell.RequestOpenNote(existing.RelativePath);
                 return;
             }

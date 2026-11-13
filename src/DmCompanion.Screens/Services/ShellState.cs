@@ -1,12 +1,20 @@
 namespace DmCompanion.Screens.Services;
 
-public enum OverlayPanel { None, Players, Notes }
+public enum OverlayPanel { None, Players, Notes, Maps }
 
 public enum EditorDialog { None, Conflict, ConfirmClose }
 
 public enum EditorCommand { Overwrite, Reload }
 
 public sealed record NewNoteRequest(string Title, string? Folder);
+
+/// <summary>Tarjeta rápida de un token. X e Y son px relativos al área del mapa, ya ajustados a sus bordes.</summary>
+public sealed record TokenCardRequest(string TokenId, double X, double Y);
+
+public enum MapNameMode { NewBlank, NewFromImport, Rename }
+
+/// <summary>Petición del diálogo de nombre de mapa. <c>NotePath</c> solo se usa al renombrar.</summary>
+public sealed record MapNameRequest(MapNameMode Mode, string? NotePath, string SuggestedName);
 
 public sealed class ShellState
 {
@@ -16,6 +24,12 @@ public sealed class ShellState
     public string? SelectedPcPath { get; private set; }
     public NewNoteRequest? NewNote { get; private set; }
     public bool ConflictsOpen { get; private set; }
+    public bool AddTokenOpen { get; private set; }
+    public TokenCardRequest? TokenCard { get; private set; }
+
+    public MapNameRequest? MapName { get; private set; }
+    public string? DeletingMapPath { get; private set; }
+    public bool DiscardingMap { get; private set; }
 
     // Diálogos del editor: su estado vive aquí porque se pintan en la ranura Dialogs de DmShell.
     public EditorDialog ActiveEditorDialog { get; private set; }
@@ -152,6 +166,49 @@ public sealed class ShellState
         Notify();
     }
 
+    public void ClosePanel(OverlayPanel panel)
+    {
+        if (ActivePanel != panel) return;
+        ActivePanel = OverlayPanel.None;
+        Notify();
+    }
+
+    public void RequestMapName(MapNameMode mode, string? notePath = null, string suggestedName = "")
+    {
+        MapName = new MapNameRequest(mode, notePath, suggestedName);
+        Notify();
+    }
+
+    public void CloseMapName()
+    {
+        MapName = null;
+        Notify();
+    }
+
+    public void RequestDeleteMap(string notePath)
+    {
+        DeletingMapPath = notePath;
+        Notify();
+    }
+
+    public void CancelDeleteMap()
+    {
+        DeletingMapPath = null;
+        Notify();
+    }
+
+    public void RequestDiscardMap()
+    {
+        DiscardingMap = true;
+        Notify();
+    }
+
+    public void CancelDiscardMap()
+    {
+        DiscardingMap = false;
+        Notify();
+    }
+
     public void OpenConflicts()
     {
         ConflictsOpen = true;
@@ -164,6 +221,30 @@ public sealed class ShellState
         Notify();
     }
 
+    public void OpenAddToken()
+    {
+        AddTokenOpen = true;
+        Notify();
+    }
+
+    public void CloseAddToken()
+    {
+        AddTokenOpen = false;
+        Notify();
+    }
+
+    public void OpenTokenCard(TokenCardRequest request)
+    {
+        TokenCard = request;
+        Notify();
+    }
+
+    public void CloseTokenCard()
+    {
+        TokenCard = null;
+        Notify();
+    }
+
     // Al cambiar de vault, ninguna selección ni diálogo del anterior debe sobrevivir.
     public void Reset()
     {
@@ -173,6 +254,12 @@ public sealed class ShellState
         SelectedPcPath = null;
         NewNote = null;
         ConflictsOpen = false;
+        AddTokenOpen = false;
+        TokenCard = null;
+
+        MapName = null;
+        DeletingMapPath = null;
+        DiscardingMap = false;
         EditorDirty = false;
         _pendingNavigation = null;
         ActiveEditorDialog = EditorDialog.None;

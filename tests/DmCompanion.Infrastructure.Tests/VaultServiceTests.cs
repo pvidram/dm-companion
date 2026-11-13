@@ -32,7 +32,58 @@ public sealed class VaultServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Load_indexes_demo_vault() => _service.Index.Count.Should().Be(8);
+    public async Task Active_system_follows_the_campaign_note()
+    {
+        await File.WriteAllTextAsync(_vault.PathOf("Campaña.md"), "---\ntype: campaign\nsystem: cosmere\n---\n");
+        _changes.Raise("Campaña.md", VaultChangeKind.Upserted);
+        await WaitUntilAsync(() => _service.ActiveSystem.Id == "cosmere");
+    }
+
+    [Fact]
+    public async Task Delete_of_a_note_removes_it_from_the_index_immediately()
+    {
+        await _service.DeleteAsync("Personajes/Lyra.md");
+
+        _service.Index.Get("Personajes/Lyra.md").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Delete_of_a_note_raises_Changed()
+    {
+        var raised = 0;
+        _service.Changed += (_, _) => raised++;
+
+        await _service.DeleteAsync("Personajes/Lyra.md");
+
+        raised.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task Move_of_a_note_removes_the_old_path_from_the_index_immediately()
+    {
+        await _service.MoveAsync("Personajes/Lyra.md", "Personajes/Lira.md");
+
+        _service.Index.Get("Personajes/Lyra.md").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Move_of_a_note_indexes_the_new_path_immediately()
+    {
+        await _service.MoveAsync("Personajes/Lyra.md", "Personajes/Lira.md");
+
+        _service.Index.Get("Personajes/Lira.md").Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Move_that_fails_leaves_the_index_alone()
+    {
+        await _service.MoveAsync("Personajes/Lyra.md", "Personajes/Varek.md");
+
+        _service.Index.Get("Personajes/Lyra.md").Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Load_indexes_demo_vault() => _service.Index.Count.Should().Be(11);
 
     [Fact]
     public void Load_reads_entity_titles() =>
@@ -81,7 +132,7 @@ public sealed class VaultServiceTests : IAsyncLifetime
     {
         await File.WriteAllTextAsync(_vault.PathOf("Historia/Extra.md"), "x");
         _changes.Raise(string.Empty, VaultChangeKind.Rescan);
-        await WaitUntilAsync(() => _service.Index.Count == 9);
+        await WaitUntilAsync(() => _service.Index.Count == 12);
     }
 
     [Fact]
@@ -93,17 +144,10 @@ public sealed class VaultServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Save_of_hidden_path_is_written()
+    public async Task Save_of_hidden_path_is_rejected()
     {
-        var result = await _service.SaveAsync(".oculto.md", "x", WritePrecondition.Overwrite);
-        result.Status.Should().Be(WriteStatus.Written);
-    }
-
-    [Fact]
-    public async Task Save_of_hidden_path_is_not_indexed()
-    {
-        await _service.SaveAsync(".oculto.md", "x", WritePrecondition.Overwrite);
-        _service.Index.Get(".oculto.md").Should().BeNull();
+        var act = () => _service.SaveAsync(".oculto.md", "x", WritePrecondition.Overwrite);
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }
 
     [Fact]
@@ -119,6 +163,26 @@ public sealed class VaultServiceTests : IAsyncLifetime
         var result = await _service.CreateNoteAsync(EntityType.Npc, "Mercader Olm");
         (result.RelativePath, result.Status, _service.Index.Get(result.RelativePath)!.Type)
             .Should().Be(("Personajes/Mercader Olm.md", WriteStatus.Written, EntityType.Npc));
+    }
+
+    [Fact]
+    public async Task CreateNote_campaign_is_created_in_the_vault_root()
+    {
+        var result = await _service.CreateNoteAsync(EntityType.Campaign, "Campaña de prueba");
+        (result.RelativePath, result.Status, _service.Index.Get(result.RelativePath)!.Type)
+            .Should().Be(("Campaña de prueba.md", WriteStatus.Written, EntityType.Campaign));
+    }
+
+    [Fact]
+    public async Task CreateNote_pc_uses_the_active_system_template()
+    {
+        await File.WriteAllTextAsync(_vault.PathOf("Campaña.md"), "---\ntype: campaign\nsystem: cosmere\n---\n");
+        _changes.Raise("Campaña.md", VaultChangeKind.Upserted);
+        await WaitUntilAsync(() => _service.ActiveSystem.Id == "cosmere");
+
+        var result = await _service.CreateNoteAsync(EntityType.Pc, "Kal");
+
+        (await _service.ReadRawAsync(result.RelativePath)).Content.Should().Contain("deflect: 0");
     }
 
     [Fact]
@@ -316,7 +380,7 @@ public sealed class VaultServiceTests : IAsyncLifetime
         var storage = new FaultyStorage(_vault.Root) { UnreadablePath = "Personajes/Lyra.md" };
         await using var service = new VaultService(storage, new ManualChangeSource(), NullLogger<VaultService>.Instance);
         await service.LoadAsync();
-        (service.Index.Get("Personajes/Lyra.md"), service.Index.Count).Should().Be((null, 7));
+        (service.Index.Get("Personajes/Lyra.md"), service.Index.Count).Should().Be((null, 10));
     }
 
     [Fact]
@@ -388,8 +452,64 @@ public sealed class VaultServiceTests : IAsyncLifetime
         public Task<WriteResult> WriteAsync(string relativePath, string content, WritePrecondition precondition, CancellationToken ct = default) =>
             _inner.WriteAsync(relativePath, content, precondition, ct);
 
+        public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> predicate, CancellationToken ct = default) => _inner.ListFilesAsync(predicate, ct);
+
+        public Task<Stream> OpenReadAsync(string relativePath, CancellationToken ct = default) => _inner.OpenReadAsync(relativePath, ct);
+
+        public Task<WriteResult> WriteBytesAsync(string relativePath, Stream content, WritePrecondition precondition, CancellationToken ct = default) =>
+            _inner.WriteBytesAsync(relativePath, content, precondition, ct);
+
+        public Task<bool> MoveAsync(string fromRelativePath, string toRelativePath, CancellationToken ct = default) => _inner.MoveAsync(fromRelativePath, toRelativePath, ct);
+
         public Task<IReadOnlyList<SyncConflict>> FindConflictsAsync(CancellationToken ct = default) => _inner.FindConflictsAsync(ct);
 
         public Task DeleteAsync(string relativePath, CancellationToken ct = default) => _inner.DeleteAsync(relativePath, ct);
+    }
+
+    [Fact]
+    public async Task State_file_change_raises_FileChanged_without_reindexing()
+    {
+        var seen = new TaskCompletionSource<VaultChange>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _service.FileChanged += (_, change) => seen.TrySetResult(change);
+        var count = _service.Index.Count;
+
+        _changes.Raise("Mapas/X.state.json", VaultChangeKind.Upserted);
+
+        (await seen.Task.WaitAsync(TimeSpan.FromSeconds(5))).Should().Be(new VaultChange("Mapas/X.state.json", VaultChangeKind.Upserted));
+        _service.Index.Count.Should().Be(count);
+    }
+
+    [Fact]
+    public async Task Markdown_change_does_not_raise_FileChanged()
+    {
+        var raised = false;
+        _service.FileChanged += (_, _) => raised = true;
+        await File.WriteAllTextAsync(_vault.PathOf("Personajes/Lyra.md"), "---\nname: Otra\n---\n");
+        _changes.Raise("Personajes/Lyra.md", VaultChangeKind.Upserted);
+        await WaitUntilAsync(() => _service.Index.Get("Personajes/Lyra.md")!.Title == "Otra");
+        raised.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Conflicting_state_file_shows_up_in_Conflicts()
+    {
+        const string conflict = "Mapas/X.sync-conflict-20261112-101500-ABCDEF1.state.json";
+        Directory.CreateDirectory(_vault.PathOf("Mapas"));
+        await File.WriteAllTextAsync(_vault.PathOf(conflict), "{}");
+        _changes.Raise(conflict, VaultChangeKind.Upserted);
+        await WaitUntilAsync(() => _service.Conflicts.Any(c => c.ConflictRelativePath == conflict));
+        _service.Conflicts.Should().Contain(new SyncConflict("Mapas/X.state.json", conflict));
+    }
+
+    [Fact]
+    public async Task Load_survives_linked_and_oddly_named_files()
+    {
+        try { File.CreateSymbolicLink(_vault.PathOf("Lugares/enlace.md"), _vault.PathOf("Lugares/Puerto Sal.md")); }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or PlatformNotSupportedException) { }
+        await File.WriteAllTextAsync(_vault.PathOf("Lugares/raro:nombre.md"), "x");
+
+        await using var other = new VaultService(new FileSystemVaultStorage(_vault.Root), new ManualChangeSource(), NullLogger<VaultService>.Instance);
+        await other.LoadAsync();
+        other.Index.Count.Should().Be(11);
     }
 }

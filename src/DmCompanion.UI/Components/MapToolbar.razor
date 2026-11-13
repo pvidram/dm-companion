@@ -1,0 +1,18 @@
+<div @attributes="AdditionalAttributes" class="@CssClass" role="group" aria-label="@Label">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Nombre accesible del grupo (p. ej. «Herramientas del mapa»).</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>Borde del área del mapa. A la derecha por defecto: los pergaminos se anclan a la izquierda y la barra sigue visible.</summary>
+    [Parameter] public MapToolbarEdge Edge { get; set; } = MapToolbarEdge.Right;
+    /// <summary>Uno o varios MapToolbarGroup con IconButton.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Atributos HTML adicionales para el elemento raíz. Los que fija el componente (role, aria-*) prevalecen; <c>class</c> se añade a las clases propias.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string CssClass => AttributeMerge.Class(
+        "ds-map-toolbar ds-map-toolbar--" + Edge.ToString().ToLowerInvariant(), AdditionalAttributes);
+}

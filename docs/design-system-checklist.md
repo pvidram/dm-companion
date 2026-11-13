@@ -30,6 +30,17 @@ Para que App lo ejecute en DevHost (`dotnet watch --project src/DmCompanion.DevH
 - [ ] El foco también vuelve al abridor cuando el overlay se desmonta con `@if` (sin pasar por el botón de cerrar).
 - [ ] Dialog: Tab y Shift+Tab nunca salen de él, tampoco tras hacer clic en el fondo del diálogo.
 
+## Mapa (fase 2)
+
+- [ ] La barra del mapa queda a la derecha y sigue visible con un pergamino lateral abierto; un pergamino ancho o completo la tapa.
+- [ ] Las herramientas activas (Regla, Cuadrícula, Calibrar) se distinguen sin color (fondo y borde interior), también con poca luz.
+- [ ] La cuadrícula al 70 % de opacidad se lee sobre un mapa claro, uno oscuro y uno muy detallado, sin tapar el dibujo. Si no, ajustar `--map-grid-opacity` o los grosores.
+- [ ] La regla y el rectángulo de calibración se leen sobre cualquier zona del mapa; la etiqueta de distancia se lee siempre.
+- [ ] El token oculto se reconoce a simple vista en el canvas y en las listas (`TokenAvatar`), y no aparece en la TV.
+- [ ] Los ± del stepper se pulsan con el dedo sin fallos; teclear «70,3» con el teclado español funciona.
+- [ ] El aviso «Deshacer» no desaparece mientras se toca o tiene el foco, y se lee en un lector de pantalla (TalkBack).
+- [ ] Un aviso mostrado con un diálogo abierto no se ve (`Toast` 25 < `Dialog` 30): App cierra el diálogo antes de mostrarlo.
+
 ## Vista TV (`IsTv`)
 
 - [ ] Texto y espaciado visiblemente ~1,75 veces mayores.

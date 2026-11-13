@@ -1,4 +1,5 @@
 @inherits DmComponentBase
+@inject MapSession Maps
 
 @if (Entity is { } entity)
 {
@@ -14,6 +15,11 @@
         @if (entity.ParseError is { } error)
         {
             <InlineNotice Kind="NoticeKind.Warning">@error</InlineNotice>
+        }
+        @if (entity.Type == EntityType.Map)
+        {
+            var mapPath = entity.RelativePath;
+            <Button Icon="IconName.Map" OnClick="() => OpenMapAsync(mapPath)">Abrir mapa</Button>
         }
         <NoteBody Entity="entity" />
         @{
@@ -35,4 +41,10 @@
 
 @code {
     [Parameter] public VaultEntity? Entity { get; set; }
+
+    private async Task OpenMapAsync(string notePath)
+    {
+        await Maps.OpenAsync(notePath);
+        Shell.ClosePanel(OverlayPanel.Notes);
+    }
 }

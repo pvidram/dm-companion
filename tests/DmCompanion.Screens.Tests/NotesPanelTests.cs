@@ -28,8 +28,13 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(new InMemoryAppPreferences());
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
+        Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<MapSession>();
+        Services.AddSingleton<MapLibrary>();
+        Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<WikilinkInterop>();
     }
 
@@ -83,7 +88,7 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
 
         var rows = cut.FindAll("ul.ds-tree button.ds-list-row").Select(b => b.TextContent.Trim()).ToList();
 
-        rows.Should().BeEquivalentTo(["Historia", "Lugares", "Personajes"]);
+        rows.Should().BeEquivalentTo(["Historia", "Lugares", "Mapas", "Personajes", "Campaña"]);
     }
 
     [Fact]
@@ -186,7 +191,7 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         var cut = RenderOpenNotes();
 
         cut.FindAll("section.ds-parchment .ds-dialog").Should().BeEmpty();
-        cut.FindAll(".ds-dialog").Should().HaveCount(4); // nueva nota, conflictos de sincronización, conflicto de escritura y cerrar sin guardar
+        cut.FindAll(".ds-dialog").Should().HaveCount(8); // nueva nota, nombre de mapa, borrar mapa, descartar mapa, conflictos de sincronización, conflicto de escritura, cerrar sin guardar y añadir token
     }
 
     [Fact]

@@ -1,25 +1,22 @@
+using DmCompanion.Core.GameSystems;
+
 namespace DmCompanion.Core.Vault;
 
 public static class NoteTemplates
 {
-    private const string CharacterStats = """
-        portrait:
-        stats:
-          ac: 10
-          hp: 10
-          speed: 30
-          initiative_bonus: 0
-          abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
-
-        """;
-
-    public static string Create(EntityType type, string title)
+    public static string Create(EntityType type, string title, IGameSystem system, string? imagePath = null)
     {
         var header = $"---\ntype: {EntityTypes.ToKey(type)}\nname: {Quote(title)}\n";
+        if (type == EntityType.Map && imagePath is not null)
+        {
+            header += $"image: {Quote(imagePath)}\n";
+        }
+
         var extra = type switch
         {
-            EntityType.Pc => CharacterStats,
-            EntityType.Npc => "secret: false\n" + CharacterStats,
+            EntityType.Pc => system.StatsTemplate(EntityType.Pc),
+            EntityType.Npc => "secret: false\n" + system.StatsTemplate(EntityType.Npc),
+            EntityType.Campaign => "system: dnd5e\n",
             _ => string.Empty,
         };
         var body = type switch
@@ -28,6 +25,7 @@ public static class NoteTemplates
             EntityType.Npc => "## Descripción\n\n%% Notas solo para el DM %%\n",
             EntityType.Location => "## Descripción\n\n## Lugares de interés\n",
             EntityType.Session => "## Resumen\n\n## Pendiente\n",
+            EntityType.Campaign => "## Resumen\n",
             _ => string.Empty,
         };
         return header + extra.Replace("\r\n", "\n") + "---\n" + body;
@@ -35,6 +33,7 @@ public static class NoteTemplates
 
     public static string DefaultFolder(EntityType type) => type switch
     {
+        EntityType.Campaign => string.Empty,
         EntityType.Pc or EntityType.Npc => "Personajes",
         EntityType.Location => "Lugares",
         EntityType.Map => "Mapas",

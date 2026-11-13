@@ -26,8 +26,13 @@ public sealed class ConflictTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(new InMemoryAppPreferences());
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
+        Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<MapSession>();
+        Services.AddSingleton<MapLibrary>();
+        Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<WikilinkInterop>();
     }
 
@@ -193,6 +198,30 @@ public sealed class ConflictTests : BunitContext, IAsyncLifetime
         {
             Shell.ConflictsOpen.Should().BeFalse();
             cut.Find("header.ds-frame__strip").TextContent.Should().Contain("conflicto");
+        }, Timeout);
+    }
+
+    [Fact]
+    public async Task A_map_state_conflict_shows_a_summary_of_each_version_instead_of_the_raw_json()
+    {
+        const string State = "Mapas/cripta.state.json";
+        const string StateCopy = "Mapas/cripta.sync-conflict-20261103-101500-ABCDEF1.state.json";
+        Directory.CreateDirectory(Path.GetDirectoryName(_vault.PathOf(State))!);
+        File.WriteAllText(_vault.PathOf(State), "{\"version\":1,\"tokens\":[{\"id\":\"a\",\"name\":\"Goblin\",\"side\":\"enemy\",\"size\":1,\"x\":1,\"y\":1}],\"strokes\":[]}");
+        File.WriteAllText(_vault.PathOf(StateCopy), "{\"version\":1,\"tokens\":[],\"strokes\":[{\"id\":\"s\",\"color\":\"#fff\",\"width\":2,\"points\":[0,0,1,1,2,2]},{\"id\":\"s2\",\"color\":\"#fff\",\"width\":2,\"points\":[0,0,1,1,2,2]}]}");
+        await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+        var cut = Render<DmShell>();
+        cut.WaitForAssertion(() => cut.FindAll("button").First(b => b.TextContent.Trim() == "Revisar"), Timeout);
+        await cut.InvokeAsync(() => Shell.OpenConflicts());
+
+        cut.WaitForAssertion(() =>
+        {
+            var texts = cut.FindAll(".ds-dialog").First(d => d.TextContent.Contains("Conflictos de sincronización"))
+                .QuerySelectorAll("section p").Select(p => p.TextContent).ToList();
+            texts.Should().HaveCount(2);
+            texts[0].Should().StartWith("1 token, 0 trazos, modificado el ");
+            texts[1].Should().StartWith("0 tokens, 2 trazos, modificado el ");
+            Resolver(cut).QuerySelectorAll("pre").Should().BeEmpty();
         }, Timeout);
     }
 }

@@ -18,11 +18,19 @@
 
 .ds-icon-button { background-color: transparent; color: var(--text-ink); }
 .ds-icon-button .ds-icon { width: 1.5em; height: 1.5em; }
+/* Herramienta activa (aria-pressed): fondo de latón y borde interior, no solo color. */
+.ds-icon-button[aria-pressed="true"] {
+    background-color: var(--accent-on-sheet); color: var(--button-text-on-fill);
+    box-shadow: inset 0 0 0 2px currentColor;
+}
 
-/* Sobre la madera (raíl y franja) los controles de pergamino no contrastan: variantes con tokens de madera. */
-:is(.ds-frame__rail, .ds-frame__strip) .ds-button--secondary { color: var(--text-on-wood); border-color: var(--text-on-wood); }
-:is(.ds-frame__rail, .ds-frame__strip) .ds-icon-button { color: var(--text-on-wood); }
-:is(.ds-frame__rail, .ds-frame__strip) .ds-button--primary { background-color: var(--accent-on-wood); color: var(--text-ink); }
+/* Sobre la madera (raíl, franja, barra del mapa y avisos) los controles de pergamino no contrastan: variantes con tokens de madera. */
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-button--secondary { color: var(--text-on-wood); border-color: var(--text-on-wood); }
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-icon-button { color: var(--text-on-wood); }
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-button--primary { background-color: var(--accent-on-wood); color: var(--text-ink); }
+:is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-icon-button[aria-pressed="true"] {
+    background-color: var(--accent-on-wood); color: var(--text-ink);
+}
 
 .ds-rail-button {
     width: var(--touch-combat); height: var(--touch-combat);
@@ -36,9 +44,9 @@
     .ds-button--secondary:hover:not(:disabled) { background-color: var(--surface-sheet-sunken); }
     .ds-button--damage:hover:not(:disabled) { background-color: var(--button-damage-hover); }
     .ds-button--heal:hover:not(:disabled) { background-color: var(--button-heal-hover); }
-    .ds-icon-button:hover:not(:disabled) { background-color: var(--surface-sheet-sunken); }
-    :is(.ds-frame__rail, .ds-frame__strip) .ds-button--secondary:hover:not(:disabled),
-    :is(.ds-frame__rail, .ds-frame__strip) .ds-icon-button:hover:not(:disabled) { background-color: var(--border-frame); }
-    :is(.ds-frame__rail, .ds-frame__strip) .ds-button--primary:hover:not(:disabled) { background-color: var(--accent-on-wood); }
+    .ds-icon-button:hover:not(:disabled):not([aria-pressed="true"]) { background-color: var(--surface-sheet-sunken); }
+    :is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-button--secondary:hover:not(:disabled),
+    :is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-icon-button:hover:not(:disabled):not([aria-pressed="true"]) { background-color: var(--border-frame); }
+    :is(.ds-frame__rail, .ds-frame__strip, .ds-map-toolbar, .ds-toast) .ds-button--primary:hover:not(:disabled) { background-color: var(--accent-on-wood); }
     .ds-rail-button:hover:not([aria-pressed="true"]) { background-color: var(--border-frame); }
 }

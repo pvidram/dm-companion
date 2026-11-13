@@ -1,0 +1,173 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Maps
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+
+<Dialog Title="Añadir token" IsOpen="@Shell.AddTokenOpen" OnClose="Shell.CloseAddToken">
+    <ChildContent>
+        @if (Session.IsReadOnly)
+        {
+            <InlineNotice Kind="NoticeKind.Warning">El mapa está en solo lectura: no se pueden añadir tokens.</InlineNotice>
+        }
+        else
+        {
+            <div class="token-dialog__tabs" role="group" aria-label="Origen del token">
+                <Button Variant="@TabVariant(Tab.Note)" aria-pressed="@PressedOf(Tab.Note)" OnClick="@(() => _tab = Tab.Note)">Desde nota</Button>
+                <Button Variant="@TabVariant(Tab.Generic)" aria-pressed="@PressedOf(Tab.Generic)" OnClick="@(() => _tab = Tab.Generic)">Genérico</Button>
+            </div>
+            @if (_tab == Tab.Note)
+            {
+                <SearchField Label="Buscar personaje o PNJ" Value="@_query" ValueChanged="OnQueryChanged" />
+                <div class="token-dialog__results">
+                    @foreach (var entity in Results())
+                    {
+                        <div @key="entity.RelativePath" class="token-dialog__result" data-testid="token-result" data-name="@entity.Title">
+                            <span class="token-dialog__name">@entity.Title</span>
+                            <Select TValue="TokenSide" Label="Bando" Value="@SideOf(entity)" Options="Sides" LabelOf="SideLabel"
+                                    ValueChanged="@(side => _sides[entity.RelativePath] = side)" />
+                            <Button Variant="ButtonVariant.Primary" OnClick="@(() => AddNoteAsync(entity))">Añadir</Button>
+                        </div>
+                    }
+                </div>
+                <Button Icon="IconName.Users" Disabled="@(MissingPcs().Count == 0)" OnClick="AddMissingPcsAsync">Añadir todos los PJ</Button>
+            }
+            else
+            {
+                <TextField Label="Nombre" @bind-Value="_name" />
+                <Select TValue="TokenSide" Label="Bando" @bind-Value="_side" Options="Sides" LabelOf="SideLabel" />
+                <Select TValue="int" Label="Tamaño" @bind-Value="_size" Options="Sizes" LabelOf="SizeLabel" />
+                <TextField Label="AC (opcional)" @bind-Value="_ac" />
+                <TextField Label="HP (opcional)" @bind-Value="_hp" />
+                <Button Variant="ButtonVariant.Primary" Disabled="@(!CanAddGeneric)" OnClick="AddGenericAsync">Añadir</Button>
+            }
+            @if (_added is { } added)
+            {
+                <p class="token-dialog__status" role="status">Añadido: @added</p>
+            }
+        }
+    </ChildContent>
+    <Footer>
+        <Button OnClick="Shell.CloseAddToken">Cerrar</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private enum Tab { Note, Generic }
+
+    private static readonly IReadOnlyList<TokenSide> Sides = [TokenSide.Pc, TokenSide.Ally, TokenSide.Enemy];
+    private static readonly IReadOnlyList<int> Sizes = [1, 2, 3];
+
+    private readonly Dictionary<string, TokenSide> _sides = [];
+    private Tab _tab = Tab.Note;
+    private string _query = string.Empty;
+    private string? _added;
+    private bool _wasOpen;
+    private string _name = string.Empty;
+    private TokenSide _side = TokenSide.Enemy;
+    private int _size = 1;
+    private string _ac = string.Empty;
+    private string _hp = string.Empty;
+
+    private bool CanAddGeneric =>
+        !string.IsNullOrWhiteSpace(_name) && TryParseStat(_ac, out _) && TryParseStat(_hp, out _);
+
+    private string PressedOf(Tab tab) => _tab == tab ? "true" : "false";
+
+    private ButtonVariant TabVariant(Tab tab) => _tab == tab ? ButtonVariant.Primary : ButtonVariant.Secondary;
+
+    // Cada vez que se abre el diálogo se vuelve a la búsqueda vacía y sin el aviso de lo añadido.
+    protected override void OnVaultChanged()
+    {
+        if (Shell.AddTokenOpen && !_wasOpen)
+        {
+            _query = string.Empty;
+            _added = null;
+        }
+        _wasOpen = Shell.AddTokenOpen;
+    }
+
+    private void OnQueryChanged(string query)
+    {
+        _query = query;
+        _added = null;
+    }
+
+    private IReadOnlyList<VaultEntity> Results()
+    {
+        IEnumerable<VaultEntity> found = string.IsNullOrWhiteSpace(_query)
+            ? [.. Index.OfType(EntityType.Pc), .. Index.OfType(EntityType.Npc)]
+            : Index.Search(_query);
+        return [.. found.Where(e => e.Type is EntityType.Pc or EntityType.Npc)];
+    }
+
+    private static TokenSide DefaultSide(VaultEntity entity) => entity.Type == EntityType.Pc ? TokenSide.Pc : TokenSide.Enemy;
+
+    private TokenSide SideOf(VaultEntity entity) => _sides.GetValueOrDefault(entity.RelativePath, DefaultSide(entity));
+
+    private static string SideLabel(TokenSide side) => FactionVisuals.Label(TokenSideMapping.ToFaction(side));
+
+    private static string SizeLabel(int size) => $"{size}×{size}";
+
+    // Un PJ sin token es un PJ cuya nota no es el origen de ningún token del mapa.
+    private IReadOnlyList<VaultEntity> MissingPcs()
+    {
+        var onMap = Session.Editor?.State.Tokens.Select(t => t.Source).ToHashSet() ?? [];
+        return [.. Index.OfType(EntityType.Pc).Where(pc => !onMap.Contains(pc.RelativePath))];
+    }
+
+    private static bool TryParseStat(string text, out int? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        if (!int.TryParse(text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)) return false;
+        value = parsed;
+        return true;
+    }
+
+    // Centro de la vista en coordenadas del mapa; sin lienzo (o sin respuesta), el centro del mapa.
+    private async Task<(double X, double Y)> CenterAsync() =>
+        await Canvas.ViewCenterAsync() ?? (Session.Current is { } map ? (map.Width / 2, map.Height / 2) : (0, 0));
+
+    private Task AddNoteAsync(VaultEntity entity) => AddNotesAsync([(entity, SideOf(entity))]);
+
+    private Task AddMissingPcsAsync() => AddNotesAsync([.. MissingPcs().Select(pc => (pc, SideOf(pc)))]);
+
+    private async Task AddNotesAsync(IReadOnlyList<(VaultEntity Entity, TokenSide Side)> notes)
+    {
+        if (Session.IsReadOnly || notes.Count == 0) return;
+        var (cx, cy) = await CenterAsync();
+        var names = new List<string>();
+        Session.Mutate(editor =>
+        {
+            foreach (var (entity, side) in notes)
+                names.Add(Place(editor, new TokenDraft(entity.Title, entity.RelativePath, side, 1, null, null), cx, cy));
+            return names.Count > 0;
+        });
+        _added = string.Join(", ", names);
+    }
+
+    private async Task AddGenericAsync()
+    {
+        if (Session.IsReadOnly || !CanAddGeneric) return;
+        TryParseStat(_ac, out var ac);
+        TryParseStat(_hp, out var hp);
+        var (cx, cy) = await CenterAsync();
+        var name = string.Empty;
+        Session.Mutate(editor =>
+        {
+            name = Place(editor, new TokenDraft(_name.Trim(), null, _side, _size, ac, hp), cx, cy);
+            return true;
+        });
+        _added = name;
+        _name = _ac = _hp = string.Empty;
+    }
+
+    // Numera el nombre, busca hueco y añade; devuelve el nombre final.
+    private static string Place(MapEditor editor, TokenDraft draft, double cx, double cy)
+    {
+        var named = draft with { Name = TokenNaming.Next(draft.Name, editor.State.Tokens.Select(t => t.Name)) };
+        var (x, y) = TokenPlacement.FreeSpotNear(editor.State, editor.State.Grid, named.Size, cx, cy);
+        editor.AddToken(named, x, y);
+        return named.Name;
+    }
+}

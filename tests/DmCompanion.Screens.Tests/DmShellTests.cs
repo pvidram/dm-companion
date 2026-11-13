@@ -22,8 +22,13 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(_preferences);
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
+        Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<MapSession>();
+        Services.AddSingleton<MapLibrary>();
+        Services.AddScoped<MapCanvasInterop>();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
@@ -79,7 +84,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
     {
         var cut = Render<DmShell>();
 
-        cut.FindAll("section.ds-parchment").Should().HaveCount(2);
+        cut.FindAll("section.ds-parchment").Should().HaveCount(3);
     }
 
     [Fact]
@@ -91,7 +96,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
 
         cut.Find("button[aria-label='Notas']").Click();
 
-        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((2, false)), TimeSpan.FromSeconds(10));
+        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((3, false)), TimeSpan.FromSeconds(10));
     }
 
     [Fact]

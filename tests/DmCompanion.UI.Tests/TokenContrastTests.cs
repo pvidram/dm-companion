@@ -41,6 +41,9 @@ public class TokenContrastTests
         data.Add("button-text-on-fill", "button-primary-hover", Text);
         data.Add("button-text-on-fill", "button-damage-hover", Text);
         data.Add("button-text-on-fill", "button-heal-hover", Text);
+        data.Add("map-measure-label-text", "map-measure-label-bg", Text);
+        data.Add("map-hidden-badge-icon", "map-hidden-badge-bg", Graphic);
+        data.Add("button-text-on-fill", "accent-on-sheet", Graphic);
         return data;
     }
 
@@ -48,6 +51,25 @@ public class TokenContrastTests
     [MemberData(nameof(Pairs))]
     public void Token_pair_meets_the_wcag_minimum(string foreground, string background, double minimum) =>
         WcagContrast.Ratio(Tokens[foreground], Tokens[background]).Should().BeGreaterThanOrEqualTo(minimum);
+
+    /// <summary>
+    /// Trazo doble sobre una imagen arbitraria: si el oscuro y el claro tienen entre sí un ratio R, el peor fondo posible
+    /// queda a √R de los dos. Con R ≥ 9, uno de los dos trazos da siempre ≥ 3:1 (WCAG 1.4.11).
+    /// </summary>
+    private const double AnyBackground = 9.0;
+
+    public static TheoryData<string, string> DoubleStrokePairs() => new()
+    {
+        { "map-grid-line-dark", "map-grid-line-light" },
+        { "map-measure-line-dark", "map-measure-line-light" },
+        { "map-calibration-line-dark", "map-calibration-line-light" },
+        { "faction-outline-on-sheet", "faction-outline-on-wood" },
+    };
+
+    [Theory]
+    [MemberData(nameof(DoubleStrokePairs))]
+    public void Double_stroke_pair_reads_on_any_background(string dark, string light) =>
+        WcagContrast.Ratio(Tokens[dark], Tokens[light]).Should().BeGreaterThanOrEqualTo(AnyBackground);
 
     [Fact]
     public void Contrast_of_black_on_white_is_21() =>
