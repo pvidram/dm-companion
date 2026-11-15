@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DM Companion · TV</title>
+    <link rel="stylesheet" href="assets/tv.css">
+</head>
+<body>
+    <main class="tv-view" data-view="waiting">
+        <p class="tv-waiting__campaign" id="tv-campaign"></p>
+    </main>
+    <section class="tv-view tv-view--map" data-view="map" hidden>
+        <div class="tv-stage" id="tv-stage"></div>
+        <div class="tv-strip" id="tv-strip" hidden></div>
+    </section>
+    <section class="tv-view tv-view--content" data-view="content" hidden>
+        <article class="tv-content">
+            <h1 class="tv-content__title" id="tv-content-title"></h1>
+            <div class="tv-sheet" id="tv-content-sheet" hidden>
+                <img class="tv-sheet__portrait" id="tv-sheet-portrait" alt="" hidden>
+                <dl class="tv-sheet__stats" id="tv-sheet-stats"></dl>
+            </div>
+            <div class="tv-content__body" id="tv-content-body"></div>
+        </article>
+    </section>
+    <div class="tv-reconnecting" id="tv-reconnecting" role="status" hidden>Reconectando…</div>
+    <script src="assets/konva.min.js"></script>
+    <script src="assets/token-opacity.js"></script>
+    <script src="assets/tv-layout.js"></script>
+    <script src="assets/tv-strip.js"></script>
+    <script src="assets/tv-map.js"></script>
+    <script src="assets/tv-app.js"></script>
+</body>
+</html>

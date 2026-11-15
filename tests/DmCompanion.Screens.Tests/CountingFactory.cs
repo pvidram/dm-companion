@@ -22,6 +22,7 @@ internal sealed class CountingFactory : IVaultServiceFactory
     public volatile Action? BeforeNextStateWrite;
     public TimeSpan WriteResultSkew;
     public int StateStats;
+    public int FileListings;
     public List<WriteMode> StatePreconditions { get; } = [];
 
     public VaultService Create(string rootPath) => new(

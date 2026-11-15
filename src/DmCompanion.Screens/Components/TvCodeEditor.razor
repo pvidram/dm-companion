@@ -1,0 +1,67 @@
+@using DmCompanion.Core.Tv
+@using Microsoft.Extensions.Logging
+@inject TvSession Tv
+@inject ILogger<TvCodeEditor> Logger
+
+<div class="tv-code">
+    <TextField Label="Código de la TV" @bind-Value="_draft" autocapitalize="none" spellcheck="false" />
+    @if (_error is not null)
+    {
+        <InlineNotice Kind="NoticeKind.Error">@_error</InlineNotice>
+    }
+    <Button Variant="ButtonVariant.Secondary" Disabled="_busy" OnClick="SaveAsync">Guardar</Button>
+</div>
+
+<ConfirmDialog Title="Cambiar el código de la TV" Message="Las TVs con la dirección guardada dejarán de entrar."
+               ConfirmText="Cambiar" CancelText="Cancelar" IsOpen="_confirming"
+               OnConfirm="ChangeAsync" OnCancel="CancelChange" />
+
+@code {
+    private string _draft = string.Empty;
+    private string? _error;
+    private bool _busy;
+    private bool _confirming;
+
+    protected override void OnInitialized() => _draft = Tv.Code;
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        if (!TvCode.IsValid(_draft))
+        {
+            _error = "Usa de 4 a 32 letras sin tildes, números o guiones.";
+            return;
+        }
+        // Sin código guardado, lo que se ve es solo la propuesta: guardarla tal cual también cuenta (y no hay TVs que avisar).
+        if (!Tv.HasSavedCode) await ChangeAsync();
+        else if (TvCode.Normalize(_draft) != Tv.Code) _confirming = true;
+    }
+
+    private async Task ChangeAsync()
+    {
+        _confirming = false;
+        _busy = true;
+        try
+        {
+            if (!await Tv.SetCodeAsync(_draft)) _error = "Usa de 4 a 32 letras sin tildes, números o guiones.";
+            else _draft = Tv.Code;
+        }
+        catch (IOException)
+        {
+            _draft = Tv.Code;
+            _error = "Código guardado, pero no se pudo reactivar la TV: puertos ocupados.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("No se pudo cambiar el código de la TV ({ExceptionType}).", ex.GetType().FullName);
+            _draft = Tv.Code;
+            _error = "Código guardado, pero no se pudo reactivar la TV.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void CancelChange() => _confirming = false;
+}

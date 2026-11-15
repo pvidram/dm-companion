@@ -4,15 +4,17 @@ namespace DmCompanion.Core.Maps;
 
 /// <summary>
 /// Operaciones sobre un mapa. El estado es inmutable: cada operación lo sustituye.
-/// Solo los trazos entran en la pila de deshacer. Con width o height &lt;= 0 (tamaño de imagen aún
+/// Solo los trazos y ocultar/revelar tokens entran en la pila de deshacer. Con width o height &lt;= 0 (tamaño de imagen aún
 /// desconocido) no se recortan las coordenadas.
 /// </summary>
 public sealed class MapEditor(MapState initial, double width, double height, Func<string> newId)
 {
-    private enum Kind { Added, Erased }
+    private enum Kind { Added, Erased, Hidden }
 
-    private readonly Stack<(Kind Kind, MapStroke Stroke, int Index)> _undo = new();
-    private readonly Stack<(Kind Kind, MapStroke Stroke, int Index)> _redo = new();
+    private sealed record Op(Kind Kind, MapStroke? Stroke = null, int Index = 0, string? TokenId = null, bool? HiddenAfter = null);
+
+    private readonly Stack<Op> _undo = new();
+    private readonly Stack<Op> _redo = new();
 
     public MapState State { get; private set; } = initial;
     public bool CanUndo => _undo.Count > 0;
@@ -37,11 +39,23 @@ public sealed class MapEditor(MapState initial, double width, double height, Fun
         ValidateSize(edit.Size);
         var token = State.Tokens.FirstOrDefault(t => t.Id == id);
         if (token is null) return false;
+        var alias = string.IsNullOrWhiteSpace(edit.Alias) ? null : edit.Alias.Trim();
         if (token.Source is not null)
-            return Replace(id, t => t with { Side = edit.Side, Size = edit.Size });
+            return Replace(id, t => t with { Side = edit.Side, Size = edit.Size, Alias = alias });
         if (string.IsNullOrWhiteSpace(edit.Name))
             throw new ArgumentException("El nombre del token no puede estar en blanco.", nameof(edit));
-        return Replace(id, t => t with { Side = edit.Side, Size = edit.Size, Name = edit.Name, Ac = edit.Ac, Hp = edit.Hp });
+        return Replace(id, t => t with { Side = edit.Side, Size = edit.Size, Name = edit.Name, Ac = edit.Ac, Hp = edit.Hp, Alias = alias });
+    }
+
+    /// <summary>Oculta o revela un token a los jugadores (Hidden=false se guarda como null). Deshacible. False si no existe o no cambia.</summary>
+    public bool SetHidden(string id, bool hidden)
+    {
+        var token = State.Tokens.FirstOrDefault(t => t.Id == id);
+        if (token is null || token.IsHidden == hidden) return false;
+        Replace(id, t => t with { Hidden = hidden ? true : null });
+        _undo.Push(new Op(Kind.Hidden, TokenId: id, HiddenAfter: hidden));
+        _redo.Clear();
+        return true;
     }
 
     /// <summary>Guarda los HP actuales recortados a [0, max]; max lo pone quien llama (sale de la nota o del genérico). Al subir de 0 se ponen a cero las salvaciones de muerte. Sin deshacer.</summary>
@@ -75,7 +89,7 @@ public sealed class MapEditor(MapState initial, double width, double height, Fun
         if (points.Count < 6 || points.Count % 3 != 0) return null;
         var stroke = new MapStroke(newId(), color, strokeWidth, points);
         State = State with { Strokes = [.. State.Strokes, stroke] };
-        _undo.Push((Kind.Added, stroke, State.Strokes.Count - 1));
+        _undo.Push(new Op(Kind.Added, stroke, State.Strokes.Count - 1));
         _redo.Clear();
         return stroke;
     }
@@ -86,7 +100,7 @@ public sealed class MapEditor(MapState initial, double width, double height, Fun
         if (index < 0) return false;
         var stroke = State.Strokes[index];
         State = State with { Strokes = [.. State.Strokes.Where(s => s.Id != id)] };
-        _undo.Push((Kind.Erased, stroke, index));
+        _undo.Push(new Op(Kind.Erased, stroke, index));
         _redo.Clear();
         return true;
     }
@@ -114,12 +128,19 @@ public sealed class MapEditor(MapState initial, double width, double height, Fun
         return true;
     }
 
-    private void Apply((Kind Kind, MapStroke Stroke, int Index) op, bool reverse)
+    private void Apply(Op op, bool reverse)
     {
+        if (op.Kind == Kind.Hidden)
+        {
+            var hidden = op.HiddenAfter == true != reverse;
+            Replace(op.TokenId!, t => t with { Hidden = hidden ? true : null });
+            return;
+        }
+        var stroke = op.Stroke!;
         var add = (op.Kind == Kind.Added) != reverse;
         var strokes = State.Strokes.ToList();
-        if (add) strokes.Insert(Math.Min(op.Index, strokes.Count), op.Stroke);
-        else strokes.RemoveAll(s => s.Id == op.Stroke.Id);
+        if (add) strokes.Insert(Math.Min(op.Index, strokes.Count), stroke);
+        else strokes.RemoveAll(s => s.Id == stroke.Id);
         State = State with { Strokes = strokes };
     }
 

@@ -30,6 +30,7 @@ public abstract class SoundTestContext : BunitContext, IAsyncLifetime
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton<VaultFileUrls>();
+        Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddSingleton<TimeProvider>(new FakeTimeProvider());

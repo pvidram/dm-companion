@@ -1,6 +1,6 @@
 namespace DmCompanion.Screens.Services;
 
-public enum OverlayPanel { None, Players, Notes, Maps, Sound, Vault }
+public enum OverlayPanel { None, Players, Notes, Maps, Sound, Vault, Tv }
 
 public enum EditorDialog { None, Conflict, ConfirmClose }
 

@@ -38,4 +38,6 @@ public sealed class Dnd5eCombatRules : ICombatRules
     }
 
     public int? ConcentrationDc(int damage) => damage <= 0 ? null : Math.Min(30, Math.Max(10, damage / 2));
+
+    public string? HealthLabel(int current, int? max) => HealthLabels.For(current, max);
 }

@@ -4,6 +4,9 @@
     <RootNamespace>DmCompanion.Infrastructure</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="DmCompanion.Infrastructure.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\DmCompanion.Core\DmCompanion.Core.csproj" />
   </ItemGroup>
 </Project>

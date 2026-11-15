@@ -3,6 +3,7 @@
 @using Microsoft.JSInterop
 @inject WikilinkInterop Wikilinks
 @inject MapSession Maps
+@inject NoteImageResolver Images
 
 @if (Entity is { } entity)
 {
@@ -18,7 +19,9 @@
     private DotNetObjectReference<NoteBody>? _self;
 
     private MarkupString Html(VaultEntity entity) =>
-        new(NoteHtmlRenderer.Render(entity.Body, RenderAudience.Dm, target => Index.Resolve(target) is not null));
+        new(NoteHtmlRenderer.Render(entity.Body, RenderAudience.Dm, target => Index.Resolve(target) is not null, Images.TabletUrls()));
+
+    protected override Task OnParametersSetAsync() => Images.EnsureLoadedAsync();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

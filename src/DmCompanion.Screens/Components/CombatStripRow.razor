@@ -5,7 +5,7 @@
 <li class="@RowClass" data-entry-id="@Entry.Id" data-testid="strip-row" aria-current="@(IsCurrent ? "true" : null)">
     <span class="@HandleClass" data-testid="strip-handle" aria-hidden="true">⋮⋮</span>
     <button type="button" class="combat-strip__select" data-testid="strip-select" @onclick="OnSelect">
-        <TokenAvatar Name="@Name" Faction="@Faction" />
+        <TokenAvatar Name="@Name" Faction="@Faction" IsHidden="@(Token?.IsHidden == true)" />
         <span class="combat-strip__name" data-testid="strip-name">@Name</span>
         <span class="combat-strip__initiative ds-numeric" data-testid="strip-initiative">@(Entry.Initiative?.ToString() ?? StatFormat.Dash)</span>
         <span class="combat-strip__hp ds-numeric" data-testid="strip-hp">@HpText</span>

@@ -1,5 +1,7 @@
 ﻿using DmCompanion.Core.Vault.Storage;
+using DmCompanion.Core.Tv;
 using DmCompanion.Infrastructure;
+using DmCompanion.Infrastructure.Tv;
 using DmCompanion.Screens.Platform;
 using DmCompanion.Screens.Services;
 using DmCompanion.UI;
@@ -37,8 +39,14 @@ public static class MauiProgram
 		builder.Services.AddScoped<DragPanelInterop>();
 		builder.Services.AddScoped<BackNavigation>();
 		builder.Services.AddSingleton<VaultFileUrls>();
+		builder.Services.AddSingleton<NoteImageResolver>();
 		builder.Services.AddSingleton<VaultFileRequestHandler>();
 		builder.Services.AddSingleton<PortraitUrlProvider>();
+		builder.Services.AddSingleton<ITvAssets, EmbeddedTvAssets>();
+		builder.Services.AddSingleton<ITvServer, TvServer>();
+		builder.Services.AddSingleton<TvMapFeed>();
+		builder.Services.AddSingleton<TvContentFeed>();
+		builder.Services.AddSingleton<TvSession>();
 		builder.Services.AddSingleton<IAudioPlayer, AndroidAudioPlayer>();
 
 		// Release también necesita sink: sin él los errores no llegan a `adb logcat -s DmCompanion`.

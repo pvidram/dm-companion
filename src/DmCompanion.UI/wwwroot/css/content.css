@@ -48,3 +48,5 @@
 @media (prefers-reduced-motion: reduce) {
     .ds-save-indicator { animation: none; }
 }
+
+.ds-note img { max-width: 100%; height: auto; }

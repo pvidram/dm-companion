@@ -5,13 +5,16 @@
 
     const DEAD_OPACITY = 0.25;
     const DOWN_OPACITY = 0.4;
+    // Oculto a los jugadores (misma opacidad que --map-token-hidden-opacity del design system).
+    const HIDDEN_OPACITY = 0.5;
 
     function tokenBodyOpacity(token) {
         if (token.dead) return DEAD_OPACITY;
-        return token.down ? DOWN_OPACITY : 1;
+        if (token.down) return DOWN_OPACITY;
+        return token.hidden ? HIDDEN_OPACITY : 1;
     }
 
-    const api = { tokenBodyOpacity, DEAD_OPACITY, DOWN_OPACITY };
+    const api = { tokenBodyOpacity, DEAD_OPACITY, DOWN_OPACITY, HIDDEN_OPACITY };
     root.tokenOpacity = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

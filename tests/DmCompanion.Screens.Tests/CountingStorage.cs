@@ -21,7 +21,11 @@ internal sealed class CountingStorage(IVaultStorage inner, CountingFactory owner
         return await inner.ReadAsync(p, ct);
     }
     public Task<byte[]> ReadBytesAsync(string p, CancellationToken ct = default) => inner.ReadBytesAsync(p, ct);
-    public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> f, CancellationToken ct = default) => inner.ListFilesAsync(f, ct);
+    public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> f, CancellationToken ct = default)
+    {
+        Interlocked.Increment(ref owner.FileListings);
+        return inner.ListFilesAsync(f, ct);
+    }
     public Task<Stream> OpenReadAsync(string p, CancellationToken ct = default) => inner.OpenReadAsync(p, ct);
     public async Task<VaultFileInfo?> StatAsync(string p, CancellationToken ct = default)
     {

@@ -2,6 +2,7 @@
 @using DmCompanion.Core.Rendering
 @using Microsoft.Extensions.Logging
 @inject ILogger<NoteEditor> Logger
+@inject NoteImageResolver Images
 
 <div class="note-editor" data-testid="note-editor">
     <h3>@Path</h3>
@@ -24,7 +25,7 @@
         @if (_loaded)
         {
             <Button Variant="ButtonVariant.Primary" Disabled="_busy" OnClick="SaveAsync">Guardar</Button>
-            <Button OnClick="TogglePreview">@(_preview ? "Editar" : "Vista previa")</Button>
+            <Button OnClick="TogglePreviewAsync">@(_preview ? "Editar" : "Vista previa")</Button>
         }
         <Button OnClick="RequestClose">Cerrar</Button>
     </div>
@@ -153,12 +154,13 @@
     }
 
     // La vista previa se calcula solo al conmutar, no por tecla.
-    private void TogglePreview()
+    private async Task TogglePreviewAsync()
     {
         _preview = !_preview;
         if (!_preview) return;
+        await Images.EnsureLoadedAsync();
         var body = FrontmatterParser.Parse(_text).Body;
-        _previewHtml = new MarkupString(NoteHtmlRenderer.Render(body, RenderAudience.Dm, target => Index.Resolve(target) is not null));
+        _previewHtml = new MarkupString(NoteHtmlRenderer.Render(body, RenderAudience.Dm, target => Index.Resolve(target) is not null, Images.TabletUrls()));
     }
 
     private void RequestClose()

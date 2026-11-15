@@ -51,8 +51,8 @@
             </MapToolbarGroup>
             <MapToolbarGroup Label="Trazos">
                 <IconButton Icon="IconName.Eraser" Label="Goma" IsPressed="@tool.Eraser" OnClick="() => ChooseAsync(tool with { Eraser = !tool.Eraser })" />
-                <IconButton Icon="IconName.Undo2" Label="Deshacer trazo" Disabled="@(!editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
-                <IconButton Icon="IconName.Redo2" Label="Rehacer trazo" Disabled="@(!editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
+                <IconButton Icon="IconName.Undo2" Label="Deshacer" Disabled="@(!editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
+                <IconButton Icon="IconName.Redo2" Label="Rehacer" Disabled="@(!editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
             </MapToolbarGroup>
         }
 
@@ -69,6 +69,7 @@
                 <IconButton Icon="IconName.UserPlus" Label="Añadir token" OnClick="OnAddToken" />
             }
             <IconButton Icon="IconName.Maximize" Label="Ajustar a pantalla" OnClick="() => Canvas.FitAsync()" />
+            <TvFrameButton Compact />
         </MapToolbarGroup>
 
         @if (!readOnly && !Combat.IsActive)

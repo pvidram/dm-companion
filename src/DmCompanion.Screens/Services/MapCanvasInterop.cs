@@ -27,7 +27,7 @@ public sealed record MapAreaRect(double Left, double Top, double Width, double H
 /// Único punto de interop del lienzo del mapa (`window.mapCanvas`): los componentes nunca inyectan IJSRuntime.
 /// Scoped: hay un lienzo por circuito.
 /// </summary>
-public sealed class MapCanvasInterop(
+public sealed partial class MapCanvasInterop(
     IJSRuntime js,
     MapSession session,
     VaultFileUrls urls,
@@ -84,6 +84,8 @@ public sealed class MapCanvasInterop(
             (_paintedState, _paintedReadOnly, _paintedSelectedId) = (built.State, built.ReadOnly, built.SelectedId);
             // Un lienzo nuevo nace en Navegar: si la barra ya tenía otro modo, se le vuelve a decir.
             if (Mode != MapMode.Navigate) await TryInvokeAsync("mapCanvas.setMode", Mode.ToString(), Tool);
+            _drawnTvFrame = null; // y nace sin el encuadre de la TV
+            await DrawTvFrameLockedAsync();
         }
         finally
         {
@@ -192,6 +194,7 @@ public sealed class MapCanvasInterop(
             SetGridAdjusting(false);
             if (!_loaded) return;
             _loaded = false;
+            _drawnTvFrame = null;
             await TryInvokeAsync("mapCanvas.dispose");
         }
         finally
@@ -392,6 +395,7 @@ public sealed class MapCanvasInterop(
                 conditions = marks.Conditions,
                 expired = marks.Expired,
                 dead = marks.Dead,
+                hidden = token.IsHidden,
             });
         }
 

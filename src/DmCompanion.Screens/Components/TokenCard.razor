@@ -15,10 +15,15 @@
     @if (_token is { } token)
     {
         <p data-testid="token-side">@FactionVisuals.Label(TokenSideMapping.ToFaction(token.Side))</p>
+        @if (!string.IsNullOrWhiteSpace(token.Alias))
+        {
+            <p data-testid="token-alias">Alias: @token.Alias.Trim()</p>
+        }
         @if (_editing)
         {
             <Select TValue="TokenSide" Label="Bando" @bind-Value="_side" Options="Sides" LabelOf="SideLabel" />
             <Select TValue="int" Label="Tamaño" @bind-Value="_size" Options="Sizes" LabelOf="SizeLabel" />
+            <TextField Label="Alias" @bind-Value="_alias" />
             @if (token.Source is null)
             {
                 <TextField Label="Nombre" @bind-Value="_name" />
@@ -67,6 +72,7 @@
                 }
                 @if (!Session.IsReadOnly)
                 {
+                    <Button Icon="IconName.EyeOff" OnClick="@(() => SetHidden(token, !token.IsHidden))">@(token.IsHidden ? "Revelar" : "Ocultar a los jugadores")</Button>
                     <Button Icon="IconName.Pencil" OnClick="@(() => StartEdit(token))">Editar</Button>
                     <Button Variant="ButtonVariant.Damage" Icon="IconName.Trash2" OnClick="Remove">Quitar del mapa</Button>
                 }
@@ -89,6 +95,7 @@
     private TokenSide _side;
     private int _size;
     private string _name = string.Empty;
+    private string _alias = string.Empty;
     private string _ac = string.Empty;
     private string _hp = string.Empty;
 
@@ -299,7 +306,7 @@
 
     private void StartEdit(MapToken token)
     {
-        (_side, _size) = (token.Side, token.Size);
+        (_side, _size, _alias) = (token.Side, token.Size, token.Alias ?? string.Empty);
         (_name, _ac, _hp) = (token.Name, token.Ac?.ToString(CultureInfo.InvariantCulture) ?? string.Empty, token.Hp?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
         _editing = true;
     }
@@ -309,10 +316,12 @@
         if (_token is not { } token || !CanSave(token)) return;
         TryParseStat(_ac, out var ac);
         TryParseStat(_hp, out var hp);
-        var edit = new TokenEdit(_side, _size, token.Source is null ? _name.Trim() : null, ac, hp);
+        var edit = new TokenEdit(_side, _size, token.Source is null ? _name.Trim() : null, ac, hp, _alias);
         Session.Mutate(editor => editor.UpdateToken(token.Id, edit));
         _editing = false;
     }
+
+    private void SetHidden(MapToken token, bool hidden) => Session.Mutate(editor => editor.SetHidden(token.Id, hidden));
 
     private void Remove()
     {

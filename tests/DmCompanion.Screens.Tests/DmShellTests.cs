@@ -24,6 +24,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton<VaultFileUrls>();
+        Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddSoundForTests();
@@ -102,7 +103,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
     {
         var cut = Render<DmShell>();
 
-        cut.FindAll("section.ds-parchment").Should().HaveCount(5);
+        cut.FindAll("section.ds-parchment").Should().HaveCount(6);
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
 
         cut.Find("button[aria-label='Notas']").Click();
 
-        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((5, false)), TimeSpan.FromSeconds(10));
+        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((6, false)), TimeSpan.FromSeconds(10));
     }
 
     [Fact]

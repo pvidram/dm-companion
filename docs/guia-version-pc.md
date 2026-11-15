@@ -18,10 +18,27 @@ Es la misma app de la tablet, pero en el PC: se abre en el navegador y trabaja s
 
 ## Qué funciona y qué no
 
-- Funciona: notas, fichas, mapa, tokens, dibujo, medición, HP y combate (tira de turnos, daño y curación, estados y salvaciones de muerte) y sonido (fondo y efectos desde `_audio/`, escenas, mini control en la franja superior y botón de ambiente en las notas).
-- No funciona todavía: glosario y vista de jugadores en TV.
+- Funciona: notas, fichas, mapa, tokens, dibujo, medición, HP, combate (tira de turnos, daño y curación, estados y salvaciones de muerte), sonido (fondo y efectos desde `_audio/`, escenas, mini control en la franja superior y botón de ambiente en las notas) y vista de jugadores en la TV.
+- No funciona todavía: glosario.
 
 Aviso: el fichero de estado del mapa (`.state.json`) pasa a la versión 2. Una versión anterior de la app lo abre en solo lectura, así que actualiza todas las instalaciones (PC y tablet) que compartan el mismo vault.
+
+## Ver la partida en la TV
+
+Los jugadores pueden ver su propia vista en una Smart TV con navegador, sin cables: basta con que la TV y el PC estén en la misma red de casa (no hace falta internet).
+
+1. En el menú de la izquierda, pulsa **TV**. En **Código de la TV** elige una palabra fácil de recordar (de 4 a 32 letras sin tildes, números o guiones, por ejemplo `brumavela`) y pulsa **Guardar**; el panel propone el nombre de la campaña. Después pulsa **Activar TV**: el panel muestra una dirección del tipo `http://192.168.1.20:8590/tv/brumavela/` y un código QR con ella. No importa si escribes mayúsculas o minúsculas.
+2. La primera vez, Windows pregunta si permite que `DMCompanion.exe` acceda a la red (aviso del **Firewall de Windows Defender**). Marca **Redes privadas** y pulsa **Permitir acceso**. Si la red de casa está configurada como pública, cámbiala a privada en la configuración de Windows (Red e Internet). Si lo cancelaste por error, ve a **Firewall de Windows Defender › Permitir una aplicación a través del firewall** y marca `DMCompanion.exe` en redes privadas.
+3. En la TV, abre el navegador y escribe la dirección tal cual (o escanea el QR con un móvil para comprobarla). La TV muestra el nombre de la campaña hasta que fijes un encuadre del mapa.
+4. **Favorito en la TV:** una vez abierta la dirección, guárdala como favorito o marcador del navegador de la TV (o como acceso directo en la pantalla de inicio, si lo permite). La próxima sesión bastará con abrir el favorito, sin teclear nada.
+5. Debajo de la dirección, el panel dice si hay alguna TV conectada («Sin TV conectada», «TV conectada»). Si el panel lista varias direcciones, prueba con la siguiente cuando la primera no cargue.
+6. La TV queda activada hasta que pulses **Desactivar TV** o cierres la app. El código es fijo: se guarda en este equipo y es el mismo al volver a activar la TV o al reabrir la app, así que la TV puede entrar siempre por la misma dirección. Si lo cambias (el panel pide confirmación), las TVs con la dirección anterior dejan de entrar y hay que abrir la nueva. Mientras está desactivada, el PC no acepta conexiones de la red.
+
+Para enseñar en la TV una ficha de PJ o una nota de lugar, ábrela y pulsa **Mostrar en TV**; la ficha sale con el retrato y las estadísticas (no sale en notas secretas ni en PNJ o monstruos; los bloques `%% … %%` nunca llegan a la TV). Mientras se ve, arriba aparece «En la TV: …» con **Volver al mapa**, que devuelve la TV al último encuadre fijado.
+
+Si la wifi se corta un momento, la TV conserva la última imagen, muestra «Reconectando…» en una esquina y vuelve sola.
+
+**TV conectada por HDMI como segunda pantalla:** también vale. Activa la TV, abre una ventana nueva del navegador, arrástrala a la pantalla de la TV y escribe la misma dirección cambiando la IP por `localhost` (por ejemplo `http://localhost:8590/tv/brumavela/`). Pon esa ventana a pantalla completa con F11.
 
 ## Cerrarla
 

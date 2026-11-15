@@ -335,4 +335,25 @@ public class MapStateSerializerTests
 
         MapStateSerializer.Read(MapStateSerializer.Write(s)).State.Should().BeEquivalentTo(s);
     }
+
+    [Fact]
+    public void Hidden_and_alias_round_trip()
+    {
+        var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 10, 20, null, null, Hidden: true, Alias: "Sombra");
+        var json = MapStateSerializer.Write(MapState.Empty with { Tokens = [token] });
+
+        var read = MapStateSerializer.Read(json).State.Tokens.Should().ContainSingle().Which;
+
+        read.Hidden.Should().BeTrue();
+        read.Alias.Should().Be("Sombra");
+    }
+
+    [Fact]
+    public void Visible_token_without_alias_omits_both_fields()
+    {
+        var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 10, 20, null, null);
+        var json = MapStateSerializer.Write(MapState.Empty with { Tokens = [token] });
+
+        json.Should().NotContain("\"hidden\"").And.NotContain("\"alias\"");
+    }
 }

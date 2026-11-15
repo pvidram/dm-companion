@@ -1,0 +1,70 @@
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject IServiceProvider Services
+@inject ILogger<TvNowShowing> Log
+
+@* Aviso fijo mientras la TV muestra una ficha o nota: «En la TV: {título}» con «Volver al mapa». *@
+@if (_tv is { Mode: TvMode.Content, ContentTitle: { } title })
+{
+    <div class="tv-now-showing">
+        <InlineNotice Kind="NoticeKind.Info">
+            En la TV: @title
+            <Button Icon="IconName.Map" Disabled="_busy" OnClick="BackAsync">Volver al mapa</Button>
+        </InlineNotice>
+    </div>
+}
+
+@code {
+    private TvSession? _tv;
+    private bool _busy;
+
+    // Opcional, como en TvFrameButton: el shell no obliga a registrar el servicio de la TV (tests).
+    protected override void OnInitialized()
+    {
+        _tv = Services.GetService<TvSession>();
+        if (_tv is not null) _tv.Changed += OnChanged;
+    }
+
+    private async Task BackAsync()
+    {
+        if (_tv is null) return;
+        _busy = true;
+        try
+        {
+            await _tv.BackToMapAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("No se pudo devolver la TV al mapa ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Llega desde otros hilos (servidor de la TV, cambios del vault): hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El aviso ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar el aviso de la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_tv is not null) _tv.Changed -= OnChanged;
+    }
+}

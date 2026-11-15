@@ -3,7 +3,7 @@ using DmCompanion.Core.Combat;
 
 namespace DmCompanion.Core.Maps;
 
-/// <summary>Token del mapa. X e Y son el centro, en píxeles del mapa. Ac y Hp (≥ 0) solo existen en los genéricos. HpCurrent (opcional, ≥ 0) son los HP actuales; sin él, el token está al máximo. HpTemp (≥ 0), Conditions, DeathSaves y Dead (muerto: la tira de turnos lo salta) son del combate y se omiten si no hay.</summary>
+/// <summary>Token del mapa. X e Y son el centro, en píxeles del mapa. Ac y Hp (≥ 0) solo existen en los genéricos. HpCurrent (opcional, ≥ 0) son los HP actuales; sin él, el token está al máximo. HpTemp (≥ 0), Conditions, DeathSaves y Dead (muerto: la tira de turnos lo salta) son del combate y se omiten si no hay. Hidden (oculto a los jugadores) y Alias (nombre para los jugadores) también se omiten si no hay.</summary>
 public sealed record MapToken(
     string Id,
     string Name,
@@ -18,8 +18,17 @@ public sealed record MapToken(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? HpTemp = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TokenCondition>? Conditions = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DeathSaves? DeathSaves = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Dead = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Dead = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Hidden = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Alias = null)
 {
+    [JsonIgnore]
+    public bool IsHidden => Hidden == true;
+
+    /// <summary>Nombre que ven los jugadores: el alias si lo hay, si no el nombre.</summary>
+    [JsonIgnore]
+    public string PlayerName => string.IsNullOrWhiteSpace(Alias) ? Name : Alias.Trim();
+
     [JsonIgnore]
     public bool IsDead => Dead == true;
 

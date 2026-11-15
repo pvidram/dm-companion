@@ -9,7 +9,7 @@
         <li>
             <button type="button" class="@CellClass(entry, token)" data-testid="strip-cell" aria-label="@CellLabel(entry, token)"
                     aria-current="@(entry.Id == CurrentEntryId ? "true" : null)" @onclick="@(e => OnTap.InvokeAsync(new StripTap(index, e.ClientX, e.ClientY)))">
-                <TokenAvatar Name="@(token?.Name ?? StatFormat.Dash)" Faction="@(token is null ? Faction.Enemy : TokenSideMapping.ToFaction(token.Side))" />
+                <TokenAvatar Name="@(token?.Name ?? StatFormat.Dash)" Faction="@(token is null ? Faction.Enemy : TokenSideMapping.ToFaction(token.Side))" IsHidden="@(token?.IsHidden == true)" />
                 <span class="combat-strip__cell-name" data-testid="strip-cell-name">@(token?.Name ?? StatFormat.Dash)</span>
                 <span class="ds-initiative__value ds-numeric">@(entry.Initiative?.ToString() ?? StatFormat.Dash)</span>
                 @if (token is not null && token.ConditionList.Any(c => c.Expired))

@@ -26,4 +26,7 @@ public interface ICombatRules
 
     /// <summary>CD de la salvación de concentración tras el daño, o null si no aplica.</summary>
     int? ConcentrationDc(int damage);
+
+    /// <summary>Etiqueta de salud para los jugadores («Ileso», «Herido», «Malherido»); null si no hay máximo o la vida es 0.</summary>
+    string? HealthLabel(int current, int? max);
 }

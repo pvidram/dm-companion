@@ -55,4 +55,17 @@ public class Dnd5eCombatRulesTests
         Rules.ConcentrationKey.Should().Be("concentration");
         Rules.Phases.Should().BeEmpty();
     }
+
+    [Theory]
+    [InlineData(20, 20, "Ileso")]
+    [InlineData(11, 20, "Herido")]
+    [InlineData(10, 20, "Malherido")]
+    [InlineData(1, 20, "Malherido")]
+    [InlineData(0, 20, null)]
+    [InlineData(5, 0, null)]
+    public void Dnd5e_health_label_follows_thresholds(int current, int max, string? expected) =>
+        Rules.HealthLabel(current, max).Should().Be(expected);
+
+    [Fact]
+    public void Dnd5e_health_label_without_max_is_null() => Rules.HealthLabel(5, null).Should().BeNull();
 }

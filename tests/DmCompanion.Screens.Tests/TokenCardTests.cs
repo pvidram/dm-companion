@@ -231,7 +231,7 @@ public sealed class TokenCardTests : TokenTestBase
 
         ButtonText(cut, "Editar").Click();
 
-        FieldLabels(cut).Should().Equal("Bando", "Tamaño");
+        FieldLabels(cut).Should().Equal("Bando", "Tamaño", "Alias");
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public sealed class TokenCardTests : TokenTestBase
 
         ButtonText(cut, "Editar").Click();
 
-        FieldLabels(cut).Should().Equal("Bando", "Tamaño", "Nombre", "AC (opcional)", "HP (opcional)");
+        FieldLabels(cut).Should().Equal("Bando", "Tamaño", "Alias", "Nombre", "AC (opcional)", "HP (opcional)");
     }
 
     [Fact]

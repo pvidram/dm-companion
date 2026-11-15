@@ -1,0 +1,149 @@
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject TvSession Tv
+@inject ILogger<TvPanelBody> Logger
+
+<div class="tv-panel">
+    <TvCodeEditor />
+    @if (Tv.Mode == TvMode.Off)
+    {
+        <p>Los jugadores verán la partida en la TV abriendo una dirección en su navegador. La TV tiene que estar en la misma wifi.</p>
+        @if (_error is not null)
+        {
+            <InlineNotice Kind="NoticeKind.Error">@_error</InlineNotice>
+        }
+        <Button Icon="IconName.Tv" Disabled="_busy" OnClick="EnableAsync">Activar TV</Button>
+    }
+    else
+    {
+        @if (MainAddress is { } address)
+        {
+            <p>Abre esta dirección en el navegador de la TV:</p>
+            <p class="tv-panel__address">@address</p>
+            <img class="tv-panel__qr" src="@QrFor(address)" alt="Código QR con la dirección de la TV" />
+            @if (OtherAddresses.Count > 0)
+            {
+                <p>Si no funciona, prueba con otra red:</p>
+                <ul class="tv-panel__other">
+                    @foreach (var other in OtherAddresses)
+                    {
+                        <li>@other</li>
+                    }
+                </ul>
+            }
+        }
+        else
+        {
+            <InlineNotice Kind="NoticeKind.Warning">No hay ninguna red conectada. Conecta este equipo a la wifi y vuelve a activar la TV.</InlineNotice>
+        }
+        <p class="tv-panel__status" role="status">@StatusText</p>
+        @if (Tv.Mode == TvMode.Map && Tv.MapName is { } mapName)
+        {
+            <p class="tv-panel__showing">En la TV: mapa @mapName</p>
+        }
+        else if (Tv.Mode == TvMode.Content && Tv.ContentTitle is { } title)
+        {
+            <p class="tv-panel__showing">En la TV: @title</p>
+            <Button Icon="IconName.Map" Disabled="_busy" OnClick="BackToMapAsync">Volver al mapa</Button>
+        }
+        <TvFrameButton />
+        <Button Variant="ButtonVariant.Secondary" Disabled="_busy" OnClick="DisableAsync">Desactivar TV</Button>
+    }
+</div>
+
+@code {
+    private string? _error;
+    private bool _busy;
+    private (string Address, string DataUri)? _qr;
+
+    private string? MainAddress => Tv.Endpoint is { Addresses.Count: > 0 } endpoint ? Tv.AddressFor(endpoint.Addresses[0]) : null;
+
+    private IReadOnlyList<string> OtherAddresses =>
+        Tv.Endpoint is { } endpoint ? endpoint.Addresses.Skip(1).Select(ip => Tv.AddressFor(ip)!).ToList() : [];
+
+    private string StatusText => Tv.Connected switch
+    {
+        0 => "Sin TV conectada",
+        1 => "TV conectada",
+        var count => $"{count} TVs conectadas",
+    };
+
+    // El PNG solo se genera cuando cambia la dirección, no en cada render.
+    private string QrFor(string address)
+    {
+        if (_qr is not { } cached || cached.Address != address) _qr = cached = (address, TvQrCode.ToPngDataUri(address));
+        return cached.DataUri;
+    }
+
+    protected override void OnInitialized() => Tv.Changed += OnTvChanged;
+
+    private async Task EnableAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Tv.EnableAsync();
+        }
+        catch (IOException)
+        {
+            _error = "No se pudo activar la TV: puertos ocupados.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("No se pudo activar la TV ({ExceptionType}).", ex.GetType().FullName);
+            _error = "No se pudo activar la TV.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task BackToMapAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Tv.BackToMapAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("No se pudo devolver la TV al mapa ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DisableAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Tv.DisableAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Los avisos llegan desde los hilos del servidor: hay que volver al dispatcher de Blazor.
+    private void OnTvChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Fallo al refrescar el panel de la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose() => Tv.Changed -= OnTvChanged;
+}

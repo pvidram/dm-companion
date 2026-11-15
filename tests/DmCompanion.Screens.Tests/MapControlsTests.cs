@@ -31,6 +31,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddSingleton<VaultFileUrls>();
+        Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddSoundForTests();
@@ -128,8 +129,8 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
 
     [Theory]
     [InlineData("Goma")]
-    [InlineData("Deshacer trazo")]
-    [InlineData("Rehacer trazo")]
+    [InlineData("Deshacer")]
+    [InlineData("Rehacer")]
     public async Task Draw_mode_shows_the_stroke_tools(string label)
     {
         var cut = await DrawModeAsync();
@@ -142,7 +143,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
         var cut = await DrawModeAsync();
         var interop = Services.GetRequiredService<MapCanvasInterop>();
         interop.OnStrokeAdded("#000000", 6, [1, 2, 0.5, 3, 4, 0.5]);
-        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer trazo").HasAttribute("disabled").Should().BeFalse(), Timeout);
+        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer").HasAttribute("disabled").Should().BeFalse(), Timeout);
         return (cut, interop);
     }
 
@@ -151,7 +152,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var cut = await DrawModeAsync();
 
-        ByLabel(cut, "Deshacer trazo").HasAttribute("disabled").Should().BeTrue();
+        ByLabel(cut, "Deshacer").HasAttribute("disabled").Should().BeTrue();
     }
 
     [Fact]
@@ -175,7 +176,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var cut = await DrawModeAsync();
 
-        ByLabel(cut, "Rehacer trazo").HasAttribute("disabled").Should().BeTrue();
+        ByLabel(cut, "Rehacer").HasAttribute("disabled").Should().BeTrue();
     }
 
     [Fact]
@@ -183,7 +184,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var (cut, _) = await DrawnStrokeAsync();
 
-        ByLabel(cut, "Deshacer trazo").Click();
+        ByLabel(cut, "Deshacer").Click();
 
         Session.Editor!.State.Strokes.Should().BeEmpty();
     }
@@ -193,20 +194,34 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var (cut, _) = await DrawnStrokeAsync();
 
-        ByLabel(cut, "Deshacer trazo").Click();
+        ByLabel(cut, "Deshacer").Click();
 
-        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer trazo").HasAttribute("disabled").Should().BeTrue(), Timeout);
-        ByLabel(cut, "Rehacer trazo").HasAttribute("disabled").Should().BeFalse();
+        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer").HasAttribute("disabled").Should().BeTrue(), Timeout);
+        ByLabel(cut, "Rehacer").HasAttribute("disabled").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Undo_button_also_reverts_hiding_a_token_so_it_is_not_labelled_as_strokes_only()
+    {
+        var cut = await DrawModeAsync();
+        var id = "";
+        Session.Mutate(e => { id = e.AddToken(new TokenDraft("Goblin", null, TokenSide.Enemy, 1, null, null), 5, 5).Id; return true; });
+        Session.Mutate(e => e.SetHidden(id, true));
+        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer").HasAttribute("disabled").Should().BeFalse(), Timeout);
+
+        ByLabel(cut, "Deshacer").Click();
+
+        Session.Editor!.State.Tokens.Single(t => t.Id == id).IsHidden.Should().BeFalse();
     }
 
     [Fact]
     public async Task Redo_restores_the_undone_stroke()
     {
         var (cut, _) = await DrawnStrokeAsync();
-        ByLabel(cut, "Deshacer trazo").Click();
-        cut.WaitForAssertion(() => ByLabel(cut, "Rehacer trazo").HasAttribute("disabled").Should().BeFalse(), Timeout);
+        ByLabel(cut, "Deshacer").Click();
+        cut.WaitForAssertion(() => ByLabel(cut, "Rehacer").HasAttribute("disabled").Should().BeFalse(), Timeout);
 
-        ByLabel(cut, "Rehacer trazo").Click();
+        ByLabel(cut, "Rehacer").Click();
 
         Session.Editor!.State.Strokes.Should().ContainSingle();
     }

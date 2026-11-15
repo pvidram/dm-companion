@@ -12,6 +12,8 @@
                     OnToggle="@(() => Shell.Toggle(OverlayPanel.Maps))" />
         <RailButton Icon="IconName.Music" Label="Sonido" IsPressed="@(Shell.ActivePanel == OverlayPanel.Sound)"
                     OnToggle="@(() => Shell.Toggle(OverlayPanel.Sound))" />
+        <RailButton Icon="IconName.Tv" Label="TV" IsPressed="@(Shell.ActivePanel == OverlayPanel.Tv)"
+                    OnToggle="@(() => Shell.Toggle(OverlayPanel.Tv))" />
         <div class="dm-shell__rail-bottom">
             <RailButton Icon="IconName.FolderOpen" Label="Cambiar vault" IsPressed="@(Shell.ActivePanel == OverlayPanel.Vault)"
                         OnToggle="@(() => Shell.Toggle(OverlayPanel.Vault))" />
@@ -25,6 +27,7 @@
                 <Button OnClick="Shell.OpenConflicts">Revisar</Button>
             </InlineNotice>
         }
+        <TvNowShowing />
         <CombatStripBar />
         <SoundMiniControl />
     </Strip>
@@ -45,6 +48,7 @@
         <MapsPanel />
         <SoundPanel />
         <VaultPanel />
+        <TvPanel />
     </Overlays>
     <Dialogs>
         <NewNoteDialog />

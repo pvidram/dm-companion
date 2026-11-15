@@ -21,6 +21,7 @@
             var mapPath = entity.RelativePath;
             <Button Icon="IconName.Map" OnClick="() => OpenMapAsync(mapPath)">Abrir mapa</Button>
         }
+        <ShowOnTvButton Entity="entity" />
         @if (FrontmatterReader.GetString(entity.Frontmatter, "ambience") is { Length: > 0 } ambience)
         {
             <AmbienceButton Value="@ambience" />

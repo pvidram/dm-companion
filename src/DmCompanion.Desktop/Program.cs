@@ -5,7 +5,9 @@ using DmCompanion.Desktop.Logging;
 using DmCompanion.Desktop.Platform;
 using DmCompanion.DevHost;
 using DmCompanion.DevHost.Platform;
+using DmCompanion.Core.Tv;
 using DmCompanion.Infrastructure;
+using DmCompanion.Infrastructure.Tv;
 using DmCompanion.Screens.Components;
 using DmCompanion.Screens.Platform;
 using DmCompanion.Screens.Services;
@@ -94,7 +96,13 @@ try
     builder.Services.AddScoped<IAudioPlayer, WebAudioPlayer>();
     builder.Services.AddScoped<BackNavigation>();
     builder.Services.AddSingleton<VaultFileUrls>();
+    builder.Services.AddSingleton<NoteImageResolver>();
     builder.Services.AddSingleton<PortraitUrlProvider>();
+    builder.Services.AddSingleton<ITvAssets, EmbeddedTvAssets>();
+    builder.Services.AddSingleton<ITvServer, TvServer>();
+    builder.Services.AddSingleton<TvMapFeed>();
+    builder.Services.AddSingleton<TvContentFeed>();
+    builder.Services.AddSingleton<TvSession>();
     builder.Services.AddHostedService<MapFlushOnStop>();
 
     var app = builder.Build();

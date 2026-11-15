@@ -1,0 +1,53 @@
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject IServiceProvider Services
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject ILogger<TvFrameOverlay> Log
+
+@* Sin marcado: mantiene en el lienzo el rectángulo del encuadre de la TV (solo sobre el mapa que muestra la TV). *@
+
+@code {
+    private TvSession? _tv;
+
+    // Opcional, como en TvFrameButton: sin servicio de TV no hay rectángulo.
+    protected override void OnInitialized()
+    {
+        _tv = Services.GetService<TvSession>();
+        if (_tv is null) return;
+        _tv.Changed += OnChanged;
+        Session.Changed += OnChanged;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender) => firstRender ? SyncAsync() : Task.CompletedTask;
+
+    private Task SyncAsync() =>
+        _tv is null ? Task.CompletedTask : Canvas.SetTvFrameAsync(_tv.VisibleFrameFor(Session.Current?.NotePath));
+
+    // Llega desde otros hilos (servidor de la TV, guardado del mapa): el interop JS va por el dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(SyncAsync);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El lienzo ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al marcar el encuadre de la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_tv is null) return;
+        _tv.Changed -= OnChanged;
+        Session.Changed -= OnChanged;
+    }
+}

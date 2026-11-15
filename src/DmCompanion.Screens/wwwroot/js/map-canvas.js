@@ -1,5 +1,5 @@
-// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, fit, viewCenter, hostRect, beginGridAdjust, endGridAdjust, dispose}.
-// Capas, de abajo arriba: imagen o lienzo, cuadrícula, trazos, tokens y borrador (trazo en curso o medición).
+// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose}.
+// Capas, de abajo arriba: imagen o lienzo, cuadrícula, trazos, tokens, encuadre de la TV (tv-frame.js) y borrador (trazo en curso o medición).
 // El estado manda C#: JS pinta lo que recibe y solo informa de gestos (token movido o tocado, imagen cargada,
 // trazo añadido o borrado). La medición no cruza el puente.
 (function () {
@@ -49,6 +49,8 @@
             measureLightWidth: parseFloat(get('--map-measure-width-light', '3px')),
             labelBg: get('--map-measure-label-bg', '#2B2118'),
             labelText: get('--map-measure-label-text', '#F2EAD8'),
+            hiddenBadge: get('--map-hidden-badge-bg', '#4F3570'),
+            hiddenBadgeIcon: get('--map-hidden-badge-icon', '#E8DCC2'),
             labelFont: get('--font-body', '') || css.fontFamily || 'sans-serif',
         };
     }
@@ -197,6 +199,21 @@
 
     // Marcas del combate: turno actual (anillo exterior de acento), selección (contorno discontinuo),
     // 0 HP (token atenuado), muerto (más atenuado y con cruz) y estados (insignia con su número; de aviso si alguno está vencido).
+    // Insignia de ojo tachado abajo a la derecha (como `TokenAvatar`): círculo violeta, ojo y barra, sin fuentes de iconos.
+    function addHiddenBadge(group, radius, colors) {
+        const badgeRadius = Math.max(10, radius * 0.275);
+        const offset = radius * Math.SQRT1_2;
+        const badge = new Konva.Group({ x: offset, y: offset, listening: false });
+        const line = { stroke: colors.hiddenBadgeIcon, strokeWidth: 2, strokeScaleEnabled: false, lineCap: 'round', lineJoin: 'round' };
+        badge.add(new Konva.Circle({ radius: badgeRadius, fill: colors.hiddenBadge, stroke: colors.outlineLight, strokeWidth: 1, strokeScaleEnabled: false }));
+        const w = badgeRadius * 0.6;
+        const h = badgeRadius * 0.34;
+        badge.add(new Konva.Line({ points: [-w, 0, 0, -h, w, 0, 0, h], closed: true, tension: 0.45, ...line }));
+        badge.add(new Konva.Circle({ radius: badgeRadius * 0.12, fill: colors.hiddenBadgeIcon, strokeEnabled: false }));
+        badge.add(new Konva.Line({ points: [-w, -w, w, w], ...line }));
+        group.add(badge);
+    }
+
     function addCombatMarks(group, token, radius, colors) {
         const overlay = { strokeScaleEnabled: false, listening: false };
         if (token.current) {
@@ -221,6 +238,7 @@
             }));
             group.add(badge);
         }
+        if (token.hidden) addHiddenBadge(group, radius, colors);
         if (token.dead) {
             // Muerto: más atenuado que a 0 HP y una cruz (dos líneas) sobre el avatar, sin fuentes de iconos.
             const arm = radius * 0.55;
@@ -847,6 +865,7 @@
             grid: new Konva.Layer({ listening: false }),
             strokes: new Konva.Layer({ listening: false }),
             tokens: new Konva.Layer(),
+            tvFrame: new Konva.Layer({ listening: false }),
             draft: new Konva.Layer({ listening: false }),
         };
         for (const layer of Object.values(layers)) stage.add(layer);
@@ -944,6 +963,22 @@
         return [(stage.width() / 2 - stage.x()) / scale, (stage.height() / 2 - stage.y()) / scale];
     }
 
+    // Zona del mapa que se ve [x, y, ancho, alto]: .NET la guarda como encuadre de la TV.
+    function viewRect() {
+        return current ? window.tvFrame.viewRect(current.stage) : null;
+    }
+
+    // Rectángulo del encuadre de la TV, o null para quitarlo. Vive en su capa: los repintados no lo tocan.
+    function setTvFrame(frame) {
+        const inst = current;
+        if (!inst) return;
+        const layer = inst.layers.tvFrame;
+        layer.destroyChildren();
+        const config = window.tvFrame.tvFrameRect(frame, theme(inst.host).accent);
+        if (config) layer.add(new Konva.Rect(config));
+        layer.batchDraw();
+    }
+
     // Área del mapa en el viewport (left, top, width, height): .NET convierte con ella el toque de un token a px del área.
     function hostRect() {
         if (!current) return null;
@@ -951,5 +986,5 @@
         return [rect.left, rect.top, rect.width, rect.height];
     }
 
-    window.mapCanvas = { load, render, setMode, fit, viewCenter, hostRect, beginGridAdjust, endGridAdjust, dispose };
+    window.mapCanvas = { load, render, setMode, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose };
 })();

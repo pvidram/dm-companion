@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { tokenBodyOpacity, DEAD_OPACITY, DOWN_OPACITY } = require('../../src/DmCompanion.Screens/wwwroot/js/token-opacity.js');
+const { tokenBodyOpacity, DEAD_OPACITY, DOWN_OPACITY, HIDDEN_OPACITY } = require('../../src/DmCompanion.Screens/wwwroot/js/token-opacity.js');
 
 test('token sano va a opacidad completa', () => {
     assert.strictEqual(tokenBodyOpacity({ dead: false, down: false }), 1);
@@ -16,4 +16,13 @@ test('token muerto se atenúa más que a 0 HP', () => {
 
 test('muerto manda sobre 0 HP', () => {
     assert.strictEqual(tokenBodyOpacity({ dead: true, down: true }), DEAD_OPACITY);
+});
+
+test('token oculto va a HIDDEN_OPACITY (0.5)', () => {
+    assert.strictEqual(tokenBodyOpacity({ hidden: true }), HIDDEN_OPACITY);
+    assert.strictEqual(HIDDEN_OPACITY, 0.5);
+});
+
+test('muerto y oculto va a DEAD_OPACITY', () => {
+    assert.strictEqual(tokenBodyOpacity({ dead: true, hidden: true }), DEAD_OPACITY);
 });

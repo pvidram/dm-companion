@@ -34,6 +34,7 @@ public sealed class GridAdjustTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddSingleton<VaultFileUrls>();
+        Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddSoundForTests();

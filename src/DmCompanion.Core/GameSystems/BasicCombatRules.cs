@@ -25,4 +25,6 @@ public sealed class BasicCombatRules : ICombatRules
     }
 
     public int? ConcentrationDc(int damage) => null;
+
+    public string? HealthLabel(int current, int? max) => HealthLabels.For(current, max);
 }

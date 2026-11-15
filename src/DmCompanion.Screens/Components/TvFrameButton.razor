@@ -1,0 +1,80 @@
+@using DmCompanion.Core.Tv
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject IServiceProvider Services
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject ILogger<TvFrameButton> Log
+
+@* «Fijar encuadre de TV»: guarda como encuadre de la TV la zona del mapa abierto que se ve en la tablet. *@
+@if (_tv is { Mode: not TvMode.Off } && Session.Current is not null)
+{
+    if (Compact)
+    {
+        <IconButton Icon="IconName.Tv" Label="Fijar encuadre de TV" Disabled="_busy" OnClick="FixAsync" />
+    }
+    else
+    {
+        <Button Icon="IconName.Tv" Disabled="_busy" OnClick="FixAsync">Fijar encuadre de TV</Button>
+    }
+}
+
+@code {
+    /// <summary>Botón de icono para la barra del mapa; si no, botón con texto (panel TV).</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    private TvSession? _tv;
+    private bool _busy;
+
+    // La TV se resuelve opcionalmente: así la barra del mapa no obliga a registrar el servicio de la TV donde no se usa (tests).
+    protected override void OnInitialized()
+    {
+        _tv = Services.GetService<TvSession>();
+        if (_tv is not null) _tv.Changed += OnChanged;
+        Session.Changed += OnChanged;
+    }
+
+    private async Task FixAsync()
+    {
+        if (_tv is null || Session.Current is not { } map) return;
+        _busy = true;
+        try
+        {
+            if (await Canvas.VisibleRectAsync() is { } visible) await _tv.FixFrameAsync(map.NotePath, visible);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("No se pudo fijar el encuadre de la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Llega desde otros hilos (servidor de la TV, guardado del mapa): hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El botón ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar el botón del encuadre de la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_tv is not null) _tv.Changed -= OnChanged;
+        Session.Changed -= OnChanged;
+    }
+}

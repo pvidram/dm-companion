@@ -1,0 +1,11 @@
+@inherits DmComponentBase
+
+<Parchment Title="TV" IsOpen="@(Shell.ActivePanel == OverlayPanel.Tv)" OnClose="@(() => Shell.Toggle(OverlayPanel.Tv))">
+    <ChildContent>
+        @* El contenido solo existe con el panel abierto: así el resto de pantallas no depende del servicio de la TV. *@
+        @if (Shell.ActivePanel == OverlayPanel.Tv)
+        {
+            <TvPanelBody />
+        }
+    </ChildContent>
+</Parchment>
