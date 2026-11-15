@@ -1,0 +1,7 @@
+@inherits DmComponentBase
+
+@* Va fuera del panel (ranura Dialogs): el contenedor del Parchment recortaría un diálogo fijo. Sin petición no monta nada. *@
+@if (Shell.SceneDialog is not null || Shell.DeletingScene is not null || Shell.OverwritingScene is not null)
+{
+    <SceneDialogs @key="@((object?)Shell.SceneDialog ?? Shell.DeletingScene ?? Shell.OverwritingScene)" />
+}

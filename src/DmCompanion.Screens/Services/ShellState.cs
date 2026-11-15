@@ -1,6 +1,6 @@
 namespace DmCompanion.Screens.Services;
 
-public enum OverlayPanel { None, Players, Notes, Maps }
+public enum OverlayPanel { None, Players, Notes, Maps, Sound, Vault }
 
 public enum EditorDialog { None, Conflict, ConfirmClose }
 
@@ -16,6 +16,11 @@ public enum MapNameMode { NewBlank, NewFromImport, Rename }
 /// <summary>Petición del diálogo de nombre de mapa. <c>NotePath</c> solo se usa al renombrar.</summary>
 public sealed record MapNameRequest(MapNameMode Mode, string? NotePath, string SuggestedName);
 
+public enum SceneDialogMode { Save, Rename }
+
+/// <summary>Petición del diálogo de nombre de escena. <c>SceneName</c> solo se usa al renombrar.</summary>
+public sealed record SceneDialogRequest(SceneDialogMode Mode, string? SceneName);
+
 public sealed class ShellState
 {
     public OverlayPanel ActivePanel { get; private set; }
@@ -30,12 +35,24 @@ public sealed class ShellState
     /// <summary>Panel flotante del historial de la tira retraída.</summary>
     public bool HistoryOpen { get; private set; }
     public bool StartCombatOpen { get; private set; }
+
+    /// <summary>Panel rápido de sonido (favoritos y escenas), anclado bajo el mini control de la franja.</summary>
+    public bool SoundQuickOpen { get; private set; }
     public string? SelectedCombatTokenId { get; private set; }
     public bool EndCombatOpen { get; private set; }
 
     public MapNameRequest? MapName { get; private set; }
     public string? DeletingMapPath { get; private set; }
+    public SceneDialogRequest? SceneDialog { get; private set; }
+    public string? DeletingScene { get; private set; }
+    public string? OverwritingScene { get; private set; }
     public bool DiscardingMap { get; private set; }
+
+    /// <summary>Carpeta que no parece un vault y espera confirmación para abrirse desde el panel «Cambiar vault».</summary>
+    public string? ConfirmingVaultPath { get; private set; }
+
+    /// <summary>Por qué no se pudo cambiar de vault; se muestra en el panel, que vuelve a abrirse.</summary>
+    public string? VaultSwitchError { get; private set; }
 
     // Diálogos del editor: su estado vive aquí porque se pintan en la ranura Dialogs de DmShell.
     public EditorDialog ActiveEditorDialog { get; private set; }
@@ -122,6 +139,27 @@ public sealed class ShellState
     public void Toggle(OverlayPanel panel)
     {
         ActivePanel = ActivePanel == panel ? OverlayPanel.None : panel;
+        VaultSwitchError = null;
+        Notify();
+    }
+
+    public void RequestVaultConfirm(string path)
+    {
+        ConfirmingVaultPath = path;
+        Notify();
+    }
+
+    public void CloseVaultConfirm()
+    {
+        if (ConfirmingVaultPath is null) return;
+        ConfirmingVaultPath = null;
+        Notify();
+    }
+
+    public void ShowVaultSwitchError(string error)
+    {
+        ActivePanel = OverlayPanel.Vault;
+        VaultSwitchError = error;
         Notify();
     }
 
@@ -188,6 +226,42 @@ public sealed class ShellState
     public void CloseMapName()
     {
         MapName = null;
+        Notify();
+    }
+
+    public void RequestSaveScene() => SetSceneDialog(new SceneDialogRequest(SceneDialogMode.Save, null));
+
+    public void RequestRenameScene(string sceneName) => SetSceneDialog(new SceneDialogRequest(SceneDialogMode.Rename, sceneName));
+
+    public void CloseSceneDialog() => SetSceneDialog(null);
+
+    public void RequestDeleteScene(string sceneName)
+    {
+        DeletingScene = sceneName;
+        Notify();
+    }
+
+    public void RequestOverwriteScene(string sceneName)
+    {
+        OverwritingScene = sceneName;
+        Notify();
+    }
+
+    public void CancelOverwriteScene()
+    {
+        OverwritingScene = null;
+        Notify();
+    }
+
+    public void CancelDeleteScene()
+    {
+        DeletingScene = null;
+        Notify();
+    }
+
+    private void SetSceneDialog(SceneDialogRequest? request)
+    {
+        SceneDialog = request;
         Notify();
     }
 
@@ -265,6 +339,19 @@ public sealed class ShellState
         Notify();
     }
 
+    public void ToggleSoundQuick()
+    {
+        SoundQuickOpen = !SoundQuickOpen;
+        Notify();
+    }
+
+    public void CloseSoundQuick()
+    {
+        if (!SoundQuickOpen) return;
+        SoundQuickOpen = false;
+        Notify();
+    }
+
     public void OpenStartCombat()
     {
         StartCombatOpen = true;
@@ -307,12 +394,18 @@ public sealed class ShellState
         AddTokenOpen = false;
         TokenCard = null;
         HistoryOpen = false;
+        SoundQuickOpen = false;
         StartCombatOpen = false;
         SelectedCombatTokenId = null;
         EndCombatOpen = false;
 
         MapName = null;
         DeletingMapPath = null;
+        SceneDialog = null;
+        DeletingScene = null;
+        OverwritingScene = null;
+        ConfirmingVaultPath = null;
+        VaultSwitchError = null;
         DiscardingMap = false;
         EditorDirty = false;
         _pendingNavigation = null;

@@ -1,0 +1,40 @@
+@inherits DmComponentBase
+
+<Parchment Title="Cambiar vault" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Vault)"
+           OnClose="@(() => Shell.Toggle(OverlayPanel.Vault))">
+    <ChildContent>
+        @* El explorador solo existe con el panel abierto: cada vez empieza junto al vault actual y no lista carpetas oculto. *@
+        @if (Shell.ActivePanel == OverlayPanel.Vault)
+        {
+            @if (Shell.VaultSwitchError is { } error)
+            {
+                <InlineNotice Kind="NoticeKind.Error">@error</InlineNotice>
+            }
+            @if (Host.Current is { } open)
+            {
+                <p class="vault-panel__current">Vault abierto: <strong>@Path.GetFileName(open.RootPath.TrimEnd('/', '\\'))</strong></p>
+            }
+            <VaultBrowser StartPath="@StartPath" OnUse="UseAsync" />
+        }
+    </ChildContent>
+</Parchment>
+
+@code {
+    private string? StartPath => Host.Current is { } open ? Path.GetDirectoryName(open.RootPath.TrimEnd('/', '\\')) : null;
+
+    private async Task UseAsync(VaultChoice choice)
+    {
+        var path = choice.Path;
+        if (VaultBrowsing.IsCurrent(Host, path))
+        {
+            Shell.Toggle(OverlayPanel.Vault);
+            return;
+        }
+        if (!choice.LooksLikeVault)
+        {
+            Shell.RequestVaultConfirm(path);
+            return;
+        }
+        await VaultBrowsing.SwitchAsync(Host, Shell, path);
+    }
+}

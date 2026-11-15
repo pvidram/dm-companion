@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
@@ -29,6 +30,7 @@ public sealed class ConflictTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();

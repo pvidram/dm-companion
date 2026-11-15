@@ -26,6 +26,9 @@ public static class MauiProgram
 		builder.Services.AddSingleton<TokenHitPoints>();
 		builder.Services.AddSingleton<CombatController>();
 		builder.Services.AddSingleton<MapLibrary>();
+		builder.Services.AddSingleton<AudioLibraryService>();
+		builder.Services.AddScoped<AudioMixer>();
+		builder.Services.AddSingleton<AudioStore>();
 		builder.Services.AddSingleton<IImagePicker, MauiImagePicker>();
 		builder.Services.AddScoped<ShellState>();
 		builder.Services.AddScoped<WikilinkInterop>();
@@ -36,6 +39,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<VaultFileUrls>();
 		builder.Services.AddSingleton<VaultFileRequestHandler>();
 		builder.Services.AddSingleton<PortraitUrlProvider>();
+		builder.Services.AddSingleton<IAudioPlayer, AndroidAudioPlayer>();
 
 		// Release también necesita sink: sin él los errores no llegan a `adb logcat -s DmCompanion`.
 		builder.Logging.SetMinimumLevel(LogLevel.Information);

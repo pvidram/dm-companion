@@ -1,0 +1,115 @@
+@inherits SoundComponentBase
+
+<Dialog Title="@(_request?.Mode == SceneDialogMode.Rename ? "Renombrar escena" : "Guardar como escena")"
+        IsOpen="@(_request is not null)" OnClose="Shell.CloseSceneDialog">
+    <ChildContent>
+        <TextField Label="Nombre" @bind-Value="_name" />
+        @if (_citing > 0)
+        {
+            <InlineNotice Kind="NoticeKind.Warning">@CitingText</InlineNotice>
+        }
+        @if (_notice is { } notice)
+        {
+            <InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="@(_busy || _name.Trim().Length == 0)" OnClick="AcceptAsync">
+            @(_request?.Mode == SceneDialogMode.Rename ? "Renombrar" : "Guardar")
+        </Button>
+        <Button OnClick="Shell.CloseSceneDialog">Cancelar</Button>
+    </Footer>
+</Dialog>
+<ConfirmDialog Title="Sobrescribir escena" ConfirmText="Sustituir" Message="@OverwriteMessage"
+               IsOpen="@(Shell.OverwritingScene is not null)" OnConfirm="OverwriteAsync" OnCancel="CancelOverwrite" />
+<ConfirmDialog Title="Borrar escena" Destructive="true" ConfirmText="Borrar" Message="@DeleteMessage"
+               IsOpen="@(Shell.DeletingScene is not null)" OnConfirm="DeleteAsync" OnCancel="CancelDelete" />
+
+@code {
+    private SceneDialogRequest? _request;
+    private string _name = string.Empty;
+    private int _citing;
+    private string? _notice;
+    private string? _deleteError;
+    private string? _overwriteError;
+    // La mezcla que se guardará es la de cuando se abrió el diálogo, no la de cuando se pulsa el botón.
+    private AudioScene _captured = new("", null, [], 1.0);
+    private bool _busy;
+
+    private string CitingText => _citing == 1
+        ? "1 nota la cita y mostrará «no encontrado»."
+        : $"{_citing} notas la citan y mostrarán «no encontrado».";
+
+    private string OverwriteMessage =>
+        $"¿Sustituir la escena «{Shell.OverwritingScene}» por lo que suena ahora?" + (_overwriteError is null ? "" : " " + _overwriteError);
+
+    private string DeleteMessage =>
+        $"¿Borrar la escena «{Shell.DeletingScene}»?" + (_deleteError is null ? "" : " " + _deleteError);
+
+    // Un diálogo nuevo es una instancia nueva (@key en SoundDialogs): el formulario nace de la petición.
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _request = Shell.SceneDialog;
+        _captured = Mixer.CaptureScene("");
+        if (_request?.Mode != SceneDialogMode.Rename || _request.SceneName is not { } old) return;
+        _name = old;
+        _citing = Store.CountNotesCiting(old);
+    }
+
+    private async Task AcceptAsync()
+    {
+        if (_request is not { } request || _busy) return;
+        _busy = true;
+        try
+        {
+            var name = _name.Trim();
+            var result = request.Mode == SceneDialogMode.Rename
+                ? await Store.RenameSceneAsync(request.SceneName ?? "", name)
+                : await Store.SaveSceneAsync(_captured with { Name = name }, overwrite: false);
+            if (result == StoreResult.Ok && request.Mode == SceneDialogMode.Rename)
+                await Mixer.RenameCurrentSceneAsync(request.SceneName ?? "", NoteFileName.FromTitle(name));
+            if (result == StoreResult.Ok) Shell.CloseSceneDialog();
+            else _notice = ErrorText(result);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string ErrorText(StoreResult result) => result switch
+    {
+        StoreResult.AlreadyExists => "Ya existe una escena con ese nombre.",
+        StoreResult.NotFound => "La escena ya no existe.",
+        _ => "No se pudo escribir la escena en el vault.",
+    };
+
+    private async Task OverwriteAsync()
+    {
+        if (Shell.OverwritingScene is not { } name) return;
+        var result = await Store.SaveSceneAsync(_captured with { Name = name }, overwrite: true);
+        if (result == StoreResult.Ok) Shell.CancelOverwriteScene();
+        else _overwriteError = "No se pudo escribir en el vault.";
+    }
+
+    private void CancelOverwrite()
+    {
+        _overwriteError = null;
+        Shell.CancelOverwriteScene();
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (Shell.DeletingScene is not { } name) return;
+        var result = await Store.DeleteSceneAsync(name);
+        if (result is StoreResult.Ok or StoreResult.NotFound) Shell.CancelDeleteScene();
+        else _deleteError = "No se pudo borrar del vault.";
+    }
+
+    private void CancelDelete()
+    {
+        _deleteError = null;
+        Shell.CancelDeleteScene();
+    }
+}

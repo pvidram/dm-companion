@@ -1,5 +1,6 @@
 @inherits DmComponentBase
 @inject MapSession Maps
+@using DmCompanion.Screens.Components.Sound
 
 <TableFrame>
     <Rail>
@@ -9,7 +10,12 @@
                     OnToggle="@(() => Shell.Toggle(OverlayPanel.Notes))" />
         <RailButton Icon="IconName.Map" Label="Mapas" IsPressed="@(Shell.ActivePanel == OverlayPanel.Maps)"
                     OnToggle="@(() => Shell.Toggle(OverlayPanel.Maps))" />
-        <RailButton Icon="IconName.FolderOpen" Label="Cambiar vault" OnToggle="ForgetAsync" />
+        <RailButton Icon="IconName.Music" Label="Sonido" IsPressed="@(Shell.ActivePanel == OverlayPanel.Sound)"
+                    OnToggle="@(() => Shell.Toggle(OverlayPanel.Sound))" />
+        <div class="dm-shell__rail-bottom">
+            <RailButton Icon="IconName.FolderOpen" Label="Cambiar vault" IsPressed="@(Shell.ActivePanel == OverlayPanel.Vault)"
+                        OnToggle="@(() => Shell.Toggle(OverlayPanel.Vault))" />
+        </div>
     </Rail>
     <Strip>
         @if (Host.Current is { Conflicts.Count: > 0 } vault)
@@ -20,6 +26,7 @@
             </InlineNotice>
         }
         <CombatStripBar />
+        <SoundMiniControl />
     </Strip>
     <Map>
         <div class="map-layout">
@@ -33,8 +40,11 @@
         <NotesPanel />
         <PlayersPanel />
         <CombatHistoryPopover />
+        <SoundQuickPanel />
         <TokenCard />
         <MapsPanel />
+        <SoundPanel />
+        <VaultPanel />
     </Overlays>
     <Dialogs>
         <NewNoteDialog />
@@ -45,6 +55,8 @@
         <StartCombatDialog />
         <EditorDialogs />
         <CombatEndDialog />
+        <SoundDialogs />
+        <VaultSwitchDialog />
     </Dialogs>
 </TableFrame>
 
@@ -57,13 +69,4 @@
 
     private static string ConflictText(int count) =>
         count == 1 ? "1 conflicto de sincronización" : $"{count} conflictos de sincronización";
-
-    private async Task ForgetAsync()
-    {
-        await Shell.RequestNavigationAsync(async () =>
-        {
-            Shell.Reset();
-            await Host.ForgetAsync();
-        });
-    }
 }

@@ -21,7 +21,7 @@ public static class VaultFileEndpoint
             try
             {
                 var stream = await vault.OpenReadAsync(relative, context.RequestAborted);
-                return Results.Stream(stream, VaultFileRequest.ContentTypeOf(relative));
+                return Results.Stream(stream, VaultFileRequest.ContentTypeOf(relative), enableRangeProcessing: true);
             }
             catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException or ArgumentException)
             {

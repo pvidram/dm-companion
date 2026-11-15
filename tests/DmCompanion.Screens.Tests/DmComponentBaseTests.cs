@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Screens.Components;
 using DmCompanion.Screens.Platform;
@@ -25,6 +26,7 @@ public sealed class DmComponentBaseTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<DmCompanion.Core.Vault.Storage.IVaultServiceFactory>(sp => sp.GetRequiredService<FileSystemVaultServiceFactory>());
         Services.AddSingleton<VaultHost>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddSingleton<ILogger<DmComponentBase>>(_logger);
     }
 

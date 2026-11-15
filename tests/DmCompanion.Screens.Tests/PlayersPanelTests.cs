@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
@@ -28,6 +29,7 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddScoped<WikilinkInterop>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();

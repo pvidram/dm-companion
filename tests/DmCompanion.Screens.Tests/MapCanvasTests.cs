@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using System.Text.Json;
 using Bunit;
 using DmCompanion.Core.Vault.Storage;
@@ -32,6 +33,7 @@ public sealed class MapCanvasTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
         Services.AddScoped<DragPanelInterop>();

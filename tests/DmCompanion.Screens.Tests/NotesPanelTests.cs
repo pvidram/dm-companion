@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
@@ -31,6 +32,7 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
@@ -195,7 +197,7 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         var cut = RenderOpenNotes();
 
         cut.FindAll("section.ds-parchment .ds-dialog").Should().BeEmpty();
-        cut.FindAll(".ds-dialog").Should().HaveCount(10); // nueva nota, nombre de mapa, borrar mapa, descartar mapa, conflictos de sincronización, conflicto de escritura, cerrar sin guardar, añadir token, empezar combate y terminar combate
+        cut.FindAll(".ds-dialog").Should().HaveCount(11); // nueva nota, nombre de mapa, borrar mapa, descartar mapa, conflictos de sincronización, conflicto de escritura, cerrar sin guardar, añadir token, empezar combate, terminar combate y abrir una carpeta que no parece un vault
     }
 
     [Fact]
@@ -271,7 +273,9 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         await cut.InvokeAsync(() => Shell.RequestNewNote("x", null));
         cut.WaitForAssertion(() => Dialog(cut).ParentElement!.HasAttribute("hidden").Should().BeFalse(), TimeSpan.FromSeconds(10));
 
-        cut.Find("button[aria-label='Cambiar vault']").Click();
+        using var other = TempVault.FromDemo();
+
+        await cut.InvokeAsync(() => VaultBrowsing.SwitchAsync(Services.GetRequiredService<VaultHost>(), Shell, other.Root));
 
         await cut.WaitForAssertionAsync(() =>
             (Shell.ActivePanel, Shell.SelectedNotePath, Shell.NewNote).Should().Be((OverlayPanel.None, null, null)));

@@ -30,6 +30,28 @@ public sealed class VaultFileRequestTests
         relative.Should().Be("Mapas/Campaña del Faro.png");
     }
 
+    [Theory]
+    [InlineData("/_vault/_audio/Taberna/a%20b.mp3?v=1", "_audio/Taberna/a b.mp3")]
+    [InlineData("/_vault/_audio/x.FLAC", "_audio/x.FLAC")]
+    public void TryParse_accepts_audio(string url, string expected)
+    {
+        VaultFileRequest.TryParse(url, out var relative).Should().BeTrue();
+        relative.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("/_vault/..%2fx.mp3")]
+    [InlineData("/_vault/_audio/%2e%2e/x.mp3")]
+    [InlineData("/_vault/_audio%5c..%5cx.mp3")]
+    [InlineData("/_vault/_audio/a.mp3.txt")]
+    public void TryParse_rejects_audio_traversal(string url) => VaultFileRequest.TryParse(url, out _).Should().BeFalse();
+
+    [Fact]
+    public void TryParse_rejects_other_files() => VaultFileRequest.TryParse("/_vault/_audio/x.json", out _).Should().BeFalse();
+
+    [Fact]
+    public void ContentTypeOf_knows_audio() => VaultFileRequest.ContentTypeOf("_audio/x.mp3").Should().Be("audio/mpeg");
+
     [Fact]
     public async Task Leading_slash_is_trimmed_not_rejected()
     {

@@ -1,0 +1,55 @@
+@inherits SoundComponentBase
+
+<section class="sound-block" aria-labelledby="sound-scenes-title">
+    <h3 id="sound-scenes-title">Escenas</h3>
+    @{
+        _shown = (Mixer.State.SceneName, CanCapture);
+    }
+    @if (Store.SceneNames.Count == 0)
+    {
+        <p class="sound-empty">Aún no hay escenas guardadas.</p>
+    }
+    @foreach (var scene in Store.SceneNames)
+    {
+        var name = scene;
+        <div class="sound-row" data-testid="scene-row">
+            <ListRow Icon="IconName.Play" IsSelected="@(string.Equals(_shown.Scene, name, StringComparison.OrdinalIgnoreCase))" OnSelect="() => LaunchAsync(name)">@name</ListRow>
+            <IconButton Icon="IconName.Save" Label="@($"Sobrescribir {name} con la mezcla actual")" Disabled="@(!CanCapture)"
+                        OnClick="() => Shell.RequestOverwriteScene(name)" />
+            <IconButton Icon="IconName.Pencil" Label="@($"Renombrar {name}")" OnClick="() => Shell.RequestRenameScene(name)" />
+            <IconButton Icon="IconName.Trash2" Label="@($"Borrar {name}")" OnClick="() => Shell.RequestDeleteScene(name)" />
+        </div>
+    }
+    @if (NoticeText is { } notice)
+    {
+        <InlineNotice Kind="NoticeLevel" OnClose="ClearNotice">@notice</InlineNotice>
+    }
+    <div class="sound-actions">
+        <Button Icon="IconName.Plus" Disabled="@(!CanCapture)" OnClick="Shell.RequestSaveScene">Guardar como escena</Button>
+    </div>
+</section>
+
+@code {
+    private (string? Scene, bool CanCapture) _shown;
+
+    protected override bool ListensToStore => true;
+    protected override bool ListensToMixer => true;
+
+    // Solo importa lo que se ve: la escena que suena y si hay algo que guardar.
+    protected override bool MixerChangeMatters() => _shown != (Mixer.State.SceneName, CanCapture);
+
+    // Lo mismo que guarda CaptureScene: fondo o efectos que se repiten.
+    private bool CanCapture => Mixer.State is { Background: not null } || Mixer.State.Effects.Any(e => e.Repeat.Kind != RepeatKind.Once);
+
+    private async Task LaunchAsync(string name)
+    {
+        if (await Store.LoadSceneAsync(name) is not { } scene)
+        {
+            ShowNotice(NoticeKind.Error, $"No se pudo leer la escena «{name}».");
+            return;
+        }
+        var missing = await Mixer.LaunchSceneAsync(scene);
+        if (missing.Count == 0) ClearNotice();
+        else ShowNotice(NoticeKind.Warning, "Falta: " + string.Join(", ", missing));
+    }
+}

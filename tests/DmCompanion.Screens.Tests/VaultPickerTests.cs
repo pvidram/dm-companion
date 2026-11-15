@@ -100,7 +100,7 @@ public sealed class VaultPickerTests : BunitContext, IAsyncLifetime
         _storage.InitialPath = "C:\\Users";
         var cut = Render<VaultPicker>();
 
-        ButtonWith(cut, "Subir").Click();
+        ButtonWith(cut, "Atrás").Click();
 
         cut.Find("p").TextContent.Should().Be("C:\\");
     }
@@ -111,7 +111,7 @@ public sealed class VaultPickerTests : BunitContext, IAsyncLifetime
         _storage.CanTypePath = true;
         _storage.InitialPath = "C:\\";
 
-        ButtonWith(Render<VaultPicker>(), "Subir").HasAttribute("disabled").Should().BeTrue();
+        ButtonWith(Render<VaultPicker>(), "Atrás").HasAttribute("disabled").Should().BeTrue();
     }
 
     [Fact]

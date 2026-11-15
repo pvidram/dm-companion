@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
@@ -28,6 +29,7 @@ public sealed class NoteEditorTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
@@ -327,23 +329,26 @@ public sealed class NoteEditorTests : BunitContext, IAsyncLifetime
     {
         var cut = RenderEditing();
         TypeAndWaitDirty(cut, "sin guardar");
+        var current = Host.Current!.RootPath;
+        using var other = TempVault.FromDemo();
 
-        cut.Find("button[aria-label='Cambiar vault']").Click();
+        _ = cut.InvokeAsync(() => VaultBrowsing.SwitchAsync(Host, Shell, other.Root));
 
-        cut.WaitForAssertion(() => (Shell.ActiveEditorDialog, Host.Current is not null).Should().Be((EditorDialog.ConfirmClose, true)), Timeout);
+        cut.WaitForAssertion(() => (Shell.ActiveEditorDialog, Host.Current?.RootPath).Should().Be((EditorDialog.ConfirmClose, current)), Timeout);
     }
 
     [Fact]
-    public async Task Confirming_the_discard_forgets_the_vault()
+    public async Task Confirming_the_discard_switches_the_vault()
     {
         var cut = RenderEditing();
         TypeAndWaitDirty(cut, "sin guardar");
-        cut.Find("button[aria-label='Cambiar vault']").Click();
+        using var other = TempVault.FromDemo();
+        _ = cut.InvokeAsync(() => VaultBrowsing.SwitchAsync(Host, Shell, other.Root));
         await cut.WaitForAssertionAsync(() => Shell.ActiveEditorDialog.Should().Be(EditorDialog.ConfirmClose), Timeout);
 
         DialogButton(cut, "Cerrar sin guardar", "Cerrar sin guardar").Click();
 
-        await cut.WaitForAssertionAsync(() => Host.Current.Should().BeNull(), Timeout);
+        await cut.WaitForAssertionAsync(() => Host.Current?.RootPath.Should().Be(other.Root), Timeout);
     }
 
     [Fact]

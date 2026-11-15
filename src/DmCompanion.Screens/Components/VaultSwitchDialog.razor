@@ -1,0 +1,14 @@
+@inherits DmComponentBase
+
+<ConfirmDialog Title="¿Abrir esta carpeta?" IsOpen="@(Shell.ConfirmingVaultPath is not null)"
+               Message="@VaultBrowsing.UnlikelyVaultMessage"
+               ConfirmText="Abrir de todos modos" OnConfirm="ConfirmAsync" OnCancel="Shell.CloseVaultConfirm" />
+
+@code {
+    private async Task ConfirmAsync()
+    {
+        if (Shell.ConfirmingVaultPath is not { } path) return;
+        Shell.CloseVaultConfirm();
+        await VaultBrowsing.SwitchAsync(Host, Shell, path);
+    }
+}

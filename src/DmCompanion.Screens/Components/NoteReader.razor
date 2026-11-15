@@ -21,6 +21,10 @@
             var mapPath = entity.RelativePath;
             <Button Icon="IconName.Map" OnClick="() => OpenMapAsync(mapPath)">Abrir mapa</Button>
         }
+        @if (FrontmatterReader.GetString(entity.Frontmatter, "ambience") is { Length: > 0 } ambience)
+        {
+            <AmbienceButton Value="@ambience" />
+        }
         <NoteBody Entity="entity" />
         @{
             var backlinks = Index.GetBacklinks(entity.RelativePath);

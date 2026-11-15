@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Combat;
 using DmCompanion.Core.Maps;
@@ -32,6 +33,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
         Services.AddScoped<DragPanelInterop>();

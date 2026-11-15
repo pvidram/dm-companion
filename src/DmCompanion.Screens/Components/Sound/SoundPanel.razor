@@ -1,0 +1,14 @@
+@inherits DmComponentBase
+
+<Parchment Title="Sonido" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Sound)"
+           OnClose="@(() => Shell.Toggle(OverlayPanel.Sound))">
+    <ChildContent>
+        @* Los bloques solo existen con el panel abierto: no escuchan el audio ni pintan la biblioteca mientras tanto. *@
+        @if (Shell.ActivePanel == OverlayPanel.Sound)
+        {
+            <SoundMix />
+            <SoundScenes />
+            <SoundLibrary />
+        }
+    </ChildContent>
+</Parchment>

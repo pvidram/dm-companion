@@ -18,8 +18,8 @@ Es la misma app de la tablet, pero en el PC: se abre en el navegador y trabaja s
 
 ## Qué funciona y qué no
 
-- Funciona: notas, fichas, mapa, tokens, dibujo, medición, HP y combate (tira de turnos, daño y curación, estados y salvaciones de muerte).
-- No funciona todavía: glosario, sonido y vista de jugadores en TV.
+- Funciona: notas, fichas, mapa, tokens, dibujo, medición, HP y combate (tira de turnos, daño y curación, estados y salvaciones de muerte) y sonido (fondo y efectos desde `_audio/`, escenas, mini control en la franja superior y botón de ambiente en las notas).
+- No funciona todavía: glosario y vista de jugadores en TV.
 
 Aviso: el fichero de estado del mapa (`.state.json`) pasa a la versión 2. Una versión anterior de la app lo abre en solo lectura, así que actualiza todas las instalaciones (PC y tablet) que compartan el mismo vault.
 

@@ -1,0 +1,73 @@
+@inherits SoundControlBase
+
+@* Botón «Ambiente» de una nota: resuelve el campo ambience: a escena, sección o track. Nada suena hasta que se toca. *@
+@if (_target is { Kind: not AmbienceKind.None } target)
+{
+    @if (Notice is { } notice)
+    {
+        <InlineNotice Kind="NoticeKind.Warning">@notice</InlineNotice>
+    }
+    @if (target.Kind == AmbienceKind.NotFound)
+    {
+        <Button Icon="IconName.Play" Disabled="true" class="ambience-button ambience-button--missing" data-testid="ambience-button">
+            <s>Ambiente: @target.Label</s> <span class="ambience-button__note">no encontrado</span>
+        </Button>
+    }
+    else
+    {
+        <Button Icon="IconName.Play" class="ambience-button" data-testid="ambience-button" OnClick="() => LaunchAsync(target)">
+            Ambiente: @target.Label
+            @if (IsPlaying(target))
+            {
+                <span class="ambience-button__note" data-testid="ambience-playing">Sonando</span>
+            }
+        </Button>
+    }
+}
+
+@code {
+    /// <summary>Valor crudo del campo <c>ambience:</c> de la nota.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    private AmbienceTarget _target = new(AmbienceKind.None, "", null);
+
+    // La resolución se cachea: solo se rehace con otro valor o cuando cambian las escenas o la biblioteca.
+    protected override void OnParametersSet() => Resolve();
+
+    protected override void OnCatalogChangedCore() => Resolve();
+
+    private void Resolve() => _target = AmbienceResolver.Resolve(Value, Store.SceneNames, Tracks);
+
+    private bool IsPlaying(AmbienceTarget target)
+    {
+        var state = Mixer.State;
+        if (state.Paused || target.Reference is null) return false;
+        return target.Kind switch
+        {
+            AmbienceKind.Scene => string.Equals(state.SceneName, target.Reference, StringComparison.OrdinalIgnoreCase),
+            AmbienceKind.Section => state.SceneName is null && state.Background?.Source is SectionBackground s && SamePath(s.Section, target.Reference),
+            AmbienceKind.Track => state.SceneName is null && state.Background?.Source is TrackBackground t && SamePath(t.Track, target.Reference),
+            _ => false,
+        };
+    }
+
+    private static bool SamePath(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    private async Task LaunchAsync(AmbienceTarget target)
+    {
+        if (target.Reference is not { } reference) return;
+        switch (target.Kind)
+        {
+            case AmbienceKind.Scene:
+                if (await Store.LoadSceneAsync(reference) is not { } scene) ShowNotice(SoundNotices.NotFound(target.Label));
+                else if (await Mixer.LaunchSceneAsync(scene) is { Count: > 0 } missing) ShowNotice(SoundNotices.Missing(missing));
+                break;
+            case AmbienceKind.Section:
+                if (!await Mixer.SetBackgroundAsync(new SectionBackground(reference))) ShowNotice(SoundNotices.NotFound(target.Label));
+                break;
+            case AmbienceKind.Track:
+                if (!await Mixer.SetBackgroundAsync(new TrackBackground(reference))) ShowNotice(SoundNotices.NotFound(target.Label));
+                break;
+        }
+    }
+}

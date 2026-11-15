@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
@@ -25,6 +26,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
@@ -33,6 +35,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
         Services.AddScoped<DragPanelInterop>();
+        Services.AddVaultBrowsingForTests();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
@@ -62,6 +65,17 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
+    public void Change_vault_button_sits_apart_at_the_bottom_of_the_rail()
+    {
+        var cut = Render<DmShell>();
+
+        var rail = cut.Find("nav.ds-frame__rail");
+        var bottom = rail.Children.Last();
+        (bottom.ClassList.Contains("dm-shell__rail-bottom"), bottom.QuerySelector("button")?.GetAttribute("aria-label"))
+            .Should().Be((true, "Cambiar vault"));
+    }
+
+    [Fact]
     public void Pressed_state_follows_the_active_panel()
     {
         var cut = Render<DmShell>();
@@ -88,7 +102,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
     {
         var cut = Render<DmShell>();
 
-        cut.FindAll("section.ds-parchment").Should().HaveCount(3);
+        cut.FindAll("section.ds-parchment").Should().HaveCount(5);
     }
 
     [Fact]
@@ -100,17 +114,17 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
 
         cut.Find("button[aria-label='Notas']").Click();
 
-        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((3, false)), TimeSpan.FromSeconds(10));
+        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((5, false)), TimeSpan.FromSeconds(10));
     }
 
     [Fact]
-    public async Task Change_vault_forgets_the_current_vault()
+    public void Change_vault_opens_its_panel_and_keeps_the_vault_open()
     {
         var cut = Render<DmShell>();
 
         cut.Find("button[aria-label='Cambiar vault']").Click();
 
-        var host = Services.GetRequiredService<VaultHost>();
-        await cut.WaitForAssertionAsync(() => host.Current.Should().BeNull());
+        cut.WaitForAssertion(() => (IsOpen(cut, "Cambiar vault"), Services.GetRequiredService<VaultHost>().Current is not null)
+            .Should().Be((true, true)), TimeSpan.FromSeconds(10));
     }
 }

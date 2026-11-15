@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault.Storage;
@@ -32,6 +33,7 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
         Services.AddScoped<DragPanelInterop>();

@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
@@ -32,6 +33,7 @@ public sealed class HomeTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
@@ -124,7 +126,7 @@ public sealed class HomeTests : BunitContext, IAsyncLifetime
     {
         var cut = Render<Home>();
 
-        ButtonWith(cut, "Subir").HasAttribute("disabled").Should().BeTrue();
+        ButtonWith(cut, "Atrás").HasAttribute("disabled").Should().BeTrue();
     }
 
     [Fact]
@@ -134,11 +136,11 @@ public sealed class HomeTests : BunitContext, IAsyncLifetime
         var sub = Directory.GetDirectories(_vault.Root).Select(Path.GetFileName).First(n => !n!.StartsWith('.'))!;
 
         cut.FindAll(".ds-list-row").First(r => r.TextContent.Contains(sub)).Click();
-        cut.WaitForAssertion(() => ButtonWith(cut, "Subir").HasAttribute("disabled").Should().BeFalse(), TimeSpan.FromSeconds(10));
+        cut.WaitForAssertion(() => ButtonWith(cut, "Atrás").HasAttribute("disabled").Should().BeFalse(), TimeSpan.FromSeconds(10));
         cut.Markup.Should().Contain(Path.Combine(_vault.Root, sub));
 
-        ButtonWith(cut, "Subir").Click();
-        cut.WaitForAssertion(() => ButtonWith(cut, "Subir").HasAttribute("disabled").Should().BeTrue(), TimeSpan.FromSeconds(10));
+        ButtonWith(cut, "Atrás").Click();
+        cut.WaitForAssertion(() => ButtonWith(cut, "Atrás").HasAttribute("disabled").Should().BeTrue(), TimeSpan.FromSeconds(10));
         cut.Markup.Should().Contain("Usar esta carpeta");
     }
 

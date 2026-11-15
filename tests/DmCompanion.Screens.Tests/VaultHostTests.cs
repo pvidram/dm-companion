@@ -26,6 +26,24 @@ public sealed class VaultHostTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Removed_before_switch_handler_does_not_run()
+    {
+        var calls = 0;
+        Func<Task> handler = () =>
+        {
+            calls++;
+            return Task.CompletedTask;
+        };
+        _host.AddBeforeSwitch(handler);
+        await _host.OpenAsync(_first.Root);
+
+        _host.RemoveBeforeSwitch(handler);
+        await _host.OpenAsync(_second.Root);
+
+        calls.Should().Be(1);
+    }
+
+    [Fact]
     public async Task OpenAsync_on_demo_copy_returns_true()
     {
         var opened = await _host.OpenAsync(_first.Root);

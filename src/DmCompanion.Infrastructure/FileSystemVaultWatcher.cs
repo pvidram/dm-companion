@@ -1,3 +1,4 @@
+using DmCompanion.Core.Audio;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
@@ -84,9 +85,19 @@ public sealed class FileSystemVaultWatcher(string rootPath) : IVaultChangeSource
         Changed?.Invoke(this, new VaultChange(relativePath, kind));
     }
 
-    // Notas, estado de mapa e imágenes; cualquier otra cosa se ignora.
+    // Notas, estado de mapa, imágenes, audio de la biblioteca y los .json de _audio/_dm/ (escenas y favoritos);
+    // cualquier otra cosa se ignora.
     private static bool IsTracked(string relativePath) =>
-        VaultPaths.IsMarkdown(relativePath) || MapPaths.IsStateFile(VaultPaths.GetConflictOriginal(relativePath)) || MapPaths.IsImage(relativePath);
+        VaultPaths.IsMarkdown(relativePath)
+        || MapPaths.IsStateFile(VaultPaths.GetConflictOriginal(relativePath))
+        || MapPaths.IsImage(relativePath)
+        || AudioPaths.IsInLibrary(relativePath)
+        || IsAudioAppData(relativePath);
+
+    private static bool IsAudioAppData(string relativePath) =>
+        relativePath.StartsWith(AudioPaths.AppFolder + "/", StringComparison.OrdinalIgnoreCase)
+        && relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+        && !VaultPaths.IsConflictFile(relativePath);
 
     private void RaiseRescan() => Changed?.Invoke(this, new VaultChange(string.Empty, VaultChangeKind.Rescan));
 }

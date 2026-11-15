@@ -27,6 +27,12 @@ public sealed class VaultHost(IVaultServiceFactory factory, IAppPreferences pref
         lock (_beforeSwitch) _beforeSwitch.Add(handler);
     }
 
+    // Para servicios de vida más corta que el host (scoped): al desecharse dejan de recibir el cambio de vault.
+    public void RemoveBeforeSwitch(Func<Task> handler)
+    {
+        lock (_beforeSwitch) _beforeSwitch.Remove(handler);
+    }
+
     private async Task RunBeforeSwitchAsync()
     {
         Func<Task>[] handlers;

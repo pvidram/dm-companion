@@ -1,0 +1,162 @@
+@inherits DmComponentBase
+@using System.Text.RegularExpressions
+@using DmCompanion.Core.Vault.Storage
+@using DmCompanion.Screens.Platform
+@inject IFolderBrowser Browser
+@inject IStorageAccess Storage
+
+@* Explorador de carpetas para elegir un vault: lo usan la pantalla inicial (VaultPicker) y el panel «Cambiar vault». *@
+@if (_listError is { } listError)
+{
+    <InlineNotice Kind="NoticeKind.Error">@listError</InlineNotice>
+}
+
+@if (_notice is { } notice)
+{
+    <InlineNotice Kind="NoticeKind.Warning">@notice</InlineNotice>
+}
+
+@if (Storage.CanTypePath)
+{
+    <div class="vault-picker__paste">
+        <TextField Label="Pegar una ruta" Value="@_typedPath" ValueChanged="OnTypedPathChanged" />
+        <Button Variant="ButtonVariant.Secondary" OnClick="GoToTypedPath">Ir</Button>
+    </div>
+    @if (Storage.Roots.Count > 0)
+    {
+        <div class="vault-picker__roots">
+            @foreach (var drive in Storage.Roots)
+            {
+                var root = drive;
+                <Button Variant="ButtonVariant.Secondary" OnClick="() => Navigate(root)">@root</Button>
+            }
+        </div>
+    }
+}
+
+<p>@_current</p>
+<Button Variant="ButtonVariant.Secondary" Disabled="@(!CanGoUp)" OnClick="GoUp">Atrás</Button>
+<Button Variant="ButtonVariant.Primary" OnClick="UseCurrent">Usar esta carpeta</Button>
+
+@if (_folders.Count == 0)
+{
+    <EmptyState Icon="IconName.Folder" Title="No hay subcarpetas">
+        Puedes usar esta carpeta como vault o volver atrás.
+    </EmptyState>
+}
+else
+{
+    foreach (var name in _folders)
+    {
+        var folder = name;
+        <ListRow Icon="IconName.Folder" OnSelect="() => Enter(folder)">@folder</ListRow>
+    }
+}
+
+@code {
+    private static readonly Regex DriveRootPattern = new(@"^[A-Za-z]:[\\/]?$", RegexOptions.Compiled);
+
+    private string _root = string.Empty;
+    private string _current = string.Empty;
+    private string _typedPath = string.Empty;
+    private string? _notice;
+    private string? _listError;
+    private IReadOnlyList<string> _folders = [];
+
+    // Con ruta pegada se puede subir hasta la unidad; sin ella, solo hasta la raíz de exploración.
+    private bool CanGoUp => Storage.CanTypePath
+        ? !IsRoot(_current)
+        : Normalize(_current) != Normalize(_root);
+
+    /// <summary>Carpeta donde empieza; null: la inicial del almacenamiento. Sin «Pegar una ruta», solo si está dentro de la raíz.</summary>
+    [Parameter] public string? StartPath { get; set; }
+
+    /// <summary>Se invoca con la carpeta actual al pulsar «Usar esta carpeta».</summary>
+    [Parameter] public EventCallback<VaultChoice> OnUse { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _root = Storage.DefaultBrowseRoot;
+        Navigate(StartFolder());
+    }
+
+    private string StartFolder()
+    {
+        var fallback = Storage.InitialPath ?? _root;
+        if (StartPath is not { Length: > 0 } start || !Browser.DirectoryExists(start)) return fallback;
+        return Storage.CanTypePath || IsInside(start, _root) ? start : fallback;
+    }
+
+    // Sin «Pegar una ruta» no se puede salir de la raíz de exploración: tampoco se empieza fuera.
+    private static bool IsInside(string path, string root)
+    {
+        var (p, r) = (Normalize(path), Normalize(root).TrimEnd('/', '\\'));
+        return p == Normalize(root) || p.StartsWith(r + "/", StringComparison.Ordinal) || p.StartsWith(r + "\\", StringComparison.Ordinal);
+    }
+
+    private void Enter(string name) => Navigate(Path.Combine(_current, name));
+
+    private void GoUp()
+    {
+        if (CanGoUp && ParentOf(_current) is { } parent) Navigate(parent);
+    }
+
+    private Task UseCurrent() => OnUse.InvokeAsync(new VaultChoice(_current, Browser.LooksLikeVault(_current)));
+
+    private void OnTypedPathChanged(string value) => _typedPath = value;
+
+    private void GoToTypedPath()
+    {
+        var path = _typedPath.Trim().Trim('"');
+        if (path.Length == 0) return;
+        // Una ruta relativa o «C:» existiría respecto al directorio de trabajo del host y se guardaría tal cual.
+        if (!Path.IsPathFullyQualified(path))
+        {
+            _notice = $"Escribe la ruta completa de la carpeta, «{path}» no lo es";
+        }
+        else if (Browser.DirectoryExists(Path.GetFullPath(path)))
+        {
+            _typedPath = string.Empty;
+            Navigate(Path.GetFullPath(path));
+        }
+        else
+        {
+            _notice = $"No existe la carpeta «{path}»";
+        }
+    }
+
+    private void Navigate(string path)
+    {
+        _current = path;
+        _notice = null;
+        try
+        {
+            _folders = Browser.ListSubdirectories(path);
+            _listError = null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _folders = [];
+            _listError = $"No se puede leer «{path}»: {ex.Message}";
+        }
+    }
+
+    // «C:\» y «/» son raíces; «C:» (unidad sin barra) significa «directorio actual de C», no se usa.
+    private static bool IsRoot(string path) =>
+        path is "/" or "\\" || DriveRootPattern.IsMatch(path) || (path.Length > 0 && Path.GetPathRoot(path) == path);
+
+    private static string Normalize(string path) => IsRoot(path) || path.Length <= 1 ? path : path.TrimEnd('/', '\\');
+
+    // Funciona igual con rutas de estilo Windows y Unix, sea cual sea el SO del host.
+    private static string? ParentOf(string path)
+    {
+        var trimmed = Normalize(path);
+        var cut = trimmed.LastIndexOfAny(['/', '\\']);
+        if (cut < 0) return null;
+        if (cut == 0) return trimmed[..1];
+        var parent = trimmed[..cut];
+        return parent.Length == 2 && parent[1] == ':' ? parent + trimmed[cut] : parent;
+    }
+
+}

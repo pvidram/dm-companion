@@ -1,0 +1,82 @@
+@inherits SoundComponentBase
+
+<section class="sound-block" aria-labelledby="sound-mix-title">
+    <h3 id="sound-mix-title">Mezcla</h3>
+    @{
+        var state = Mixer.State;
+        var hasSound = state.Background is not null || state.Effects.Count > 0;
+    }
+    @if (!hasSound)
+    {
+        <p class="sound-empty">No suena nada.</p>
+    }
+    @if (state.Background is { } background)
+    {
+        <div class="sound-mix-row" data-testid="background-row">
+            <span class="sound-mix-row__name">Fondo: @BackgroundName(background)</span>
+            <SoundVolume Label="Volumen del fondo" Value="background.Volume" ValueChanged="Mixer.SetBackgroundVolumeAsync" />
+            <IconButton Icon="IconName.Square" Label="Parar el fondo" OnClick="Mixer.StopBackgroundAsync" />
+        </div>
+    }
+    @foreach (var effect in state.Effects)
+    {
+        var id = effect.Id;
+        var name = TrackName(effect.Track);
+        <div class="sound-mix-row" data-testid="effect-row" @key="effect.Id">
+            <span class="sound-mix-row__name">@name@(effect.Waiting ? " (en pausa entre repeticiones)" : "")</span>
+            <SoundVolume Label="@($"Volumen de {name}")" Value="effect.Volume" ValueChanged="v => Mixer.SetEffectVolumeAsync(id, v)" />
+            <Select TValue="RepeatKind" Label="Modo" data-testid="effect-mode" Value="effect.Repeat.Kind" Options="Kinds" LabelOf="KindLabel"
+                    ValueChanged="kind => ChangeModeAsync(effect, kind)" />
+            @if (effect.Repeat.Kind == RepeatKind.RepeatWithPause)
+            {
+                <NumberStepper Label="Entre" Unit="s" data-testid="pause-min" Min="1" Step="1" Value="effect.Repeat.MinPauseSeconds"
+                               ValueChanged="v => Mixer.SetEffectRepeatAsync(id, EffectRepeat.WithPause((int)v, effect.Repeat.MaxPauseSeconds))" />
+                <NumberStepper Label="y" Unit="s" data-testid="pause-max" Min="1" Step="1" Value="effect.Repeat.MaxPauseSeconds"
+                               ValueChanged="v => Mixer.SetEffectRepeatAsync(id, EffectRepeat.WithPause(effect.Repeat.MinPauseSeconds, (int)v))" />
+            }
+            <IconButton Icon="IconName.Square" Label="@($"Parar {name}")" OnClick="() => Mixer.StopEffectAsync(id)" />
+        </div>
+    }
+    <SoundVolume Label="Volumen general" Value="state.MasterVolume" ValueChanged="Mixer.SetMasterVolumeAsync" />
+    <div class="sound-actions">
+        @if (state.Paused)
+        {
+            <Button Icon="IconName.Play" OnClick="Mixer.ResumeAllAsync">Reanudar</Button>
+        }
+        else
+        {
+            <Button Icon="IconName.Pause" Disabled="!hasSound" OnClick="Mixer.PauseAllAsync">Pausar todo</Button>
+        }
+        <Button Icon="IconName.Square" Disabled="!hasSound" OnClick="Mixer.StopAllAsync">Parar todo</Button>
+    </div>
+</section>
+
+@code {
+    protected override bool ListensToMixer => true;
+    protected override bool ListensToLibrary => true;
+
+    private static readonly IReadOnlyList<RepeatKind> Kinds = [RepeatKind.Once, RepeatKind.Loop, RepeatKind.RepeatWithPause];
+
+    private static string KindLabel(RepeatKind kind) => kind switch
+    {
+        RepeatKind.Loop => "Bucle",
+        RepeatKind.RepeatWithPause => "Repetir con pausa",
+        _ => "Una vez",
+    };
+
+    private string TrackName(string track) => Library.Current.FindTrack(track)?.Name ?? track;
+
+    private string BackgroundName(BackgroundState background) => background.Source switch
+    {
+        SectionBackground section => $"lista {(section.Section.Length == 0 ? "Sueltos" : section.Section)}"
+            + (background.CurrentTrack is { } current ? $" ({TrackName(current)})" : ""),
+        _ => background.CurrentTrack is { } current ? TrackName(current) : "",
+    };
+
+    private Task ChangeModeAsync(EffectState effect, RepeatKind kind) => Mixer.SetEffectRepeatAsync(effect.Id, kind switch
+    {
+        RepeatKind.Loop => EffectRepeat.Loop,
+        RepeatKind.RepeatWithPause => effect.Repeat.Kind == RepeatKind.RepeatWithPause ? effect.Repeat : EffectRepeat.WithPause(5, 15),
+        _ => EffectRepeat.Once,
+    });
+}

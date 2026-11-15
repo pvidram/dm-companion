@@ -44,6 +44,22 @@ public sealed class FileSystemVaultWatcherTests : IDisposable
     }
 
     [Fact]
+    public async Task Writing_an_audio_file_raises_upserted()
+    {
+        Directory.CreateDirectory(_vault.PathOf("_audio"));
+        await File.WriteAllBytesAsync(_vault.PathOf("_audio/a.mp3"), [1]);
+        (await EventuallyAsync(c => c is { RelativePath: "_audio/a.mp3", Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task Writing_a_scene_file_raises_upserted()
+    {
+        Directory.CreateDirectory(_vault.PathOf("_audio/_dm/scenes"));
+        await File.WriteAllTextAsync(_vault.PathOf("_audio/_dm/scenes/x.json"), "{}");
+        (await EventuallyAsync(c => c is { RelativePath: "_audio/_dm/scenes/x.json", Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
     public async Task Deleting_a_note_raises_deleted()
     {
         await File.WriteAllTextAsync(_vault.PathOf("Borrar.md"), "x");
@@ -126,5 +142,55 @@ public sealed class FileSystemVaultWatcherTests : IDisposable
         const string conflict = "Mapas/X.state.sync-conflict-20261112-101500-ABCDEF1.json";
         await File.WriteAllTextAsync(_vault.PathOf(conflict), "{}");
         (await EventuallyAsync(c => c is { RelativePath: conflict, Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task Creating_an_audio_file_raises_upserted()
+    {
+        Directory.CreateDirectory(_vault.PathOf("_audio"));
+        await File.WriteAllBytesAsync(_vault.PathOf("_audio/a.mp3"), [1]);
+        (await EventuallyAsync(c => c is { RelativePath: "_audio/a.mp3", Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task Deleting_an_audio_file_raises_deleted_not_rescan()
+    {
+        Directory.CreateDirectory(_vault.PathOf("_audio"));
+        await File.WriteAllBytesAsync(_vault.PathOf("_audio/b.ogg"), [1]);
+        File.Delete(_vault.PathOf("_audio/b.ogg"));
+        (await EventuallyAsync(c => c is { RelativePath: "_audio/b.ogg", Kind: VaultChangeKind.Deleted })).Should().BeTrue("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task A_new_folder_with_audio_inside_raises_upserted_for_each_file()
+    {
+        var outside = Path.Combine(Path.GetDirectoryName(_vault.Root)!, Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(outside, "Nueva"));
+        await File.WriteAllBytesAsync(Path.Combine(outside, "Nueva", "c.wav"), [1]);
+        Directory.CreateDirectory(_vault.PathOf("_audio"));
+        try
+        {
+            Directory.Move(Path.Combine(outside, "Nueva"), _vault.PathOf("_audio/Nueva"));
+            (await EventuallyAsync(c => c is { RelativePath: "_audio/Nueva/c.wav", Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
+        }
+        finally { Directory.Delete(outside, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Audio_events_are_not_rescans()
+    {
+        Directory.CreateDirectory(_vault.PathOf("_audio"));
+        await File.WriteAllBytesAsync(_vault.PathOf("_audio/d.flac"), [1]);
+        File.Delete(_vault.PathOf("_audio/d.flac"));
+        await EventuallyAsync(c => c is { RelativePath: "_audio/d.flac", Kind: VaultChangeKind.Deleted });
+        _changes.Any(c => c.Kind == VaultChangeKind.Rescan).Should().BeFalse("llegó: {0}", Seen());
+    }
+
+    [Fact]
+    public async Task Json_under_audio_app_folder_raises_upserted()
+    {
+        Directory.CreateDirectory(_vault.PathOf("_audio/_dm/scenes"));
+        await File.WriteAllTextAsync(_vault.PathOf("_audio/_dm/scenes/taberna.json"), "{}");
+        (await EventuallyAsync(c => c is { RelativePath: "_audio/_dm/scenes/taberna.json", Kind: VaultChangeKind.Upserted })).Should().BeTrue("llegó: {0}", Seen());
     }
 }

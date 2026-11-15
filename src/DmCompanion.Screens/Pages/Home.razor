@@ -36,7 +36,8 @@ else if (Host.Current is null)
 }
 else
 {
-    <DmShell />
+    @* Un vault nuevo monta un shell nuevo: recupera su último mapa y ningún componente arrastra estado del anterior. *@
+    <DmShell @key="Host.Current" />
 }
 
 @code {

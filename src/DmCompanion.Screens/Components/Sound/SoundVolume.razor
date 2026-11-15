@@ -1,0 +1,19 @@
+<label class="sound-volume">
+    <span class="ds-field__label">@Label</span>
+    <input type="range" class="sound-volume__range" min="0" max="100" step="1" aria-label="@Label" value="@Percent" @onchange="OnChangeAsync" />
+    <span class="ds-numeric sound-volume__value" aria-hidden="true">@Percent %</span>
+</label>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>Volumen de 0 a 1.</summary>
+    [Parameter] public double Value { get; set; }
+    [Parameter] public EventCallback<double> ValueChanged { get; set; }
+
+    private int Percent => (int)Math.Round(Math.Clamp(Value, 0, 1) * 100, MidpointRounding.AwayFromZero);
+
+    private Task OnChangeAsync(ChangeEventArgs args) =>
+        double.TryParse(args.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent)
+            ? ValueChanged.InvokeAsync(Math.Clamp(percent, 0, 100) / 100)
+            : Task.CompletedTask;
+}

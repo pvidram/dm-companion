@@ -1,9 +1,4 @@
 @inherits DmComponentBase
-@using System.Text.RegularExpressions
-@using DmCompanion.Core.Vault.Storage
-@using DmCompanion.Screens.Platform
-@inject IFolderBrowser Browser
-@inject IStorageAccess Storage
 
 <TableFrame>
     <Map>
@@ -15,162 +10,35 @@
             {
                 <InlineNotice Kind="NoticeKind.Error">@error</InlineNotice>
             }
-            @if (_listError is { } listError)
-            {
-                <InlineNotice Kind="NoticeKind.Error">@listError</InlineNotice>
-            }
-
-            @if (_notice is { } notice)
-            {
-                <InlineNotice Kind="NoticeKind.Warning">@notice</InlineNotice>
-            }
-
-            @if (Storage.CanTypePath)
-            {
-                <div class="vault-picker__paste">
-                    <TextField Label="Pegar una ruta" Value="@_typedPath" ValueChanged="OnTypedPathChanged" />
-                    <Button Variant="ButtonVariant.Secondary" OnClick="GoToTypedPath">Ir</Button>
-                </div>
-                @if (Storage.Roots.Count > 0)
-                {
-                    <div class="vault-picker__roots">
-                        @foreach (var drive in Storage.Roots)
-                        {
-                            var root = drive;
-                            <Button Variant="ButtonVariant.Secondary" OnClick="() => Navigate(root)">@root</Button>
-                        }
-                    </div>
-                }
-            }
-
-            <p>@_current</p>
-            <Button Variant="ButtonVariant.Secondary" Disabled="@(!CanGoUp)" OnClick="GoUp">Subir</Button>
-            <Button Variant="ButtonVariant.Primary" OnClick="UseCurrent">Usar esta carpeta</Button>
-
-            @if (_folders.Count == 0)
-            {
-                <EmptyState Icon="IconName.Folder" Title="No hay subcarpetas">
-                    Puedes usar esta carpeta como vault o subir un nivel.
-                </EmptyState>
-            }
-            else
-            {
-                foreach (var name in _folders)
-                {
-                    var folder = name;
-                    <ListRow Icon="IconName.Folder" OnSelect="() => Enter(folder)">@folder</ListRow>
-                }
-            }
+            <VaultBrowser OnUse="UseAsync" />
         </Parchment>
     </Overlays>
     <Dialogs>
-        <ConfirmDialog Title="¿Abrir esta carpeta?" IsOpen="_confirmingUnlikelyVault"
-                       Message="Esta carpeta no parece un vault de Obsidian: es la raíz de una unidad o no tiene notas .md ni carpeta .obsidian. Si la abres, se indexará y se vigilará todo su contenido."
+        <ConfirmDialog Title="¿Abrir esta carpeta?" IsOpen="@(_unlikelyVault is not null)"
+                       Message="@VaultBrowsing.UnlikelyVaultMessage"
                        ConfirmText="Abrir de todos modos" OnConfirm="ConfirmUnlikelyVault" OnCancel="CancelUnlikelyVault" />
     </Dialogs>
 </TableFrame>
 
 @code {
-    private static readonly Regex DriveRootPattern = new(@"^[A-Za-z]:[\\/]?$", RegexOptions.Compiled);
+    private string? _unlikelyVault;
 
-    private string _root = string.Empty;
-    private string _current = string.Empty;
-    private string _typedPath = string.Empty;
-    private string? _notice;
-    private string? _listError;
-    private bool _confirmingUnlikelyVault;
-    private IReadOnlyList<string> _folders = [];
-
-    // Con ruta pegada se puede subir hasta la unidad; sin ella, solo hasta la raíz de exploración.
-    private bool CanGoUp => Storage.CanTypePath
-        ? !IsRoot(_current)
-        : Normalize(_current) != Normalize(_root);
-
-    protected override void OnInitialized()
+    private async Task UseAsync(VaultChoice choice)
     {
-        base.OnInitialized();
-        _root = Storage.DefaultBrowseRoot;
-        Navigate(Storage.InitialPath ?? _root);
-    }
-
-    private void Enter(string name) => Navigate(Path.Combine(_current, name));
-
-    private void GoUp()
-    {
-        if (CanGoUp && ParentOf(_current) is { } parent) Navigate(parent);
-    }
-
-    private async Task UseCurrent()
-    {
-        if (!Browser.LooksLikeVault(_current))
+        if (!choice.LooksLikeVault)
         {
-            _confirmingUnlikelyVault = true;
+            _unlikelyVault = choice.Path;
             return;
         }
-        await Host.OpenAsync(_current);
+        await Host.OpenAsync(choice.Path);
     }
 
     private async Task ConfirmUnlikelyVault()
     {
-        _confirmingUnlikelyVault = false;
-        await Host.OpenAsync(_current);
+        if (_unlikelyVault is not { } path) return;
+        _unlikelyVault = null;
+        await Host.OpenAsync(path);
     }
 
-    private void CancelUnlikelyVault() => _confirmingUnlikelyVault = false;
-
-    private void OnTypedPathChanged(string value) => _typedPath = value;
-
-    private void GoToTypedPath()
-    {
-        var path = _typedPath.Trim().Trim('"');
-        if (path.Length == 0) return;
-        // Una ruta relativa o «C:» existiría respecto al directorio de trabajo del host y se guardaría tal cual.
-        if (!Path.IsPathFullyQualified(path))
-        {
-            _notice = $"Escribe la ruta completa de la carpeta, «{path}» no lo es";
-        }
-        else if (Browser.DirectoryExists(Path.GetFullPath(path)))
-        {
-            _typedPath = string.Empty;
-            Navigate(Path.GetFullPath(path));
-        }
-        else
-        {
-            _notice = $"No existe la carpeta «{path}»";
-        }
-    }
-
-    private void Navigate(string path)
-    {
-        _current = path;
-        _notice = null;
-        try
-        {
-            _folders = Browser.ListSubdirectories(path);
-            _listError = null;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            _folders = [];
-            _listError = $"No se puede leer «{path}»: {ex.Message}";
-        }
-    }
-
-    // «C:\» y «/» son raíces; «C:» (unidad sin barra) significa «directorio actual de C», no se usa.
-    private static bool IsRoot(string path) =>
-        path is "/" or "\\" || DriveRootPattern.IsMatch(path) || (path.Length > 0 && Path.GetPathRoot(path) == path);
-
-    private static string Normalize(string path) => IsRoot(path) || path.Length <= 1 ? path : path.TrimEnd('/', '\\');
-
-    // Funciona igual con rutas de estilo Windows y Unix, sea cual sea el SO del host.
-    private static string? ParentOf(string path)
-    {
-        var trimmed = Normalize(path);
-        var cut = trimmed.LastIndexOfAny(['/', '\\']);
-        if (cut < 0) return null;
-        if (cut == 0) return trimmed[..1];
-        var parent = trimmed[..cut];
-        return parent.Length == 2 && parent[1] == ':' ? parent + trimmed[cut] : parent;
-    }
-
+    private void CancelUnlikelyVault() => _unlikelyVault = null;
 }

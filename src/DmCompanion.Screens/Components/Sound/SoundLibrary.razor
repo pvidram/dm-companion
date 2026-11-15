@@ -1,0 +1,103 @@
+@inherits SoundComponentBase
+
+<section class="sound-block" aria-labelledby="sound-library-title">
+    <h3 id="sound-library-title">Biblioteca</h3>
+    <SearchField Label="Buscar sonidos" Value="@_query" ValueChanged="OnQuery" />
+    @if (Library.Current.Tracks.Count == 0)
+    {
+        <EmptyState Icon="IconName.Music" Title="Sin sonidos">Pon ficheros de audio dentro de la carpeta _audio del vault.</EmptyState>
+    }
+    else if (_query.Trim().Length > 0)
+    {
+        var found = Library.Current.Search(_query);
+        @if (found.Count == 0)
+        {
+            <p class="sound-empty">Sin resultados.</p>
+        }
+        @foreach (var track in found)
+        {
+            @TrackRow(track)
+        }
+    }
+    else
+    {
+        @foreach (var section in Library.Current.Sections)
+        {
+            var path = section.Path;
+            var open = _expanded.Contains(path);
+            <div class="sound-section" data-testid="sound-section">
+                <div class="sound-row">
+                    <ListRow Icon="@(open ? IconName.ChevronDown : IconName.ChevronRight)" Expanded="open"
+                             OnSelect="() => Toggle(path)">@SectionTitle(section)</ListRow>
+                    <Button Icon="IconName.Play" data-testid="section-background" aria-label="@($"Lista como fondo: {SectionLabel(section)}")"
+                            OnClick="() => PlaySectionAsync(section)">Lista como fondo</Button>
+                </div>
+                @if (open)
+                {
+                    @foreach (var track in section.Tracks)
+                    {
+                        @TrackRow(track)
+                    }
+                }
+            </div>
+        }
+    }
+    @if (NoticeText is { } notice)
+    {
+        <InlineNotice Kind="NoticeKind.Error" OnClose="ClearNotice">@notice</InlineNotice>
+    }
+</section>
+
+@code {
+    private readonly HashSet<string> _expanded = new(StringComparer.Ordinal);
+    private string _query = string.Empty;
+    private IReadOnlyList<string>? _favoritesSource;
+    private HashSet<string> _favorites = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override bool ListensToLibrary => true;
+    protected override bool ListensToStore => true;
+
+    private RenderFragment TrackRow(AudioTrack track) => @<div class="sound-row sound-track" data-testid="sound-track">
+        <ListRow Icon="IconName.Play" OnSelect="() => PlayEffectAsync(track)">@track.Name</ListRow>
+        <Button data-testid="track-background" aria-label="@($"Fondo: {track.Name}")" OnClick="() => PlayBackgroundAsync(track)">Fondo</Button>
+        <IconButton Icon="IconName.Star" Label="@($"Favorito: {track.Name}")" class="@(IsFavorite(track) ? "sound-star sound-star--on" : "sound-star")"
+                    IsPressed="IsFavorite(track)" OnClick="() => ToggleFavoriteAsync(track)" />
+    </div>;
+
+    private static string SectionLabel(AudioSection section) => section.Path.Length == 0 ? "Sueltos" : section.Path;
+
+    private static string SectionTitle(AudioSection section) => $"{SectionLabel(section)} ({section.Tracks.Count})";
+
+    // Se lee en cada render: el clic y Store.Changed repintan sin pasar por OnParametersSet.
+    private bool IsFavorite(AudioTrack track)
+    {
+        var current = Store.Favorites;
+        if (!ReferenceEquals(current, _favoritesSource))
+        {
+            _favorites = new HashSet<string>(current, StringComparer.OrdinalIgnoreCase);
+            _favoritesSource = current;
+        }
+        return _favorites.Contains(track.Path);
+    }
+
+    private void Fail(bool failed, string text) => ShowNotice(NoticeKind.Error, failed ? text : null);
+
+    private void OnQuery(string value) => _query = value;
+
+    private void Toggle(string path)
+    {
+        if (!_expanded.Remove(path)) _expanded.Add(path);
+    }
+
+    private async Task PlayEffectAsync(AudioTrack track) =>
+        Fail(await Mixer.PlayEffectAsync(track.Path) is null, $"No se pudo reproducir «{track.Name}».");
+
+    private async Task PlayBackgroundAsync(AudioTrack track) =>
+        Fail(!await Mixer.SetBackgroundAsync(new TrackBackground(track.Path)), $"No se pudo poner «{track.Name}» de fondo.");
+
+    private async Task PlaySectionAsync(AudioSection section) =>
+        Fail(!await Mixer.SetBackgroundAsync(new SectionBackground(section.Path)), $"No se pudo poner de fondo «{SectionLabel(section)}».");
+
+    private async Task ToggleFavoriteAsync(AudioTrack track) =>
+        Fail(await Store.ToggleFavoriteAsync(track.Path) != StoreResult.Ok, "No se pudo guardar el favorito.");
+}

@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
@@ -23,6 +24,7 @@ public sealed class NewNoteDialogTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
         Services.AddScoped<ShellState>();
+        Services.AddSoundForTests();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);

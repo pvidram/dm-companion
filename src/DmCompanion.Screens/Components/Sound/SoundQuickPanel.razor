@@ -1,0 +1,66 @@
+@inherits SoundControlBase
+
+@* Panel rápido de sonido: popover bajo la franja (la franja recorta lo que sobresale, por eso vive en Overlays). Tocar fuera lo cierra. *@
+@if (Shell.SoundQuickOpen)
+{
+    <div class="sound-quick__backdrop" data-testid="sound-quick-backdrop" @onclick="Shell.CloseSoundQuick"></div>
+    <section class="sound-quick" data-testid="sound-quick" aria-label="Sonido rápido">
+        <header class="sound-quick__header">
+            <span class="sound-quick__title">Sonido</span>
+            <IconButton Icon="IconName.X" Label="Cerrar el sonido rápido" data-testid="sound-quick-close" OnClick="Shell.CloseSoundQuick" />
+        </header>
+        @if (Notice is { } notice)
+        {
+            <InlineNotice Kind="NoticeKind.Warning">@notice</InlineNotice>
+        }
+        <h4 class="sound-quick__heading">Favoritos</h4>
+        @if (Store.Favorites.Count == 0)
+        {
+            <p class="sound-quick__empty">Sin favoritos.</p>
+        }
+        @foreach (var path in Store.Favorites)
+        {
+            var track = Tracks.FindTrack(path);
+            var favorite = path;
+            <button type="button" class="sound-quick__item" data-testid="sound-favorite" disabled="@(track is null)" @onclick="() => PlayFavoriteAsync(favorite)">
+                <Icon Name="IconName.Play" />
+                <span>@(track?.Name ?? path)</span>
+                @if (track is null)
+                {
+                    <span class="sound-quick__note">no encontrado</span>
+                }
+            </button>
+        }
+        <h4 class="sound-quick__heading">Escenas</h4>
+        @if (Store.SceneNames.Count == 0)
+        {
+            <p class="sound-quick__empty">Sin escenas.</p>
+        }
+        @foreach (var name in Store.SceneNames)
+        {
+            var scene = name;
+            <button type="button" class="sound-quick__item" data-testid="sound-scene" @onclick="() => LaunchSceneAsync(scene)">
+                <Icon Name="IconName.Music" />
+                <span>@scene</span>
+            </button>
+        }
+    </section>
+}
+
+@code {
+    // Los favoritos suenan como efecto de una vez: repetir o hacer bucle se decide en la pantalla Sonido.
+    private async Task PlayFavoriteAsync(string path)
+    {
+        if (await Mixer.PlayEffectAsync(path) is null) ShowNotice(SoundNotices.NotFound(Tracks.FindTrack(path)?.Name ?? path));
+    }
+
+    private async Task LaunchSceneAsync(string name)
+    {
+        if (await Store.LoadSceneAsync(name) is not { } scene)
+        {
+            ShowNotice(SoundNotices.NotFound(name));
+            return;
+        }
+        if (await Mixer.LaunchSceneAsync(scene) is { Count: > 0 } missing) ShowNotice(SoundNotices.Missing(missing));
+    }
+}

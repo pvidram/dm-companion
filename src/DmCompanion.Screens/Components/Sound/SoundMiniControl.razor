@@ -1,0 +1,54 @@
+@inherits SoundControlBase
+
+@* Mini control de la franja superior: solo aparece con algo sonando o en pausa. Tocar el nombre abre el panel rápido. *@
+@if (HasMix)
+{
+    var state = Mixer.State;
+    <section class="sound-mini" data-testid="sound-mini" aria-label="Sonido">
+        <Icon Name="IconName.Music" />
+        <button type="button" class="sound-mini__name" data-testid="sound-mini-name" aria-expanded="@(Shell.SoundQuickOpen ? "true" : "false")"
+                title="Favoritos y escenas" @onclick="Shell.ToggleSoundQuick">@NameOf(state)</button>
+        <IconButton Icon="@(state.Paused ? IconName.Play : IconName.Pause)" Label="@(state.Paused ? "Reanudar el sonido" : "Pausar el sonido")"
+                    class="sound-mini__pause" data-testid="sound-mini-pause" OnClick="TogglePauseAsync" />
+        <input type="range" class="sound-mini__volume" data-testid="sound-mini-volume" aria-label="Volumen general" min="0" max="100" step="1"
+               value="@Percent(state.MasterVolume)" @onchange="OnVolumeAsync" />
+    </section>
+}
+else if (HasContent)
+{
+    <section class="sound-mini" data-testid="sound-mini" aria-label="Sonido">
+        <IconButton Icon="IconName.Music" Label="Abrir el sonido rápido" IsPressed="Shell.SoundQuickOpen" data-testid="sound-mini-open"
+                    class="sound-mini__open" OnClick="Shell.ToggleSoundQuick" />
+    </section>
+}
+
+@code {
+    // En silencio solo se ofrece la entrada al panel si hay algo que lanzar.
+    private bool HasContent => Tracks.Tracks.Count > 0 || Store.Favorites.Count > 0 || Store.SceneNames.Count > 0;
+
+    private string NameOf(MixState state)
+    {
+        if (state.SceneName is { Length: > 0 } scene) return scene;
+        if (state.Background is { } background)
+        {
+            return background.Source switch
+            {
+                SectionBackground s => Tracks.FindSection(s.Section)?.Name ?? LastSegment(s.Section),
+                TrackBackground t => Tracks.FindTrack(t.Track)?.Name ?? LastSegment(t.Track),
+                _ => "Sonido",
+            };
+        }
+        return state.Effects.Count == 1 ? "1 efecto" : $"{state.Effects.Count} efectos";
+    }
+
+    private static string LastSegment(string path) => path[(path.LastIndexOf('/') + 1)..];
+
+    private static int Percent(double volume) => (int)Math.Round(Math.Clamp(volume, 0, 1) * 100);
+
+    private Task TogglePauseAsync() => Mixer.State.Paused ? Mixer.ResumeAllAsync() : Mixer.PauseAllAsync();
+
+    private Task OnVolumeAsync(ChangeEventArgs e) =>
+        double.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent)
+            ? Mixer.SetMasterVolumeAsync(percent / 100)
+            : Task.CompletedTask;
+}
