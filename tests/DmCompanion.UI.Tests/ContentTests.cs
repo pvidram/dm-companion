@@ -38,6 +38,24 @@ public class ContentTests : UiTestContext
     }
 
     [Fact]
+    public void Notice_without_OnClose_has_no_close_button()
+    {
+        var cut = Render<InlineNotice>(p => p.AddChildContent("Enlace roto"));
+        cut.FindAll("button").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Notice_with_OnClose_shows_a_close_button_that_calls_it()
+    {
+        var closed = 0;
+        var cut = Render<InlineNotice>(p => p.Add(x => x.OnClose, () => closed++).AddChildContent("Enlace roto"));
+
+        cut.Find("button[aria-label='Cerrar aviso']").Click();
+
+        closed.Should().Be(1);
+    }
+
+    [Fact]
     public void Empty_state_shows_its_title()
     {
         var cut = Render<EmptyState>(p => p.Add(x => x.Title, "Sin notas"));

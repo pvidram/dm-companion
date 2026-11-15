@@ -1,0 +1,76 @@
+@inherits DmComponentBase
+@using Microsoft.JSInterop
+@inject CombatController Combat
+
+@* Historial de la tira retraída: panel pequeño anclado bajo la franja, sobre el mapa (la franja recorta lo que sobresale, por eso vive en Overlays). Tocar fuera lo cierra. *@
+@if (Combat.State is not null && !Combat.StripExpanded && Shell.HistoryOpen)
+{
+    <div class="combat-history-popover__backdrop" data-testid="history-backdrop" @onclick="Shell.CloseHistory"></div>
+    <section class="combat-history-popover" data-testid="history-popover" aria-label="Historial del combate" tabindex="-1" @ref="_popover" @onkeydown="OnKeyDown">
+        <header class="combat-history-popover__header">
+            <span class="combat-history-popover__title">Historial (@Combat.Log.Count)</span>
+            <IconButton Icon="IconName.Undo2" Label="Deshacer en el combate" Disabled="!Combat.CanUndo" data-testid="history-undo" OnClick="Combat.Undo" />
+            <IconButton Icon="IconName.Redo2" Label="Rehacer en el combate" Disabled="!Combat.CanRedo" data-testid="history-redo" OnClick="Combat.Redo" />
+            <IconButton Icon="IconName.X" Label="Cerrar el historial" data-testid="history-close" OnClick="Shell.CloseHistory" />
+        </header>
+        <CombatHistoryList Log="Combat.Log" />
+    </section>
+}
+
+@code {
+    private ElementReference _popover;
+    private bool _focused;
+
+    // Con el foco dentro, Esc cierra el panel.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var visible = Combat.State is not null && !Combat.StripExpanded && Shell.HistoryOpen;
+        if (visible == _focused) return;
+        _focused = visible;
+        if (!visible) return;
+        try
+        {
+            await _popover.FocusAsync();
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or ObjectDisposedException)
+        {
+            // Sin foco el panel sigue funcionando: solo falta el atajo Esc.
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Combat.Changed += OnCombatChanged;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") Shell.CloseHistory();
+    }
+
+    // Al terminar el combate el panel se cierra: no debe reaparecer solo en el siguiente.
+    private void OnCombatChanged(object? sender, EventArgs e)
+    {
+        if (Combat.State is null) Shell.CloseHistory();
+        _ = RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+    }
+
+    public override void Dispose()
+    {
+        Combat.Changed -= OnCombatChanged;
+        base.Dispose();
+    }
+}

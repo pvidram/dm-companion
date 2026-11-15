@@ -41,6 +41,7 @@ public sealed class CosmereSystem : IGameSystem
     public SystemDefinition Definition { get; } = BuildDefinition();
     public HitPointsRule HitPoints { get; } = HitPointsRule.FromStat("Salud", "health");
     public GridRules Grid => GridRules.Feet5;
+    public ICombatRules Combat => BasicCombatRules.Instance;
 
     public StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter)
     {

@@ -1,0 +1,15 @@
+@inherits DmComponentBase
+@inject CombatController Combat
+
+<ConfirmDialog Title="Terminar combate" Destructive="true" ConfirmText="Terminar combate"
+               Message="Se quitan la tira de turnos, las salvaciones de muerte y las duraciones de los estados. Los puntos de vida se conservan."
+               IsOpen="@Shell.EndCombatOpen" OnConfirm="End" OnCancel="Shell.CancelEndCombat" />
+
+@code {
+    private void End()
+    {
+        Combat.End();
+        Shell.SelectCombatToken(null);
+        Shell.CancelEndCombat();
+    }
+}

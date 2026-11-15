@@ -33,7 +33,7 @@ El área del mapa es contenedor de consulta (`map-area`): los anchos de pergamin
 - Los diálogos van **solo** en la ranura `Dialogs`. Dentro de un pergamino quedarían en su contexto de apilamiento y las tarjetas se pintarían sobre el fondo del modal.
 - `QuickCard.X` / `Y` son px relativos al área del mapa y no se limitan: el llamador los ajusta a los bordes.
 - Capas (`z-index`): mapa 0, barra del mapa 5, pergamino 10, tarjeta 20, aviso 25, diálogo 30.
-- `Toast` vive en `Overlays`, por debajo de `Dialogs` (25 < 30): cierra el diálogo antes de mostrar el aviso, o no se verá.
+- `Toast` sale arriba a la derecha del área del mapa, con el fondo de madera translúcido (85 %); abajo va la `MapToolbar` anclada `Bottom`. Vive en `Overlays`, por debajo de `Dialogs` (25 < 30): cierra el diálogo antes de mostrar el aviso, o no se verá.
 - Dentro de una `QuickCard` (su título es h3) usa la rejilla `.ds-stats` directamente, no `StatGroup`, cuyo encabezado es un h3 fijo.
 
 ## Atributos adicionales
@@ -64,7 +64,7 @@ Convención de booleanos: `Is*` para estado, nombres HTML para atributos HTML (`
 | `TokenAvatar` | `Name`, `Faction`, `PortraitUrl`, `IsHidden` | |
 | `StatBadge` | `Label`, `Value`, `IsManual` | |
 | `StatGroup` | `Title`, `Split`, `ChildContent` | |
-| `MapToolbar` | `Label` (obligatorio), `Edge` (`MapToolbarEdge`, `Right` por defecto), `ChildContent` | |
+| `MapToolbar` | `Label` (obligatorio), `Edge` (`MapToolbarEdge`, `Right` por defecto; `Bottom` la ancla abajo de lado a lado, en fila), `ChildContent` | |
 | `MapToolbarGroup` | `Label?`, `ChildContent` | |
 | `Toast` | `Message` (`ToastMessage?`) | `OnAction(ToastMessage)`, `OnDismissed(ToastMessage)` |
 | `Checkbox` | `Label`, `Value`, `Disabled` | `ValueChanged(bool)` |
@@ -75,10 +75,13 @@ Convención de booleanos: `Is*` para estado, nombres HTML para atributos HTML (`
 | `InlineNotice` | `Kind` (`NoticeKind`), `ChildContent` | |
 | `EmptyState` | `Icon`, `Title`, `ChildContent` | |
 | `Icon` | `Name` (`IconName`), `Class` | |
+| `SaveIndicator` | `Label` («Guardando…») | |
 
-Enums: `ButtonVariant { Primary, Secondary, Damage, Heal }`, `ParchmentSize { Side, Wide, Full }`, `NoticeKind { Info, Warning, Error }`, `Faction { Pc, Ally, Enemy }`, `MapToolbarEdge { Right, Left }`, `IconName` (Lucide empaquetados en `wwwroot/icons`; añadir uno = añadir su SVG). `FactionVisuals` da icono, etiqueta y modificador CSS de cada bando: el bando nunca se comunica solo con color. El anillo lleva un contorno de 1px que contrasta con el fondo (WCAG 1.4.11): `--faction-outline-on-wood` sobre madera (raíl y franja) y `--faction-outline-on-sheet` sobre pergamino. En el mapa de Konva (fondo = imagen arbitraria) el anillo se dibuja con doble contorno, oscuro (`--faction-outline-on-sheet`) y claro (`--faction-outline-on-wood`), para que se lea sobre cualquier imagen. El contorno claro (`--faction-outline-on-wood`) se aplica automáticamente solo dentro de `.ds-frame__rail` y `.ds-frame__strip`; un `TokenAvatar` colocado sobre otra superficie de madera debe añadir esa regla (o una clase) por su cuenta.
+Enums: `ButtonVariant { Primary, Secondary, Damage, Heal }`, `ParchmentSize { Side, Wide, Full }`, `NoticeKind { Info, Warning, Error }`, `Faction { Pc, Ally, Enemy }`, `MapToolbarEdge { Right, Left, Bottom }`, `IconName` (Lucide empaquetados en `wwwroot/icons`; añadir uno = añadir su SVG). `FactionVisuals` da icono, etiqueta y modificador CSS de cada bando: el bando nunca se comunica solo con color. El anillo lleva un contorno de 1px que contrasta con el fondo (WCAG 1.4.11): `--faction-outline-on-wood` sobre madera (raíl y franja) y `--faction-outline-on-sheet` sobre pergamino. En el mapa de Konva (fondo = imagen arbitraria) el anillo se dibuja con doble contorno, oscuro (`--faction-outline-on-sheet`) y claro (`--faction-outline-on-wood`), para que se lea sobre cualquier imagen. El contorno claro (`--faction-outline-on-wood`) se aplica automáticamente solo dentro de `.ds-frame__rail` y `.ds-frame__strip`; un `TokenAvatar` colocado sobre otra superficie de madera debe añadir esa regla (o una clase) por su cuenta.
 
 `ToastMessage(Text, ActionLabel?, Duration?, ActionIcon?)`: uno a la vez; `Toast` compara por referencia (una instancia nueva con el mismo texto reinicia el tiempo); 5 s por defecto (`DefaultDuration`); se pausa con foco o puntero encima, y el tiempo completo se reinicia cuando ya no hay ninguno de los dos (se siguen por separado). Lleva un botón de cierre «Cerrar aviso». Sustituir un aviso visible por otro emite `OnDismissed(anterior)` (App confirma ahí lo pendiente, p. ej. un borrado); si el padre pone `Message` a null, no se emite nada. `ToastMessage` es un record con igualdad por valor, pero `Toast` compara por referencia: App debe usar `ReferenceEquals` (no `==`) para correlacionar su instantánea de deshacer. Tras «Deshacer» o «Cerrar aviso» el aviso se desmonta: App devuelve el foco donde tenga sentido.
+
+`SaveIndicator`: icono de guardar con `role="status"` y `aria-label` = `Label`, que parpadea (opacidad) y queda fijo con `prefers-reduced-motion`. Quien lo usa lo muestra solo mientras hay cambios sin guardar. Oculto en la vista TV.
 
 `TreeView`: `KeyOf` debe devolver una clave **única** en todo el árbol (identifica expansión y selección). Las ramas solo se expanden; `OnSelect` se dispara solo en hojas.
 

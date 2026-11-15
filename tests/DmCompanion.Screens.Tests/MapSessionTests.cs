@@ -1,7 +1,7 @@
+using DmCompanion.Core.Combat;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
-using DmCompanion.Infrastructure;
 using DmCompanion.Screens.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
@@ -203,12 +203,34 @@ public sealed class MapSessionTests : IAsyncLifetime
         _session.Notice.Should().Contain("no es válido");
     }
 
+    // Un escritor a medias da varios intentos de recarga por un solo evento: en `adb logcat` debe verse un solo «cambio externo».
+    [Fact]
+    public async Task An_external_change_retried_until_it_gives_up_is_logged_once()
+    {
+        var logs = new CapturingLogger<MapSession>();
+        var session = new MapSession(_host, _prefs, _time, logs);
+        SeedState(StatePath, StateWithToken());
+        await session.OpenAsync(MapNote);
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+        var target = _vault.PathOf(StatePath);
+        File.WriteAllText(target + ".tmp", "{ no es json");
+        File.SetLastWriteTimeUtc(target + ".tmp", DateTime.UtcNow.AddMinutes(1));
+
+        File.Move(target + ".tmp", target, overwrite: true);
+        await PumpRetriesUntilAsync(() => session.IsReadOnly);
+        await session.DisposeAsync();
+
+        int external;
+        lock (logs.Messages) external = logs.Messages.Count(m => m.Contains("cambio externo"));
+        (external, Volatile.Read(ref _factory.ReadsStarted) - reads > 1).Should().Be((1, true));
+    }
+
     [Fact]
     public async Task External_file_with_a_newer_version_goes_read_only_without_waiting_for_retries()
     {
         SeedState(StatePath, StateWithToken());
         await _session.OpenAsync(MapNote);
-        var future = MapStateSerializer.Write(StateWithToken()).Replace("\"version\":1", "\"version\":2");
+        var future = MapStateSerializer.Write(StateWithToken()).Replace("\"version\":2", "\"version\":3");
 
         WriteExternallyInPlace(StatePath, future, DateTime.UtcNow.AddMinutes(1));
         await WaitUntilAsync(() => _session.IsReadOnly);
@@ -296,16 +318,14 @@ public sealed class MapSessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Local_edit_with_a_pending_retry_wins_with_a_notice_and_overwrites_the_file()
+    public async Task Local_edit_with_a_pending_retry_wins_without_a_notice_and_overwrites_the_file()
     {
         await OpenAndWriteInPlaceAsync("", DateTime.UtcNow.AddMinutes(1));
         _session.Mutate(e => e.MoveToken("t1", 77, 77));
 
-        await PumpRetriesUntilAsync(() => _session.Notice is not null);
-        _time.Advance(MapSession.SaveDelay);
-        await WaitUntilAsync(() => ReadFile(StatePath).Contains("77"));
+        await PumpRetriesUntilAsync(() => ReadFile(StatePath).Contains("77"));
 
-        (_session.IsReadOnly, _session.Editor!.State.Tokens is [{ X: 77 }]).Should().Be((false, true));
+        (_session.IsReadOnly, _session.Editor!.State.Tokens is [{ X: 77 }], _session.Notice).Should().Be((false, true, null));
     }
 
     [Theory]
@@ -402,6 +422,70 @@ public sealed class MapSessionTests : IAsyncLifetime
         (raised, session.Editor!.State.Tokens is [{ X: 10 }]).Should().Be((0, true));
     }
 
+    // Carrera real: el dispose puede terminar entre la comprobación de IsDisposed y StopTimer, o soltar y desechar el gate
+    // mientras el cierre lo tiene tomado. Se repite porque cada iteración solo cae en una ventana a veces.
+    [Fact]
+    public async Task Closing_while_the_session_is_disposed_in_parallel_never_throws()
+    {
+        SeedState(StatePath, StateWithToken());
+        var failures = new List<string>();
+        for (var i = 0; i < 300; i++)
+        {
+            var session = new MapSession(_host, _prefs, _time, NullLogger<MapSession>.Instance);
+            await session.OpenAsync(MapNote);
+            var x = i;
+            session.Mutate(e => e.MoveToken("t1", x, x));
+            using var start = new Barrier(2);
+            var closing = Task.Run(async () => { start.SignalAndWait(); await session.CloseAsync(); });
+            var disposing = Task.Run(async () => { start.SignalAndWait(); await session.DisposeAsync(); });
+            try
+            {
+                await Task.WhenAll(closing, disposing);
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{ex.GetType().Name} en {ex.StackTrace?.Split('\n')[0].Trim()}");
+            }
+        }
+
+        failures.Should().BeEmpty();
+    }
+
+    // Ventana 1: el dispose termina entero entre la comprobación de IsDisposed del cierre y su StopTimer.
+    [Fact]
+    public async Task Close_whose_timer_is_disposed_just_after_checking_IsDisposed_does_not_throw()
+    {
+        var time = new HookedTimeProvider();
+        var session = new MapSession(_host, _prefs, time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        session.Mutate(e => e.AddToken(new TokenDraft("Orco", null, TokenSide.Enemy, 1, null, null), 5, 5) is not null);
+        await session.FlushAsync();
+        time.BeforeNextChange = () => session.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+        var close = async () => await session.CloseAsync();
+
+        await close.Should().NotThrowAsync();
+    }
+
+    // Ventana 2: el cierre espera el gate detrás del guardado final del dispose y lo obtiene justo antes de que se deseche.
+    [Fact]
+    public async Task Close_that_gets_the_gate_just_before_dispose_releases_it_does_not_throw()
+    {
+        SeedState(StatePath, StateWithToken());
+        var time = new HookedTimeProvider();
+        var session = new MapSession(_host, _prefs, time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        session.Mutate(e => e.MoveToken("t1", 66, 66));
+        _factory.WriteDelay = TimeSpan.FromMilliseconds(100);
+        Task? disposing = null;
+        time.BeforeNextChange = () => disposing = session.DisposeAsync().AsTask();
+
+        var close = async () => await session.CloseAsync();
+
+        await close.Should().NotThrowAsync();
+        await disposing!;
+    }
+
     private static void WriteNote(TempVault vault, string path, string name)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(vault.PathOf(path))!);
@@ -462,7 +546,7 @@ public sealed class MapSessionTests : IAsyncLifetime
     [Fact]
     public async Task Open_with_future_version_is_read_only()
     {
-        File.WriteAllText(_vault.PathOf(StatePath), "{\"version\":2,\"tokens\":[],\"strokes\":[]}");
+        File.WriteAllText(_vault.PathOf(StatePath), "{\"version\":3,\"tokens\":[],\"strokes\":[]}");
 
         await _session.OpenAsync(MapNote);
 
@@ -542,18 +626,185 @@ public sealed class MapSessionTests : IAsyncLifetime
         (raised, _session.Editor!.State.Tokens[0].X).Should().Be((0, 40));
     }
 
+    // Almacenamiento con mtime distinto entre la escritura y un stat posterior (FUSE de Android, FS de resolución gruesa):
+    // el evento del watcher de la propia escritura no debe tomarse por un cambio externo.
     [Fact]
-    public async Task External_change_with_unsaved_local_changes_is_overwritten_on_next_save_with_a_notice()
+    public async Task Own_write_whose_later_stat_gives_another_mtime_is_not_taken_as_an_external_change()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _factory.WriteResultSkew = TimeSpan.FromMilliseconds(1);
+        _factory.WriteDelay = TimeSpan.FromMilliseconds(300);
+        var writes = Volatile.Read(ref _factory.WritesStarted);
+        _session.Mutate(e => e.MoveToken("t1", 20, 20));
+        var flush = _session.FlushAsync();
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.WritesStarted) > writes);
+        _session.Mutate(e => e.MoveToken("t1", 21, 21));
+        var stats = Volatile.Read(ref _factory.StateStats);
+        await flush;
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.StateStats) > stats);
+        _factory.WriteDelay = TimeSpan.Zero;
+
+        await _session.FlushAsync();
+
+        _factory.StatePreconditions.Should().NotContain(WriteMode.Overwrite);
+    }
+
+    // Syncthing (u otro proceso) puede tocar solo el mtime del fichero sin cambiar su contenido.
+    [Fact]
+    public async Task Mtime_only_change_with_the_same_content_and_unsaved_local_changes_is_not_taken_as_an_external_change()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.MoveToken("t1", 30, 30));
+        var stats = Volatile.Read(ref _factory.StateStats);
+
+        File.SetLastWriteTimeUtc(_vault.PathOf(StatePath), DateTime.UtcNow.AddMinutes(1));
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.StateStats) > stats);
+        await _session.FlushAsync();
+
+        _factory.StatePreconditions.Should().NotContain(WriteMode.Overwrite);
+    }
+
+    // Para confirmar la causa en la tablet con `adb logcat`: tipo de evento, sin rutas ni contenido.
+    [Fact]
+    public async Task Mtime_only_change_is_logged_without_paths_or_content()
+    {
+        var logs = new CapturingLogger<MapSession>();
+        var session = new MapSession(_host, _prefs, _time, logs);
+        SeedState(StatePath, StateWithToken());
+        await session.OpenAsync(MapNote);
+        var stats = Volatile.Read(ref _factory.StateStats);
+
+        File.SetLastWriteTimeUtc(_vault.PathOf(StatePath), DateTime.UtcNow.AddMinutes(1));
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.StateStats) > stats);
+        await session.FlushAsync();
+        await session.DisposeAsync();
+
+        string[] messages;
+        lock (logs.Messages) messages = [.. logs.Messages];
+        messages.Should().Contain(m => m.Contains("mismo contenido"))
+            .And.NotContain(m => m.Contains("cripta") || m.Contains("Goblin") || m.Contains(_vault.Root));
+    }
+
+    [Fact]
+    public async Task External_change_with_unsaved_local_changes_is_overwritten_on_next_save_without_a_notice()
     {
         SeedState(StatePath, StateWithToken());
         await _session.OpenAsync(MapNote);
         _session.Mutate(e => e.MoveToken("t1", 11, 11));
+        var stats = Volatile.Read(ref _factory.StateStats);
 
         ReplaceExternally(StatePath, StateWithToken(x: 99));
-        await WaitUntilAsync(() => _session.Notice is not null);
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.StateStats) > stats);
         await _session.FlushAsync();
 
-        (ReadFile(StatePath).Contains("\"x\":11"), _session.Notice).Should().Match<(bool, string?)>(t => t.Item1 && t.Item2!.Contains("sobrescrib"));
+        (ReadFile(StatePath).Contains("\"x\":11"), _session.Notice).Should().Be((true, null));
+    }
+
+    // Sin esperar al watcher: el guardado encuentra el fichero cambiado (precondición fallida) y lo sobrescribe.
+    [Fact]
+    public async Task Save_that_finds_the_file_changed_on_disk_overwrites_it_without_a_notice()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.MoveToken("t1", 13, 13));
+
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
+        await _session.FlushAsync();
+        await Task.Delay(300);
+
+        (ReadFile(StatePath).Contains("\"x\":13"), _session.Notice).Should().Be((true, null));
+    }
+
+    // Guarda con una sesión que registra y devuelve las líneas «Al guardar…»; `beforeWrite` toca el fichero justo antes de
+    // la escritura condicionada (con el gate tomado), así que el guardado encuentra el mtime cambiado sin que el watcher se adelante.
+    private async Task<(Microsoft.Extensions.Logging.LogLevel Level, string Message)[]> SaveAfterDiskTouchAsync(Action beforeWrite)
+    {
+        var logs = new CapturingLogger<MapSession>();
+        var session = new MapSession(_host, _prefs, _time, logs);
+        SeedState(StatePath, StateWithToken());
+        await session.OpenAsync(MapNote);
+        session.Mutate(e => e.MoveToken("t1", 17, 17));
+        _factory.BeforeNextStateWrite = beforeWrite;
+        await session.FlushAsync();
+        await session.DisposeAsync();
+        lock (logs.Messages) return [.. logs.Entries.Where(e => e.Message.StartsWith("Al guardar"))];
+    }
+
+    private void TouchStateMtime() => File.SetLastWriteTimeUtc(_vault.PathOf(StatePath), DateTime.UtcNow.AddMinutes(1));
+
+    [Fact]
+    public async Task Save_that_finds_only_the_mtime_changed_logs_information_and_not_a_conflict()
+    {
+        var entries = await SaveAfterDiskTouchAsync(TouchStateMtime);
+
+        entries.Should().ContainSingle().Which.Should().Match<(Microsoft.Extensions.Logging.LogLevel Level, string Message)>(e =>
+            e.Level == Microsoft.Extensions.Logging.LogLevel.Information && e.Message.Contains("con el mismo contenido; no es un cambio externo"));
+    }
+
+    [Fact]
+    public async Task Save_that_finds_only_the_mtime_changed_still_writes_the_local_state()
+    {
+        await SaveAfterDiskTouchAsync(TouchStateMtime);
+
+        ReadFile(StatePath).Should().Contain("\"x\":17");
+    }
+
+    [Fact]
+    public async Task Save_that_finds_other_content_on_disk_logs_a_warning_and_overwrites_with_the_local_state()
+    {
+        var entries = await SaveAfterDiskTouchAsync(() => ReplaceExternally(StatePath, StateWithToken(x: 99)));
+
+        (entries.Select(e => (e.Level, e.Message.Contains("había cambiado en disco"))), ReadFile(StatePath).Contains("\"x\":17")).Should()
+            .BeEquivalentTo((new[] { (Microsoft.Extensions.Logging.LogLevel.Warning, true) }, true));
+    }
+
+    [Fact]
+    public async Task Save_that_cannot_read_the_changed_file_logs_only_the_exception_type_and_overwrites()
+    {
+        var entries = await SaveAfterDiskTouchAsync(() =>
+        {
+            TouchStateMtime();
+            _factory.ReadFailure = new IOException("texto secreto de la excepción");
+        });
+
+        (entries.Single().Message.Contains(nameof(IOException)), entries.Single().Message.Contains("secreto"), ReadFile(StatePath).Contains("\"x\":17"))
+            .Should().Be((true, false, true));
+    }
+
+    [Fact]
+    public async Task Save_diagnostics_have_no_paths_or_content()
+    {
+        var entries = await SaveAfterDiskTouchAsync(() => ReplaceExternally(StatePath, StateWithToken(x: 99)));
+
+        entries.Should().NotBeEmpty().And.NotContain(e => e.Message.Contains("cripta") || e.Message.Contains("Goblin") || e.Message.Contains(_vault.Root));
+    }
+
+    [Fact]
+    public async Task HasUnsavedChanges_is_true_after_a_change_and_false_once_saved()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.MoveToken("t1", 14, 14));
+        var pending = _session.HasUnsavedChanges;
+
+        await _session.FlushAsync();
+
+        (pending, _session.HasUnsavedChanges).Should().Be((true, false));
+    }
+
+    [Fact]
+    public async Task HasUnsavedChanges_stays_true_while_the_save_fails()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.MoveToken("t1", 15, 15));
+        _factory.FailWrites = true;
+
+        await _session.FlushAsync();
+
+        _session.HasUnsavedChanges.Should().BeTrue();
     }
 
     [Fact]
@@ -727,7 +978,6 @@ public sealed class MapSessionTests : IAsyncLifetime
         ReplaceExternally(StatePath, StateWithToken(x: 99));
         await WaitUntilAsync(() => _factory.ReadsStarted > reads);
         _session.Mutate(e => e.MoveToken("t1", 12, 12));
-        await WaitUntilAsync(() => _session.Notice is not null);
         _factory.ReadDelay = TimeSpan.Zero;
         await _session.FlushAsync();
 
@@ -804,64 +1054,94 @@ public sealed class MapSessionTests : IAsyncLifetime
         _session.HasSaveFailure.Should().BeTrue();
     }
 
-    // Cuenta y retrasa las escrituras del storage real.
-    private sealed class CountingFactory : IVaultServiceFactory
+    [Fact]
+    public async Task DismissNotice_keeps_a_save_failure_notice()
     {
-        public List<string> Writes { get; } = [];
-        public int WritesStarted;
-        public TimeSpan WriteDelay;
-        public TimeSpan ReadDelay;
-        public int ReadsStarted;
-        public volatile bool FailWrites;
-        public volatile bool CrashWrites;
-        public volatile Exception? ReadFailure;
-        public volatile string? DeleteAfterNextStateStat;
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.MoveToken("t1", 60, 60));
+        _factory.FailWrites = true;
+        await _session.FlushAsync();
 
-        public VaultService Create(string rootPath) => new(
-            new CountingStorage(new FileSystemVaultStorage(rootPath), this),
-            new FileSystemVaultWatcher(rootPath),
-            NullLogger<VaultService>.Instance);
+        _session.DismissNotice();
+
+        (_session.Notice is not null, _session.HasSaveFailure).Should().Be((true, true));
     }
 
-    private sealed class CountingStorage(IVaultStorage inner, CountingFactory owner) : IVaultStorage
+    [Fact]
+    public async Task Repaired_state_shows_a_notice_with_the_number_of_corrections()
     {
-        public string RootPath => inner.RootPath;
-        public Task<IReadOnlyList<VaultFile>> ListMarkdownFilesAsync(CancellationToken ct = default) => inner.ListMarkdownFilesAsync(ct);
-        public async Task<VaultFileContent> ReadAsync(string p, CancellationToken ct = default)
+        var logs = new CapturingLogger<MapSession>();
+        var session = new MapSession(_host, _prefs, _time, logs);
+        SeedState(StatePath, StateWithToken() with
         {
-            if (MapPaths.IsStateFile(p))
-            {
-                Interlocked.Increment(ref owner.ReadsStarted);
-                if (owner.ReadFailure is { } failure) throw failure;
-                if (owner.ReadDelay > TimeSpan.Zero) await Task.Delay(owner.ReadDelay, ct);
-            }
-            return await inner.ReadAsync(p, ct);
-        }
-        public Task<byte[]> ReadBytesAsync(string p, CancellationToken ct = default) => inner.ReadBytesAsync(p, ct);
-        public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> f, CancellationToken ct = default) => inner.ListFilesAsync(f, ct);
-        public Task<Stream> OpenReadAsync(string p, CancellationToken ct = default) => inner.OpenReadAsync(p, ct);
-        public async Task<VaultFileInfo?> StatAsync(string p, CancellationToken ct = default)
-        {
-            var info = await inner.StatAsync(p, ct);
-            if (MapPaths.IsStateFile(p) && info is not null && Interlocked.Exchange(ref owner.DeleteAfterNextStateStat, null) is { } path)
-                File.Delete(path);
-            return info;
-        }
-        public Task<WriteResult> WriteBytesAsync(string p, Stream c, WritePrecondition pre, CancellationToken ct = default) => inner.WriteBytesAsync(p, c, pre, ct);
-        public Task<bool> MoveAsync(string a, string b, CancellationToken ct = default) => inner.MoveAsync(a, b, ct);
-        public Task<IReadOnlyList<SyncConflict>> FindConflictsAsync(CancellationToken ct = default) => inner.FindConflictsAsync(ct);
-        public Task DeleteAsync(string p, CancellationToken ct = default) => inner.DeleteAsync(p, ct);
+            Combat = new CombatState(1, "e1", [new CombatEntry("e1", "t1", 10), new CombatEntry("e2", "fantasma", 5)]),
+        });
 
-        public async Task<WriteResult> WriteAsync(string p, string c, WritePrecondition pre, CancellationToken ct = default)
+        await session.OpenAsync(MapNote);
+
+        (session.Notice, logs.Messages.Any(m => m.Contains("1 datos") && !m.Contains("Goblin"))).Should()
+            .Be(("Se han corregido 1 datos de combate incoherentes del mapa.", true));
+        await session.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Combat_survives_closing_and_reopening_the_map()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.ReplaceState(s => TurnOps.Start(s, [new InitiativeEntry("t1", 12)], () => "e1").State));
+        await _session.CloseAsync();
+
+        await _session.OpenAsync(MapNote);
+
+        _session.Editor!.State.Combat!.Entries.Should().ContainSingle().Which.TokenId.Should().Be("t1");
+    }
+
+    [Fact]
+    public async Task History_survives_closing_and_reopening()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.ReplaceState(s => CombatHistory.Start(s, [new InitiativeEntry("t1", 12)], () => "e1").State));
+        _session.Mutate(e => e.ReplaceState(s => CombatHistory.Record(s,
+            s with { Tokens = [.. s.Tokens.Select(t => t with { HpCurrent = 4 })] }, "Goblin 1: −7 HP (4/11)", () => "l2")));
+        await _session.CloseAsync();
+        await _session.OpenAsync(MapNote);
+
+        _session.Mutate(e => e.ReplaceState(CombatHistory.Undo));
+
+        _session.Editor!.State.Tokens.Single().HpCurrent.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task External_reload_with_pending_local_combat_change_keeps_local_without_a_notice()
+    {
+        SeedState(StatePath, StateWithToken());
+        await _session.OpenAsync(MapNote);
+        _session.Mutate(e => e.ReplaceState(s => TurnOps.Start(s, [new InitiativeEntry("t1", 12)], () => "e1").State));
+        var stats = Volatile.Read(ref _factory.StateStats);
+
+        ReplaceExternally(StatePath, StateWithToken(x: 99));
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.StateStats) > stats);
+        await _session.FlushAsync();
+
+        (_session.Editor!.State.Combat is not null, _session.Notice).Should().Be((true, null));
+    }
+
+    private sealed class CapturingLogger<T> : Microsoft.Extensions.Logging.ILogger<T>
+    {
+        public List<string> Messages { get; } = [];
+        public List<(Microsoft.Extensions.Logging.LogLevel Level, string Message)> Entries { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
-            if (!MapPaths.IsStateFile(p)) return await inner.WriteAsync(p, c, pre, ct);
-            Interlocked.Increment(ref owner.WritesStarted);
-            if (owner.FailWrites) throw new IOException("disco lleno (simulado)");
-            if (owner.CrashWrites) throw new InvalidOperationException("fallo inesperado (simulado)");
-            if (owner.WriteDelay > TimeSpan.Zero) await Task.Delay(owner.WriteDelay, ct);
-            var result = await inner.WriteAsync(p, c, pre, ct);
-            lock (owner.Writes) owner.Writes.Add(p);
-            return result;
+            lock (Messages)
+            {
+                Messages.Add(formatter(state, exception));
+                Entries.Add((logLevel, formatter(state, exception)));
+            }
         }
     }
 }

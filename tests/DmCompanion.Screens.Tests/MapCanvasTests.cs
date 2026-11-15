@@ -1,13 +1,11 @@
 using System.Text.Json;
 using Bunit;
 using DmCompanion.Core.Vault.Storage;
-using DmCompanion.Infrastructure;
 using DmCompanion.Screens.Components;
 using DmCompanion.Screens.Platform;
 using DmCompanion.Screens.Services;
 using DmCompanion.UI;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DmCompanion.Screens.Tests;
 
@@ -17,21 +15,26 @@ public sealed class MapCanvasTests : BunitContext, IAsyncLifetime
 
     private readonly TempVault _vault = TempVault.Empty();
     private readonly InMemoryAppPreferences _preferences = new();
+    private readonly CountingFactory _factory = new();
 
     public MapCanvasTests()
     {
         // Modo estricto: cualquier llamada JS no prevista falla el test.
         Services.AddDmCompanionUI();
         Services.AddSingleton<IAppPreferences>(_preferences);
-        Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
+        Services.AddSingleton<IVaultServiceFactory>(_factory);
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddScoped<MapCanvasInterop>();
+        Services.AddScoped<TurnStripInterop>();
+        Services.AddScoped<DragPanelInterop>();
 
         JSInterop.SetupVoid("mapCanvas.load", _ => true).SetVoidResult();
         JSInterop.SetupVoid("mapCanvas.render", _ => true).SetVoidResult();
@@ -135,6 +138,38 @@ public sealed class MapCanvasTests : BunitContext, IAsyncLifetime
         cut.Markup.Should().NotContain("El mapa llegará en la fase 2");
     }
 
+    private async Task<IRenderedComponent<MapCanvas>> RenderOpenMapAsync()
+    {
+        MapTestVault.WriteImageMap(_vault, MapTestVault.StateWithGrid(false));
+        await OpenVaultAsync();
+        await Session.OpenAsync(MapTestVault.MapNote);
+        var cut = Render<MapCanvas>();
+        cut.WaitForAssertion(() => Calls("mapCanvas.load").Should().Be(1), Timeout);
+        return cut;
+    }
+
+    [Fact]
+    public async Task Save_indicator_appears_while_there_are_unsaved_changes()
+    {
+        var cut = await RenderOpenMapAsync();
+
+        Session.Mutate(editor => editor.MoveToken("t1", 210, 210));
+
+        cut.WaitForAssertion(() => cut.FindAll(".map-notices [role=status][aria-label='Guardando…']").Should().HaveCount(1), Timeout);
+    }
+
+    [Fact]
+    public async Task Save_indicator_disappears_when_the_save_finishes()
+    {
+        var cut = await RenderOpenMapAsync();
+        Session.Mutate(editor => editor.MoveToken("t1", 220, 220));
+        cut.WaitForAssertion(() => cut.FindAll(".ds-save-indicator").Should().HaveCount(1), Timeout);
+
+        await Session.FlushAsync();
+
+        cut.WaitForAssertion(() => cut.FindAll(".ds-save-indicator").Should().BeEmpty(), Timeout);
+    }
+
     private static string[] Notices(IRenderedComponent<MapCanvas> cut) =>
         [.. cut.FindAll(".ds-notice").Select(n => n.TextContent.Trim())];
 
@@ -176,6 +211,51 @@ public sealed class MapCanvasTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
+    public async Task Map_notice_close_button_dismisses_it()
+    {
+        MapTestVault.WriteImageMap(_vault, rawState: "no es json");
+        await OpenVaultAsync();
+        await Session.OpenAsync(MapTestVault.MapNote);
+        var cut = Render<MapCanvas>();
+
+        cut.Find(".ds-notice--warning button[aria-label='Cerrar aviso']").Click();
+
+        (Session.Notice, cut.FindAll(".ds-notice").Count).Should().Be((null, 0));
+    }
+
+    [Fact]
+    public async Task Image_notice_close_button_dismisses_only_that_notice()
+    {
+        MapTestVault.WriteImageMap(_vault, rawState: "no es json");
+        await OpenVaultAsync();
+        await Session.OpenAsync(MapTestVault.MapNote);
+        var cut = Render<MapCanvas>();
+        Session.ReportImageMissing();
+        cut.WaitForAssertion(() => Notices(cut).Should().HaveCount(2), Timeout);
+
+        cut.FindAll(".ds-notice").Single(n => n.TextContent.Contains("imagen")).QuerySelector("button[aria-label='Cerrar aviso']")!.Click();
+
+        (Session.ImageNotice, Session.Notice is not null).Should().Be((null, true));
+    }
+
+    [Fact]
+    public async Task Save_failure_notice_has_no_close_button_and_keeps_the_discard_option()
+    {
+        MapTestVault.WriteImageMap(_vault, MapTestVault.StateWithGrid(false));
+        await OpenVaultAsync();
+        await Session.OpenAsync(MapTestVault.MapNote);
+        var cut = Render<MapCanvas>();
+        _factory.FailWrites = true;
+
+        Session.Mutate(e => e.ReplaceState(st => st with { Grid = st.Grid with { Enabled = true } }));
+        await Session.FlushAsync();
+
+        cut.WaitForAssertion(() => Session.HasSaveFailure.Should().BeTrue(), Timeout);
+        (cut.FindAll(".ds-notice--warning button[aria-label='Cerrar aviso']").Count,
+            cut.FindAll("button").Count(b => b.TextContent.Contains("Descartar cambios del mapa"))).Should().Be((0, 1));
+    }
+
+    [Fact]
     public async Task Both_notices_are_shown_together()
     {
         MapTestVault.WriteImageMap(_vault, rawState: "no es json");
@@ -186,6 +266,17 @@ public sealed class MapCanvasTests : BunitContext, IAsyncLifetime
         Session.ReportImageMissing();
 
         cut.WaitForAssertion(() => Notices(cut).Should().HaveCount(2), Timeout);
+    }
+
+    [Fact]
+    public async Task Map_notices_are_inside_the_notices_stack()
+    {
+        MapTestVault.WriteImageMap(_vault, rawState: "no es json");
+        await OpenVaultAsync();
+        await Session.OpenAsync(MapTestVault.MapNote);
+        var cut = Render<MapCanvas>();
+
+        cut.WaitForAssertion(() => cut.FindAll(".map-notices > .map-canvas__notices").Should().ContainSingle(), Timeout);
     }
 
     [Fact]

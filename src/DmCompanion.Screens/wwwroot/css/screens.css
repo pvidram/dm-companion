@@ -2,17 +2,38 @@
 .conflict-columns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .conflict-columns pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .map-canvas { overflow: hidden; touch-action: none; background-color: var(--surface-sheet-sunken); }
-/* Barra del mapa a la derecha (columna de ancho fijo); los avisos y el panel de cuadrícula se apartan a su izquierda para no solaparse. */
-:root { --map-controls-width: 9rem; }
-.map-controls { width: var(--map-controls-width); box-sizing: border-box; }
-/* Avisos sobre el mapa: arriba, a la izquierda de la barra, ajustados al contenido. */
-.map-canvas__notices { position: absolute; top: var(--space-3); right: calc(var(--space-4) + var(--map-controls-width) + var(--space-3)); z-index: var(--z-toolbar); display: grid; gap: var(--space-2); max-width: min(32rem, calc(100% - var(--map-controls-width) - 4 * var(--space-4))); }
-/* Ajustes de cuadrícula: abajo, a la izquierda de la barra. */
-.map-controls__panel { position: absolute; bottom: var(--space-4); right: calc(var(--space-4) + var(--map-controls-width) + var(--space-3)); z-index: var(--z-toolbar); display: grid; gap: var(--space-3); width: 20rem; max-width: calc(100% - var(--map-controls-width) - 4 * var(--space-4)); padding: var(--space-3); background-color: var(--surface-sheet-raised); color: var(--text-ink); border: 1px solid var(--border-frame); border-radius: var(--radius-sheet); }
+/* Barra del mapa abajo, de lado a lado. Su altura (botón táctil + relleno + borde) es una variable para que el panel de cuadrícula se abra justo encima. */
+:root { --map-controls-height: calc(var(--touch-min) + 2 * var(--space-1) + 2px); }
+.map-controls { height: var(--map-controls-height); box-sizing: border-box; }
+/* Avisos sobre el mapa (del mapa y de combate): una pila arriba a la derecha del área del mapa, ajustada al contenido. */
+.map-notices { position: absolute; top: var(--space-3); right: var(--space-4); z-index: var(--z-toolbar); display: grid; gap: var(--space-2); width: max-content; max-width: min(32rem, calc(100% - 2 * var(--space-4))); pointer-events: none; }
+.map-notices > * { pointer-events: auto; }
+/* Si se acumulan, la pila se desplaza antes de llegar a la barra inferior. */
+.map-notices { max-height: calc(100% - var(--space-3) - var(--space-4) - var(--touch-min) - var(--space-3)); overflow-y: auto; }
+*:has(> .map-controls) > .map-notices { max-height: calc(100% - var(--space-3) - var(--space-4) - var(--map-controls-height) - var(--space-2) - var(--space-3)); }
+/* Botón de plegar la barra: último grupo de la barra, pegado a su extremo derecho aunque la barra se desplace. Plegada, la barra se reduce a este botón en la esquina inferior derecha. La flecha apunta arriba (desplegar) o abajo (plegar). */
+.map-controls .map-controls__toggle-group { position: sticky; right: 0; margin-left: auto; background-color: var(--surface-frame-raised); }
+.map-controls.map-controls--folded { left: auto; }
+.map-controls__toggle .ds-icon { transform: rotate(-90deg); }
+.map-controls__toggle--open .ds-icon { transform: rotate(90deg); }
+/* Translúcidos: solo el fondo (85 %) y un desenfoque; el texto y los botones conservan su opacidad. */
+.map-notices .ds-notice { background-color: color-mix(in srgb, var(--surface-sheet-sunken) 85%, transparent); backdrop-filter: blur(4px); }
+.map-canvas__notices { display: grid; gap: var(--space-2); }
+.map-notices > .ds-save-indicator { justify-self: end; }
+/* Franja del ajuste de la cuadrícula con los dedos: arriba, centrada en el área del mapa. */
+.map-adjust-bar { position: absolute; top: var(--space-3); left: 50%; transform: translateX(-50%); z-index: var(--z-toolbar); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); max-width: calc(100% - 2 * var(--space-4)); background-color: var(--surface-sheet-raised); color: var(--text-ink); border: 1px solid var(--border-frame); border-radius: var(--radius-sheet); box-shadow: var(--elevation-1); }
+.map-adjust-bar__title { font-weight: 600; }
+/* Ajustes de cuadrícula: encima de la barra, a la derecha. */
+.map-controls__panel { position: absolute; bottom: calc(var(--space-4) + var(--map-controls-height) + var(--space-2)); right: var(--space-4); z-index: var(--z-toolbar); display: grid; gap: var(--space-3); width: 20rem; max-width: calc(100% - 2 * var(--space-4)); padding: var(--space-3); background-color: var(--surface-sheet-raised); color: var(--text-ink); border: 1px solid var(--border-frame); border-radius: var(--radius-sheet); }
 /* Color y grosor del lápiz: botones táctiles de tamaño mínimo, con contorno y marca de activo que no dependen solo del color. */
 .map-controls__swatch, .map-controls__width { min-width: var(--touch-min); min-height: var(--touch-min); display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 2px solid var(--text-on-wood); border-radius: var(--radius-control); cursor: pointer; background-color: transparent; }
 .map-controls__dot { display: block; border-radius: 50%; background-color: var(--text-on-wood); }
-.map-controls__swatch[aria-pressed="true"], .map-controls__width[aria-pressed="true"] { outline: 3px solid var(--accent-on-wood); outline-offset: 2px; }
+/* Elegido: color con anillo grueso hacia dentro (latón + hueco; fuera lo recortaría el desplazamiento de la barra), grosor con fondo de latón. Va en box-shadow y background, no en outline: el foco (base.css, «.ds-root :focus-visible») usa outline del mismo latón y, en la tablet, al tocar un botón quedaba igual que el elegido. */
+.map-controls__swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--accent-on-wood), inset 0 0 0 5px var(--surface-frame-raised); }
+.map-controls__width[aria-pressed="true"] { background-color: var(--accent-on-wood); border-color: var(--accent-on-wood); }
+.map-controls__width[aria-pressed="true"] .map-controls__dot { background-color: var(--text-ink); }
+/* Foco de teclado distinto del elegido: línea discontinua clara, separada del anillo. */
+.map-controls__swatch:focus-visible, .map-controls__width:focus-visible { outline: 2px dashed var(--text-on-wood); outline-offset: 1px; }
 /* Añadir token: pestañas, lista de resultados y aviso de lo añadido. */
 .token-dialog__tabs { display: flex; gap: var(--space-2); }
 .token-dialog__results { display: grid; gap: var(--space-2); max-height: 40vh; overflow-y: auto; }
@@ -35,3 +56,80 @@
 .vault-picker__paste { display: flex; gap: var(--space-2); align-items: flex-end; }
 .vault-picker__paste .ds-field { flex: 1; }
 .vault-picker__roots { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* Mapa y tira de turnos: la tira expandida es una columna a la derecha que estrecha el mapa (el ResizeObserver del lienzo reajusta Konva); la retraída va en la franja superior del marco. */
+.map-layout { position: absolute; inset: 0; display: flex; }
+.map-layout__canvas { position: relative; flex: 1; min-width: 0; }
+.combat-strip { box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2); background-color: var(--surface-frame-raised); color: var(--text-on-wood); border: 1px solid var(--border-frame); }
+.combat-strip--expanded { flex: 0 0 20rem; max-width: 40%; overflow-y: auto; border-width: 0 0 0 1px; }
+/* Retraída: una fila dentro de la franja (que ya es de madera); ocupa el resto del ancho tras el aviso de conflictos y solo las casillas se desplazan en horizontal. */
+.combat-strip--collapsed { flex: 1; min-width: 0; flex-direction: row; align-items: center; gap: var(--space-1); padding: 0; background-color: transparent; border: 0; }
+.combat-strip--collapsed .combat-strip__undo, .combat-strip--collapsed .combat-strip__next { min-width: var(--touch-min); min-height: var(--touch-min); }
+.combat-strip--collapsed .combat-strip__round { flex: none; margin-right: var(--space-1); white-space: nowrap; }
+.combat-strip--collapsed .ds-icon-button { flex: none; min-width: 40px; min-height: 40px; }
+.combat-strip--collapsed .combat-strip__cells { flex: 1; min-width: 0; scrollbar-width: none; }
+.combat-strip--collapsed .combat-strip__cells > li { flex: none; }
+.combat-strip--collapsed .combat-strip__cell { flex-direction: row; gap: var(--space-2); min-height: 40px; padding: 0 var(--space-2); white-space: nowrap; }
+/* Avatar pequeño solo aquí: sin tocar la API de TokenAvatar. Los anillos se estrechan para que el doble del enemigo siga viéndose. */
+.combat-strip--collapsed .ds-token { width: calc(28px * var(--ui-scale)); height: calc(28px * var(--ui-scale)); font-size: var(--font-size-small); }
+.combat-strip--collapsed .ds-token--pc, .combat-strip--collapsed .ds-token--ally { border-width: 2px; }
+.combat-strip--collapsed .ds-token--enemy { border-width: 4px; }
+.combat-strip__header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.combat-strip__round { font-weight: 700; margin-right: auto; }
+.combat-strip .ds-icon-button { color: var(--text-on-wood); }
+.combat-strip__toggle .ds-icon { transition: transform 120ms; }
+.combat-strip--expanded .combat-strip__toggle .ds-icon { transform: rotate(0deg); }
+.combat-strip--collapsed .combat-strip__toggle .ds-icon { transform: rotate(90deg); }
+.combat-strip__list, .combat-strip__cells { list-style: none; margin: 0; padding: 0; }
+.combat-strip__list { display: grid; gap: var(--space-1); }
+.combat-strip__cells { display: flex; gap: var(--space-1); overflow-x: auto; }
+.combat-strip__row { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); border: 1px solid transparent; border-radius: var(--radius-control); }
+.combat-strip__row--current { border-color: var(--accent-on-wood); }
+.combat-strip__row--selected { background-color: color-mix(in srgb, var(--accent-on-wood) 18%, transparent); }
+.combat-strip__row--down, .combat-strip__cell--down { opacity: 0.55; }
+/* Muerto: solo se apagan avatar, nombre y HP; el menú «⋯» (para revivir) y los controles siguen activos. */
+.combat-strip__row--dead .combat-strip__select > *, .combat-strip__cell--dead > * { opacity: 0.4; filter: grayscale(1); }
+.combat-strip__row--dead .combat-strip__name, .combat-strip__cell--dead .combat-strip__cell-name { text-decoration: line-through; }
+.combat-history__sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.combat-history { display: grid; gap: var(--space-1); }
+.combat-history__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); max-height: 14rem; overflow-y: auto; font-size: var(--font-size-small); }
+.combat-history__entry--undone { text-decoration: line-through; opacity: 0.6; }
+.combat-strip__row--dragging { opacity: 0.6; }
+.combat-strip__row--drop-before { box-shadow: 0 -3px 0 var(--accent-on-wood); }
+.combat-strip__row--drop-after { box-shadow: 0 3px 0 var(--accent-on-wood); }
+.combat-strip__handle { display: inline-flex; align-items: center; justify-content: center; min-width: var(--touch-min); min-height: var(--touch-min); touch-action: none; cursor: grab; user-select: none; letter-spacing: -0.2em; }
+.combat-strip__select { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); min-height: var(--touch-min); padding: 0 var(--space-1); background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.combat-strip__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combat-strip__initiative { font-weight: 700; }
+.combat-strip__temp { color: var(--accent-on-wood); }
+.combat-strip__menu { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2); }
+.combat-strip__add { display: grid; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--border-frame); border-radius: var(--radius-control); }
+.combat-strip__add-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.combat-strip__cell { position: relative; flex-direction: column; }
+.combat-strip__dot { position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background-color: var(--accent-on-wood); border: 1px solid var(--text-on-wood); }
+/* Acciones de HP y estados de la tira, avisos de combate. */
+.combat-strip__grip { display: inline-flex; align-items: center; justify-content: center; min-width: var(--touch-min); min-height: var(--touch-min); user-select: none; letter-spacing: -0.2em; }
+.combat-strip__grip--disabled { opacity: 0.4; cursor: not-allowed; touch-action: auto; }
+.combat-strip__cell-name { max-width: 4.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-small); }
+.combat-conditions { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-1); margin: 0; padding: 0 var(--space-2); list-style: none; }
+.combat-condition--expired .ds-condition { border-style: dashed; opacity: 0.85; text-decoration: line-through; text-decoration-thickness: 1px; }
+.death-saves { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-3); padding: 0 var(--space-2); }
+.death-saves__group { display: flex; gap: var(--space-2); }
+.combat-actions { display: grid; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--border-frame); border-radius: var(--radius-control); }
+.combat-actions__title { margin: 0; font-size: var(--font-size-h3); }
+.combat-actions__hp, .combat-actions__temp, .combat-actions__temp-confirm { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
+.combat-actions__value { font-weight: 700; font-size: var(--font-size-h3); }
+.condition-editor { display: grid; gap: var(--space-2); }
+.condition-editor__actions, .combat-notice__actions, .combat-notice__keep { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); margin-top: var(--space-1); }
+.token-card__temp { color: var(--text-ink); margin: var(--space-1) 0; }
+/* Avisos de combate: dentro de la tira expandida van en el flujo; con la retraída salen en la pila de avisos del mapa. */
+.combat-strip__notices { display: grid; gap: var(--space-2); }
+/* Historial: en la tira expandida el encabezado queda fijo bajo la cabecera y la lista tiene su propio scroll; en la retraída es un panel bajo la franja. */
+.combat-strip__sticky { position: sticky; top: 0; z-index: 1; display: grid; gap: var(--space-1); margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0; padding: var(--space-2); background-color: var(--surface-frame-raised); border-bottom: 1px solid var(--border-frame); }
+.combat-strip--expanded .combat-history__list { max-height: min(14rem, 40vh); }
+.combat-history-popover__backdrop { position: absolute; inset: 0; z-index: var(--z-card); }
+.combat-history-popover { position: absolute; top: var(--space-2); right: var(--space-4); z-index: var(--z-card); box-sizing: border-box; display: grid; gap: var(--space-2); width: min(22rem, calc(100% - 2 * var(--space-4))); padding: var(--space-2); background-color: var(--surface-frame-raised); color: var(--text-on-wood); border: 1px solid var(--border-frame); border-radius: var(--radius-control); box-shadow: var(--elevation-2); }
+.combat-history-popover .ds-icon-button { color: var(--text-on-wood); }
+.combat-history-popover__header { display: flex; align-items: center; gap: var(--space-1); }
+.combat-history-popover__title { flex: 1; font-weight: 700; }
+.combat-history-popover .combat-history__list { max-height: min(18rem, 50vh); }

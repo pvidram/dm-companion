@@ -23,11 +23,15 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IAppPreferences, MauiAppPreferences>();
 		builder.Services.AddSingleton<VaultHost>();
 		builder.Services.AddSingleton<MapSession>();
+		builder.Services.AddSingleton<TokenHitPoints>();
+		builder.Services.AddSingleton<CombatController>();
 		builder.Services.AddSingleton<MapLibrary>();
 		builder.Services.AddSingleton<IImagePicker, MauiImagePicker>();
 		builder.Services.AddScoped<ShellState>();
 		builder.Services.AddScoped<WikilinkInterop>();
 		builder.Services.AddScoped<MapCanvasInterop>();
+		builder.Services.AddScoped<TurnStripInterop>();
+		builder.Services.AddScoped<DragPanelInterop>();
 		builder.Services.AddScoped<BackNavigation>();
 		builder.Services.AddSingleton<VaultFileUrls>();
 		builder.Services.AddSingleton<VaultFileRequestHandler>();

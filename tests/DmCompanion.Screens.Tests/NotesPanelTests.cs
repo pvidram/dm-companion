@@ -33,8 +33,12 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         Services.AddScoped<ShellState>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
+        Services.AddScoped<TurnStripInterop>();
+        Services.AddScoped<DragPanelInterop>();
         Services.AddScoped<WikilinkInterop>();
     }
 
@@ -191,7 +195,7 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         var cut = RenderOpenNotes();
 
         cut.FindAll("section.ds-parchment .ds-dialog").Should().BeEmpty();
-        cut.FindAll(".ds-dialog").Should().HaveCount(8); // nueva nota, nombre de mapa, borrar mapa, descartar mapa, conflictos de sincronización, conflicto de escritura, cerrar sin guardar y añadir token
+        cut.FindAll(".ds-dialog").Should().HaveCount(10); // nueva nota, nombre de mapa, borrar mapa, descartar mapa, conflictos de sincronización, conflicto de escritura, cerrar sin guardar, añadir token, empezar combate y terminar combate
     }
 
     [Fact]

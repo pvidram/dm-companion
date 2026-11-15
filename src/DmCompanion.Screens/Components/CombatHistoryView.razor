@@ -1,0 +1,16 @@
+@using DmCompanion.Core.Combat
+
+@* Historial en la tira expandida: encabezado «Historial (N)» siempre visible (la cabecera lo fija bajo ella) que despliega la lista. *@
+<section class="combat-history" data-testid="combat-history" aria-label="Historial">
+    <Button data-testid="history-toggle" IsPressed="_open" aria-expanded="@(_open ? "true" : "false")" OnClick="@(() => _open = !_open)">Historial (@Log.Count)</Button>
+    @if (_open)
+    {
+        <CombatHistoryList Log="Log" />
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<CombatLogEntry> Log { get; set; } = [];
+
+    private bool _open;
+}

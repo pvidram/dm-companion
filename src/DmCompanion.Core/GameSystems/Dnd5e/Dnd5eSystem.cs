@@ -15,6 +15,7 @@ public sealed class Dnd5eSystem : IGameSystem
     public SystemDefinition Definition { get; } = BuildDefinition();
     public HitPointsRule HitPoints { get; } = HitPointsRule.FromStat("HP", "hp");
     public GridRules Grid => GridRules.Feet5;
+    public ICombatRules Combat => Dnd5eCombatRules.Instance;
 
     public StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter)
     {

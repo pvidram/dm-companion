@@ -41,6 +41,31 @@ public sealed class TokenCardTests : TokenTestBase
     private static bool HasButton(IRenderedComponent<TokenCard> cut, string text) =>
         cut.FindAll("button").Any(b => b.TextContent.Trim() == text);
 
+    [Fact]
+    public async Task Card_shows_temp_hp()
+    {
+        var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7) with { HpTemp = 5 });
+
+        cut.Find("[data-testid=token-temp-hp]").TextContent.Should().Contain("5");
+    }
+
+    [Fact]
+    public async Task Card_shows_conditions()
+    {
+        var condition = new DmCompanion.Core.Combat.TokenCondition("c1", "frightened", "Asustado", null, null, false);
+        var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7) with { Conditions = [condition] });
+
+        cut.Find("[data-testid=token-conditions]").TextContent.Should().Contain("Asustado");
+    }
+
+    [Fact]
+    public async Task Card_without_combat_data_shows_no_temp_hp_or_conditions()
+    {
+        var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7));
+
+        cut.FindAll("[data-testid=token-temp-hp], [data-testid=token-conditions]").Should().BeEmpty();
+    }
+
     // --- Datos ---
 
     [Fact]
@@ -333,8 +358,8 @@ public sealed class TokenCardTests : TokenTestBase
     private async Task<IRenderedComponent<TokenCard>> ReadOnlyCardAsync()
     {
         await OpenMapAsync();
-        // Un estado futuro (versión 2) abre el mapa en solo lectura con sus tokens a la vista.
-        var json = "{\"version\":2,\"tokens\":[{\"id\":\"t\",\"name\":\"Orco\",\"side\":\"enemy\",\"size\":1,\"x\":35,\"y\":35}],\"strokes\":[]}";
+        // Un estado futuro (versión 3) abre el mapa en solo lectura con sus tokens a la vista.
+        var json = "{\"version\":3,\"tokens\":[{\"id\":\"t\",\"name\":\"Orco\",\"side\":\"enemy\",\"size\":1,\"x\":35,\"y\":35}],\"strokes\":[]}";
         await Session.CloseAsync();
         File.WriteAllText(PathOf(MapPaths.StatePathFor(MapTestVault.MapNote)), json);
         await Session.OpenAsync(MapTestVault.MapNote);
@@ -408,5 +433,40 @@ public sealed class TokenCardTests : TokenTestBase
         interop.OnTokenTapped("otro", 600, 450);
 
         Shell.TokenCard.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Card_header_is_the_drag_handle()
+    {
+        var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7));
+
+        cut.Find(".ds-quick-card > header").HasAttribute("data-drag-handle").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Opening_the_card_places_it_next_to_the_token_through_the_drag_service()
+    {
+        await CardAsync(GenericToken("g", "Goblin", hp: 7));
+
+        JSInterop.Invocations["dragPanel.attach"].Single().Arguments.Skip(1).Should().Equal(100d, 100d);
+    }
+
+    [Fact]
+    public async Task Opening_the_card_again_places_it_again()
+    {
+        var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7));
+        Shell.OpenTokenCard(new TokenCardRequest("g", 100, 100));
+        cut.Render();
+
+        JSInterop.Invocations["dragPanel.attach"].Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Rerendering_the_same_open_card_does_not_reset_a_dragged_position()
+    {
+        var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7));
+        cut.Render();
+
+        JSInterop.Invocations["dragPanel.attach"].Should().HaveCount(1);
     }
 }

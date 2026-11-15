@@ -1,0 +1,13 @@
+@using DmCompanion.Core.Combat
+
+@* Entradas del historial, lo más reciente arriba; las deshechas se ven tachadas. Con su propio scroll (alto máximo en CSS). *@
+<ol class="combat-history__list" data-testid="history-list">
+    @foreach (var entry in Log.Reverse())
+    {
+        <li @key="entry.Id" class="@(entry.Undone ? "combat-history__entry combat-history__entry--undone" : "combat-history__entry")" data-testid="history-entry">@entry.Text@if (entry.Undone){<span class="combat-history__sr-only"> (deshecho)</span>}</li>
+    }
+</ol>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<CombatLogEntry> Log { get; set; } = [];
+}

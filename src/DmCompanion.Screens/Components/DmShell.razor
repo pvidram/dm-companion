@@ -19,13 +19,20 @@
                 <Button OnClick="Shell.OpenConflicts">Revisar</Button>
             </InlineNotice>
         }
+        <CombatStripBar />
     </Strip>
     <Map>
-        <MapCanvas OnAddToken="Shell.OpenAddToken" />
+        <div class="map-layout">
+            <div class="map-layout__canvas">
+                <MapCanvas OnAddToken="Shell.OpenAddToken"><Notices><CombatMapNotices /></Notices></MapCanvas>
+            </div>
+            <CombatStrip />
+        </div>
     </Map>
     <Overlays>
         <NotesPanel />
         <PlayersPanel />
+        <CombatHistoryPopover />
         <TokenCard />
         <MapsPanel />
     </Overlays>
@@ -35,7 +42,9 @@
         <MapConfirmDialogs />
         <ConflictResolver />
         <AddTokenDialog />
+        <StartCombatDialog />
         <EditorDialogs />
+        <CombatEndDialog />
     </Dialogs>
 </TableFrame>
 

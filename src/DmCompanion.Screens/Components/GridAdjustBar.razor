@@ -1,0 +1,48 @@
+@inherits DmComponentBase
+@inject MapCanvasInterop Canvas
+@inject CombatController Combat
+
+@if (Canvas.GridAdjusting)
+{
+    <div class="map-adjust-bar" role="group" aria-label="Ajustando cuadrícula">
+        <span class="map-adjust-bar__title">Ajustando cuadrícula</span>
+        <Button Variant="ButtonVariant.Primary" OnClick="() => Canvas.FinishGridAdjustAsync(true)">Hecho</Button>
+        <Button OnClick="() => Canvas.FinishGridAdjustAsync(false)">Cancelar</Button>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Canvas.GridAdjustChanged += OnStateChanged;
+        Combat.Changed += OnCombatChanged;
+    }
+
+    public override void Dispose()
+    {
+        Canvas.GridAdjustChanged -= OnStateChanged;
+        Combat.Changed -= OnCombatChanged;
+        base.Dispose();
+    }
+
+    // Empezar un combate durante el ajuste lo cancela: con combate activo la cuadrícula no se toca.
+    private void OnCombatChanged(object? sender, EventArgs e)
+    {
+        if (Combat.IsActive && Canvas.GridAdjusting) _ = Canvas.FinishGridAdjustAsync(false);
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // La franja ya se retiró mientras llegaba el evento.
+        }
+    }
+}

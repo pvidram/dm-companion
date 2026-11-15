@@ -24,7 +24,14 @@ public class StyleguideTests : UiTestContext
     public void Styleguide_shows_the_map_toolbar()
     {
         var cut = Render<Styleguide>();
-        cut.FindAll(".ds-map-toolbar").Should().HaveCount(1);
+        cut.FindAll(".ds-map-toolbar--right").Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Styleguide_shows_the_bottom_map_toolbar()
+    {
+        var cut = Render<Styleguide>();
+        cut.FindAll(".ds-map-toolbar--bottom").Should().HaveCount(1);
     }
 
     [Fact]
@@ -41,5 +48,12 @@ public class StyleguideTests : UiTestContext
         var cut = Render<Styleguide>();
         cut.Find("button[aria-label='Añadir token']").Click();
         cut.Find(".ds-toast__text").TextContent.Should().Be("2 añadidos, 3 ya estaban");
+    }
+
+    [Fact]
+    public void Styleguide_shows_the_save_indicator()
+    {
+        var cut = Render<Styleguide>();
+        cut.FindAll(".ds-save-indicator").Should().HaveCount(1);
     }
 }

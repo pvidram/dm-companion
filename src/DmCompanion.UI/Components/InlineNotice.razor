@@ -1,9 +1,22 @@
-<div class="ds-notice ds-notice--@Kind.ToString().ToLowerInvariant()" role="@(Kind == NoticeKind.Error ? "alert" : "status")">
-    @ChildContent
+<div class="@CssClass" role="@(Kind == NoticeKind.Error ? "alert" : "status")">
+    @if (OnClose.HasDelegate)
+    {
+        <div class="ds-notice__body">@ChildContent</div>
+        <IconButton Icon="IconName.X" Label="Cerrar aviso" OnClick="OnClose" />
+    }
+    else
+    {
+        @ChildContent
+    }
 </div>
 
 @code {
     /// <summary>Info, Warning o Error (role=alert).</summary>
     [Parameter] public NoticeKind Kind { get; set; } = NoticeKind.Info;
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Si tiene manejador, el aviso lleva un botón ✕ «Cerrar aviso»; descartarlo es cosa de quien lo muestra.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string CssClass => "ds-notice ds-notice--" + Kind.ToString().ToLowerInvariant()
+        + (OnClose.HasDelegate ? " ds-notice--closable" : string.Empty);
 }

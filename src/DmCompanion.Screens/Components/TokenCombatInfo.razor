@@ -1,0 +1,52 @@
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.Maps
+@inject CombatController Combat
+@inject TokenHitPoints Hp
+
+@if (Token.TempHp > 0)
+{
+    <div class="token-card__temp" data-testid="token-temp-hp">
+        <span class="token-card__hp-label">HP temporales</span> <span class="ds-numeric">+@Token.TempHp</span>
+        @if (Combat.CanEdit)
+        {
+            <Button data-testid="token-temp-clear" OnClick="@(() => Combat.SetTempHp(Token.Id, 0))">Quitar temporales</Button>
+        }
+    </div>
+}
+<Button data-testid="token-dead" Disabled="!Combat.CanEdit" OnClick="ToggleDead">@(Token.IsDead ? "Revivir" : "Marcar como muerto")</Button>
+<ConditionChips Conditions="Token.ConditionList" TestId="token-conditions" OnRemove="RemoveCallback" />
+@if (Combat.CanEdit)
+{
+    @if (_adding)
+    {
+        // Fuera de combate no hay rondas que contar: el editor va sin duración.
+        <ConditionEditor Catalog="Hp.Rules.Conditions" InCombat="false" OnSave="Add" OnCancel="@(() => _adding = false)" />
+    }
+    else
+    {
+        <Button Icon="IconName.Plus" data-testid="token-add-condition" OnClick="@(() => _adding = true)">Estado</Button>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public MapToken Token { get; set; } = default!;
+
+    private bool _adding;
+
+    private void ToggleDead()
+    {
+        if (Token.IsDead) Combat.Revive(Token.Id);
+        else Combat.MarkDead(Token.Id);
+    }
+
+    private EventCallback<string> RemoveCallback =>
+        Combat.CanEdit ? EventCallback.Factory.Create<string>(this, RemoveCondition) : default;
+
+    private void RemoveCondition(string conditionId) => Combat.RemoveCondition(Token.Id, conditionId);
+
+    private void Add(ConditionDraft draft)
+    {
+        Combat.AddCondition(Token.Id, draft);
+        _adding = false;
+    }
+}

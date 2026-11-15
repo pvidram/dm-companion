@@ -7,4 +7,4 @@
 .tv :focus-visible { outline: none; }
 
 /* Herramientas y avisos del DM: no se muestran a los jugadores. */
-.tv .ds-map-toolbar, .tv .ds-toast-region { display: none; }
+.tv .ds-map-toolbar, .tv .ds-toast-region, .tv .ds-save-indicator { display: none; }

@@ -1,0 +1,40 @@
+@using DmCompanion.Core.Combat
+
+@if (Conditions.Count > 0)
+{
+    <ul class="combat-conditions" data-testid="@TestId" aria-label="Estados">
+        @foreach (var condition in Conditions)
+        {
+            <li class="@ChipClass(condition)" data-testid="condition-chip">
+                <ConditionTag Name="@Text(condition)" OnRemove="@RemoveOf(condition)" />
+                @if (OnEdit.HasDelegate)
+                {
+                    <IconButton Icon="IconName.Pencil" Label="@($"Editar {condition.Label}")" data-testid="condition-edit"
+                                OnClick="@(() => OnEdit.InvokeAsync(condition.Id))" />
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TokenCondition> Conditions { get; set; } = [];
+    /// <summary>Con delegado, cada estado lleva su botón de quitar; recibe el id del estado.</summary>
+    [Parameter] public EventCallback<string> OnRemove { get; set; }
+    /// <summary>Con delegado, cada estado lleva su botón de editar; recibe el id del estado.</summary>
+    [Parameter] public EventCallback<string> OnEdit { get; set; }
+    [Parameter] public string TestId { get; set; } = "conditions";
+
+    private EventCallback RemoveOf(TokenCondition condition) =>
+        OnRemove.HasDelegate ? EventCallback.Factory.Create(this, () => OnRemove.InvokeAsync(condition.Id)) : default;
+
+    private static string ChipClass(TokenCondition condition) =>
+        "combat-condition" + (condition.Expired ? " combat-condition--expired" : string.Empty);
+
+    private static string Text(TokenCondition condition)
+    {
+        var text = condition.Level is { } level ? $"{condition.Label} {level}" : condition.Label;
+        if (condition.Expired) return $"{text} · vencido";
+        return condition.Duration is { } duration ? $"{text} · {duration.TurnsLeft} {(duration.TurnsLeft == 1 ? "ronda" : "rondas")}" : text;
+    }
+}

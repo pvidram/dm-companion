@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DmCompanion.Core.Combat;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
@@ -19,6 +20,7 @@ public sealed class MapCanvasInteropTests : IAsyncLifetime
     private readonly GatedFactory _factory = new();
     private readonly VaultHost _host;
     private readonly MapSession _session;
+    private readonly ShellState _shell = new();
     private readonly MapCanvasInterop _interop;
 
     public MapCanvasInteropTests()
@@ -27,7 +29,7 @@ public sealed class MapCanvasInteropTests : IAsyncLifetime
         _session = new MapSession(_host, _prefs, new FakeTimeProvider(), NullLogger<MapSession>.Instance);
         var urls = new VaultFileUrls(_host);
         _interop = new MapCanvasInterop(_js, _session, urls, _host,
-            new PortraitUrlProvider(_host, urls, NullLogger<PortraitUrlProvider>.Instance), NullLogger<MapCanvasInterop>.Instance);
+            new PortraitUrlProvider(_host, urls, NullLogger<PortraitUrlProvider>.Instance), _shell, NullLogger<MapCanvasInterop>.Instance);
     }
 
     Task IAsyncLifetime.InitializeAsync() => Task.CompletedTask;
@@ -108,6 +110,159 @@ public sealed class MapCanvasInteropTests : IAsyncLifetime
 
         dto.GetProperty("imageUrl").GetString().Should().StartWith("/_vault/Mapas/cripta.png");
     }
+
+    private static MapState CombatState(Func<MapToken, MapToken>? edit = null, string? currentEntry = "e1")
+    {
+        var state = MapTestVault.StateWithGrid(false);
+        return state with
+        {
+            Tokens = state.Tokens.Select(t => t.Id == "t1" && edit is not null ? edit(t) : t).ToList(),
+            Combat = new DmCompanion.Core.Combat.CombatState(1, currentEntry,
+                [new CombatEntry("e1", "t1", 12), new CombatEntry("e2", "t2", 8)]),
+        };
+    }
+
+    private async Task<JsonElement> DtoOfTokenAsync(MapState state, string id)
+    {
+        MapTestVault.WriteImageMap(_vault, state);
+        await OpenAsync();
+        var dto = await LoadedDtoAsync();
+        return dto.GetProperty("tokens").EnumerateArray().Single(t => t.GetProperty("id").GetString() == id);
+    }
+
+    [Fact]
+    public async Task Dto_marks_down_tokens()
+    {
+        var token = await DtoOfTokenAsync(CombatState(t => t with { Hp = 7, HpCurrent = 0 }), "t1");
+
+        token.GetProperty("down").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Dto_marks_down_tokens_outside_combat()
+    {
+        var state = CombatState(t => t with { Hp = 7, HpCurrent = 0 }) with { Combat = null };
+
+        (await DtoOfTokenAsync(state, "t1")).GetProperty("down").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Dto_does_not_mark_healthy_tokens_as_down()
+    {
+        (await DtoOfTokenAsync(CombatState(), "t2")).GetProperty("down").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Dto_marks_the_current_turn_token()
+    {
+        (await DtoOfTokenAsync(CombatState(), "t1")).GetProperty("current").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Dto_does_not_mark_other_tokens_as_current()
+    {
+        (await DtoOfTokenAsync(CombatState(), "t2")).GetProperty("current").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Dto_has_no_current_token_before_the_first_turn()
+    {
+        (await DtoOfTokenAsync(CombatState(currentEntry: null), "t1")).GetProperty("current").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Dto_counts_conditions()
+    {
+        var token = await DtoOfTokenAsync(CombatState(t => t with { Conditions = [Cond("c1", false), Cond("c2", true)] }), "t1");
+
+        token.GetProperty("conditions").GetInt32().Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Dto_flags_expired_conditions()
+    {
+        var token = await DtoOfTokenAsync(CombatState(t => t with { Conditions = [Cond("c1", false), Cond("c2", true)] }), "t1");
+
+        token.GetProperty("expired").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Dto_does_not_flag_expired_when_no_condition_is_expired()
+    {
+        var token = await DtoOfTokenAsync(CombatState(t => t with { Conditions = [Cond("c1", false)] }), "t1");
+
+        token.GetProperty("expired").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Dto_marks_dead_tokens()
+    {
+        var token = await DtoOfTokenAsync(CombatState(t => t with { Dead = true }), "t1");
+
+        token.GetProperty("dead").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Dto_does_not_mark_living_tokens_as_dead()
+    {
+        (await DtoOfTokenAsync(CombatState(), "t2")).GetProperty("dead").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Dto_marks_selected_combat_token()
+    {
+        _shell.SelectCombatToken("t2");
+
+        (await DtoOfTokenAsync(CombatState(), "t2")).GetProperty("selected").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Dto_does_not_mark_unselected_tokens()
+    {
+        _shell.SelectCombatToken("t2");
+
+        (await DtoOfTokenAsync(CombatState(), "t1")).GetProperty("selected").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Render_repaints_when_combat_turn_changes()
+    {
+        MapTestVault.WriteImageMap(_vault, CombatState());
+        await OpenAsync();
+        await _interop.LoadAsync(default);
+
+        _session.Mutate(e => e.ReplaceState(s => s with { Combat = s.Combat! with { CurrentEntryId = "e2" } }));
+        await _interop.RenderAsync();
+
+        _js.Calls.Select(c => c.Identifier).Should().Equal("mapCanvas.load", "mapCanvas.render");
+    }
+
+    [Fact]
+    public async Task Render_repaints_when_the_selected_combat_token_changes()
+    {
+        MapTestVault.WriteImageMap(_vault, CombatState());
+        await OpenAsync();
+        await _interop.LoadAsync(default);
+
+        _shell.SelectCombatToken("t2");
+        await _interop.RenderAsync();
+
+        _js.Calls.Select(c => c.Identifier).Should().Equal("mapCanvas.load", "mapCanvas.render");
+    }
+
+    [Fact]
+    public async Task Render_does_not_repaint_when_nothing_changed_in_the_selection()
+    {
+        MapTestVault.WriteImageMap(_vault, CombatState());
+        await OpenAsync();
+        await _interop.LoadAsync(default);
+
+        await _interop.RenderAsync();
+
+        _js.Calls.Select(c => c.Identifier).Should().Equal("mapCanvas.load");
+    }
+
+    private static TokenCondition Cond(string id, bool expired) => new(id, null, "Estado", null, null, expired);
 
     [Fact]
     public async Task Render_does_nothing_before_the_canvas_is_loaded_and_sends_the_state_after()

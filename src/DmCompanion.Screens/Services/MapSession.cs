@@ -1,3 +1,4 @@
+using System.Globalization;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
@@ -30,6 +31,10 @@ public sealed class MapSession : IAsyncDisposable
     private int _revision;
     private int _savedRevision;
     private DateTime? _expectedWrite;
+    // Contenido que corresponde a _expectedWrite (lo último escrito o leído). El mtime solo no basta: en el almacenamiento
+    // de Android el stat posterior puede no coincidir con el de la escritura, y Syncthing puede tocar el mtime sin cambiar
+    // el contenido. Un mtime distinto con este mismo contenido no es un cambio externo.
+    private string? _knownContent;
     private bool _overwrite;
     private bool _failureNotice;
     private bool _disposed;
@@ -56,11 +61,20 @@ public sealed class MapSession : IAsyncDisposable
     /// <summary>El aviso actual es un fallo de guardado: la UI ofrece descartar los cambios como vía de escape.</summary>
     public bool HasSaveFailure => _failureNotice;
 
+    /// <summary>
+    /// Hay cambios sin guardar o se están escribiendo: la UI muestra el indicador de guardado. Pasa a false cuando el
+    /// guardado termina bien (y sigue en true si falla); cada cambio de valor se notifica con <see cref="Changed"/>.
+    /// </summary>
+    public bool HasUnsavedChanges
+    {
+        get { lock (_lock) return Dirty && !IsReadOnly; }
+    }
+
     public event EventHandler? Changed;
 
     private bool Dirty => _revision != _savedRevision;
 
-    private static string NewId() => Guid.NewGuid().ToString("N")[..12];
+    internal static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
     private string LastKey(VaultService vault) => "maps.last:" + vault.RootPath;
 
@@ -83,7 +97,7 @@ public sealed class MapSession : IAsyncDisposable
             for (;;)
             {
                 if (!await SaveLockedAsync()) return;
-                var (state, readOnly, notice, mtime) = await LoadStateAsync(vault, definition.StatePath);
+                var (state, readOnly, notice, mtime, content) = await LoadStateAsync(vault, definition.StatePath);
                 lock (_lock)
                 {
                     if (Dirty && !IsReadOnly) continue;
@@ -94,7 +108,7 @@ public sealed class MapSession : IAsyncDisposable
                     IsReadOnly = readOnly;
                     Notice = notice;
                     ImageNotice = null;
-                    _expectedWrite = mtime;
+                    (_expectedWrite, _knownContent) = (mtime, content);
                     _revision = _savedRevision = 0;
                     _overwrite = _failureNotice = false;
                     vault.FileChanged += OnFileChanged;
@@ -146,7 +160,7 @@ public sealed class MapSession : IAsyncDisposable
                 Detach();
                 (Current, Editor, _vault, Notice, ImageNotice, IsReadOnly) = (null, null, null, null, null, false);
                 _revision = _savedRevision = 0;
-                _expectedWrite = null;
+                (_expectedWrite, _knownContent) = (null, null);
                 _overwrite = _failureNotice = false;
             }
             MarkChanged();
@@ -163,16 +177,22 @@ public sealed class MapSession : IAsyncDisposable
     {
         // Desechada: el guardado final ya se hizo y el gate no existe; cerrar de nuevo no debe abortar el cambio de vault.
         if (IsDisposed) return true;
-        StopTimer();
         try
         {
-            await _ioGate.WaitAsync();
+            return await TryCloseCoreAsync();
         }
         catch (ObjectDisposedException) when (IsDisposed)
         {
-            // El dispose terminó entre la comprobación y el gate: su guardado final ya se hizo.
+            // El dispose avanzó en paralelo tras la comprobación: desechó el temporizador antes de pararlo, el gate antes de
+            // tomarlo o el gate mientras este cierre lo tenía. Su guardado final ya se hizo.
             return true;
         }
+    }
+
+    private async Task<bool> TryCloseCoreAsync()
+    {
+        StopTimer();
+        await _ioGate.WaitAsync();
         try
         {
             for (;;)
@@ -246,6 +266,28 @@ public sealed class MapSession : IAsyncDisposable
     public void ReportImageMissing()
     {
         lock (_lock) ImageNotice = "No se encuentra la imagen del mapa";
+        RaiseChanged();
+    }
+
+    /// <summary>El usuario cierra el aviso actual del mapa. Un fallo de guardado no se cierra: lleva la vía de escape «Descartar cambios» y solo se va al guardar bien o al descartar.</summary>
+    public void DismissNotice()
+    {
+        lock (_lock)
+        {
+            if (Notice is null || _failureNotice) return;
+            Notice = null;
+        }
+        RaiseChanged();
+    }
+
+    /// <summary>El usuario cierra el aviso de imagen no encontrada.</summary>
+    public void DismissImageNotice()
+    {
+        lock (_lock)
+        {
+            if (ImageNotice is null) return;
+            ImageNotice = null;
+        }
         RaiseChanged();
     }
 
@@ -323,13 +365,14 @@ public sealed class MapSession : IAsyncDisposable
             var result = await WriteAsync(vault, definition.StatePath, json);
             if (result.Status != WriteStatus.Written)
             {
-                // Cambió en disco sin que lo hubiéramos visto: gana lo local, avisando.
+                // El fichero no coincide con lo esperado: gana lo local, sin aviso (el indicador de guardado basta). Con el mismo
+                // contenido no hay nada que perder; con otro, se sobrescribe como siempre. Solo cambia lo que se registra.
+                await LogUnexpectedDiskStateAsync(vault, definition.StatePath, result.Status);
                 result = await vault.WriteAsync(definition.StatePath, json, WritePrecondition.Overwrite);
-                SetNotice("El mapa había cambiado en disco; se ha sobrescrito con tus cambios.", failure: false);
             }
             lock (_lock)
             {
-                _expectedWrite = result.LastWriteTimeUtc;
+                (_expectedWrite, _knownContent) = (result.LastWriteTimeUtc, json);
                 _savedRevision = revision;
                 _overwrite = false;
                 if (_failureNotice) { Notice = null; _failureNotice = false; }
@@ -353,6 +396,34 @@ public sealed class MapSession : IAsyncDisposable
         }
     }
 
+    // Con _ioGate tomado. Diagnóstico para `adb logcat`: distingue un mtime distinto con el mismo contenido (no es un cambio
+    // externo) de un cambio real en disco. Sin rutas ni contenido; de una excepción, solo el tipo.
+    private async Task LogUnexpectedDiskStateAsync(VaultService vault, string path, WriteStatus status)
+    {
+        DateTime? expected;
+        string? known;
+        lock (_lock) (expected, known) = (_expectedWrite, _knownContent);
+        VaultFileContent disk;
+        try
+        {
+            disk = await vault.ReadRawAsync(path);
+        }
+        // Cualquier fallo del diagnóstico se registra y el guardado sigue: un diagnóstico no puede impedir guardar.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning("Al guardar: el estado del mapa no coincidía con el esperado ({WriteStatus}) y no se pudo leer para compararlo ({ExceptionType}); se sobrescribe con lo local.",
+                status, ex.GetType().FullName);
+            return;
+        }
+        var delta = expected is { } reference
+            ? string.Create(CultureInfo.InvariantCulture, $"{(disk.LastWriteTimeUtc - reference).TotalMilliseconds:0} ms")
+            : "sin referencia";
+        if (known is not null && disk.Content == known)
+            _logger.LogInformation("Al guardar: mtime distinto ({Delta}) con el mismo contenido; no es un cambio externo.", delta);
+        else
+            _logger.LogWarning("Al guardar: el estado del mapa había cambiado en disco (mtime {Delta}); se sobrescribe con lo local.", delta);
+    }
+
     private Task<WriteResult> WriteAsync(VaultService vault, string path, string json)
     {
         WritePrecondition precondition;
@@ -371,15 +442,23 @@ public sealed class MapSession : IAsyncDisposable
         MarkChanged();
     }
 
-    private async Task<(MapState State, bool ReadOnly, string? Notice, DateTime? Mtime)> LoadStateAsync(VaultService vault, string path)
+    private async Task<(MapState State, bool ReadOnly, string? Notice, DateTime? Mtime, string? Content)> LoadStateAsync(VaultService vault, string path)
     {
         var load = await ReadStateAsync(vault, path);
-        return (load.State, load.ReadOnly, load.Notice, load.Mtime);
+        return (load.State, load.ReadOnly, load.Notice, load.Mtime, load.Content);
     }
 
     // Transient: la lectura falló o el contenido no es válido; en una recarga externa puede ser un escritor a medias.
     // Una versión de formato no soportada no es transitoria: no mejora esperando.
-    private sealed record StateLoad(MapState State, bool ReadOnly, string? Notice, DateTime? Mtime, bool Transient = false, bool Missing = false);
+    // Content: el texto leído, solo si es un estado válido (aunque sea de una versión más nueva).
+    private sealed record StateLoad(MapState State, bool ReadOnly, string? Notice, DateTime? Mtime, bool Transient = false, bool Missing = false, string? Content = null);
+
+    private string? RepairNotice(int repairs)
+    {
+        if (repairs <= 0) return null;
+        _logger.LogWarning("Se han corregido {Repairs} datos de combate incoherentes al leer el estado del mapa.", repairs);
+        return $"Se han corregido {repairs} datos de combate incoherentes del mapa.";
+    }
 
     private async Task<StateLoad> ReadStateAsync(VaultService vault, string path)
     {
@@ -390,9 +469,9 @@ public sealed class MapSession : IAsyncDisposable
             var read = MapStateSerializer.Read(file.Content);
             return read.Status switch
             {
-                MapStateReadStatus.Ok => new StateLoad(read.State, false, null, file.LastWriteTimeUtc),
+                MapStateReadStatus.Ok => new StateLoad(read.State, false, RepairNotice(read.Repairs), file.LastWriteTimeUtc, Content: file.Content),
                 MapStateReadStatus.FutureVersion => new StateLoad(read.State, true,
-                    "El mapa se guardó con una versión más nueva de la app: se abre en solo lectura.", file.LastWriteTimeUtc),
+                    "El mapa se guardó con una versión más nueva de la app: se abre en solo lectura.", file.LastWriteTimeUtc, Content: file.Content),
                 _ => new StateLoad(MapState.Empty, true,
                     "El fichero de estado del mapa no es válido: se abre en solo lectura y no se modificará.", file.LastWriteTimeUtc, Transient: true),
             };
@@ -456,57 +535,54 @@ public sealed class MapSession : IAsyncDisposable
             if (_vault is not { } vault || Current is not { } current) return false;
             var info = await vault.StatAsync(current.StatePath);
             // Escritura propia (o ráfaga repetida del watcher): mismo mtime, nada que hacer.
-            if (info?.LastWriteTimeUtc == _expectedWrite) return false;
+            if (info?.LastWriteTimeUtc == _expectedWrite)
+            {
+                _logger.LogDebug("Evento del watcher sobre el estado del mapa: mtime coincide.");
+                return false;
+            }
             if (info is null)
             {
-                lock (_lock) _expectedWrite = null;
+                lock (_lock) (_expectedWrite, _knownContent) = (null, null);
                 return false;
             }
 
-            // La comprobación de Dirty y la foto de la revisión van en el mismo lock: un Mutate no puede colarse entre ambas.
-            bool dirty;
-            int revision;
-            lock (_lock)
-            {
-                dirty = Dirty;
-                revision = _revision;
-                if (dirty) _overwrite = true;
-            }
-            if (dirty)
-            {
-                SetNotice("El mapa ha cambiado en disco; el próximo guardado lo sobrescribirá con tus cambios.", failure: false);
-                return false;
-            }
             var load = await ReadStateAsync(vault, current.StatePath);
             // Borrado entre los dos stat: como si no existiera, se conserva el estado.
             if (load.Missing)
             {
-                lock (_lock) _expectedWrite = null;
+                lock (_lock) (_expectedWrite, _knownContent) = (null, null);
                 return false;
             }
-            // Se conserva el estado anterior sin tocar IsReadOnly ni _expectedWrite: el siguiente intento vuelve a leer.
-            if (load.Transient && !lastAttempt) return true;
+            if (load.Content is { } content && content == _knownContent)
+            {
+                _logger.LogInformation("Evento del watcher sobre el estado del mapa: mtime distinto ({DeltaMs} ms) con el mismo contenido; no es un cambio externo.",
+                    _expectedWrite is { } expected ? (info.LastWriteTimeUtc - expected).TotalMilliseconds : null);
+                lock (_lock) _expectedWrite = load.Mtime;
+                return false;
+            }
+
+            // La comprobación de Dirty y la aplicación van en el mismo lock: un Mutate durante la lectura cuenta como cambio local.
             // Un resultado final inválido no recuerda el mtime: la escritura completa posterior con el mismo mtime se relee.
-            var (state, readOnly, notice) = (load.State, load.ReadOnly, load.Notice);
-            var mtime = load.Transient ? null : load.Mtime;
-            bool mutatedMeanwhile;
+            bool dirty;
+            var retry = false;
             lock (_lock)
             {
-                mutatedMeanwhile = _revision != revision;
-                if (mutatedMeanwhile) _overwrite = true;
+                dirty = Dirty;
+                if (dirty) _overwrite = true;
+                // Se conserva el estado anterior sin tocar IsReadOnly ni _expectedWrite: el siguiente intento vuelve a leer.
+                else if (load.Transient && !lastAttempt) retry = true;
                 else
                 {
-                    Editor = new MapEditor(state, current.Width, current.Height, NewId);
-                    (IsReadOnly, Notice, _expectedWrite, _failureNotice) = (readOnly, notice, mtime, false);
+                    Editor = new MapEditor(load.State, current.Width, current.Height, NewId);
+                    (IsReadOnly, Notice, _failureNotice) = (load.ReadOnly, load.Notice, false);
+                    (_expectedWrite, _knownContent) = load.Transient ? (null, null) : (load.Mtime, load.Content);
                 }
             }
-            if (mutatedMeanwhile)
-            {
-                SetNotice("El mapa ha cambiado en disco; el próximo guardado lo sobrescribirá con tus cambios.", failure: false);
-                return false;
-            }
-            MarkChanged();
-            return false;
+            // Con cambios locales pendientes gana lo local: el próximo guardado sobrescribe, sin aviso.
+            // Un intento que se reintentará no se registra: un escritor a medias daría una línea por intento.
+            if (!retry) _logger.LogInformation("Evento del watcher sobre el estado del mapa: cambio externo (cambios locales pendientes: {Dirty}).", dirty);
+            if (!dirty && !retry) MarkChanged();
+            return retry;
         }
         finally
         {

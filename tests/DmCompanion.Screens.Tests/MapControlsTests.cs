@@ -1,4 +1,5 @@
 using Bunit;
+using DmCompanion.Core.Combat;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
@@ -25,11 +26,15 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddScoped<MapCanvasInterop>();
+        Services.AddScoped<TurnStripInterop>();
+        Services.AddScoped<DragPanelInterop>();
 
         JSInterop.SetupVoid("mapCanvas.load", _ => true).SetVoidResult();
         JSInterop.SetupVoid("mapCanvas.setMode", _ => true).SetVoidResult();
@@ -88,6 +93,14 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
+    public async Task Toolbar_is_anchored_at_the_bottom_edge()
+    {
+        await OpenMapAsync();
+
+        Render<MapControls>().Find(".ds-map-toolbar").ClassList.Should().Contain("ds-map-toolbar--bottom");
+    }
+
+    [Fact]
     public async Task Drawing_tools_are_hidden_outside_draw_mode()
     {
         await OpenMapAsync();
@@ -113,8 +126,8 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
 
     [Theory]
     [InlineData("Goma")]
-    [InlineData("Deshacer")]
-    [InlineData("Rehacer")]
+    [InlineData("Deshacer trazo")]
+    [InlineData("Rehacer trazo")]
     public async Task Draw_mode_shows_the_stroke_tools(string label)
     {
         var cut = await DrawModeAsync();
@@ -127,7 +140,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
         var cut = await DrawModeAsync();
         var interop = Services.GetRequiredService<MapCanvasInterop>();
         interop.OnStrokeAdded("#000000", 6, [1, 2, 0.5, 3, 4, 0.5]);
-        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer").HasAttribute("disabled").Should().BeFalse(), Timeout);
+        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer trazo").HasAttribute("disabled").Should().BeFalse(), Timeout);
         return (cut, interop);
     }
 
@@ -136,7 +149,23 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var cut = await DrawModeAsync();
 
-        ByLabel(cut, "Deshacer").HasAttribute("disabled").Should().BeTrue();
+        ByLabel(cut, "Deshacer trazo").HasAttribute("disabled").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Only_the_chosen_color_and_the_chosen_width_are_pressed()
+    {
+        await OpenMapAsync();
+        await Services.GetRequiredService<MapCanvasInterop>().LoadAsync(default);
+        var cut = Render<MapControls>();
+        ButtonText(cut, "Dibujar").Click();
+
+        ByLabel(cut, "Color 3").Click();
+        ByLabel(cut, "Grosor 12").Click();
+
+        (cut.FindAll("[aria-label^='Color '][aria-pressed='true']").Select(b => b.GetAttribute("aria-label")),
+            cut.FindAll("[aria-label^='Grosor '][aria-pressed='true']").Select(b => b.GetAttribute("aria-label")))
+            .Should().BeEquivalentTo((new[] { "Color 3" }, new[] { "Grosor 12" }));
     }
 
     [Fact]
@@ -144,7 +173,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var cut = await DrawModeAsync();
 
-        ByLabel(cut, "Rehacer").HasAttribute("disabled").Should().BeTrue();
+        ByLabel(cut, "Rehacer trazo").HasAttribute("disabled").Should().BeTrue();
     }
 
     [Fact]
@@ -152,7 +181,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var (cut, _) = await DrawnStrokeAsync();
 
-        ByLabel(cut, "Deshacer").Click();
+        ByLabel(cut, "Deshacer trazo").Click();
 
         Session.Editor!.State.Strokes.Should().BeEmpty();
     }
@@ -162,20 +191,20 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
     {
         var (cut, _) = await DrawnStrokeAsync();
 
-        ByLabel(cut, "Deshacer").Click();
+        ByLabel(cut, "Deshacer trazo").Click();
 
-        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer").HasAttribute("disabled").Should().BeTrue(), Timeout);
-        ByLabel(cut, "Rehacer").HasAttribute("disabled").Should().BeFalse();
+        cut.WaitForAssertion(() => ByLabel(cut, "Deshacer trazo").HasAttribute("disabled").Should().BeTrue(), Timeout);
+        ByLabel(cut, "Rehacer trazo").HasAttribute("disabled").Should().BeFalse();
     }
 
     [Fact]
     public async Task Redo_restores_the_undone_stroke()
     {
         var (cut, _) = await DrawnStrokeAsync();
-        ByLabel(cut, "Deshacer").Click();
-        cut.WaitForAssertion(() => ByLabel(cut, "Rehacer").HasAttribute("disabled").Should().BeFalse(), Timeout);
+        ByLabel(cut, "Deshacer trazo").Click();
+        cut.WaitForAssertion(() => ByLabel(cut, "Rehacer trazo").HasAttribute("disabled").Should().BeFalse(), Timeout);
 
-        ByLabel(cut, "Rehacer").Click();
+        ByLabel(cut, "Rehacer trazo").Click();
 
         Session.Editor!.State.Strokes.Should().ContainSingle();
     }
@@ -379,5 +408,135 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
         ButtonText(cut, "Ajustar a pantalla").Click();
 
         JSInterop.Invocations.Should().Contain(i => i.Identifier == "mapCanvas.fit");
+    }
+
+    [Fact]
+    public async Task Start_combat_button_shows_with_an_editable_map_and_no_combat()
+    {
+        await OpenMapAsync();
+
+        var cut = Render<MapControls>();
+
+        ButtonNames(cut).Should().Contain("Empezar combate");
+    }
+
+    [Fact]
+    public async Task Start_combat_button_is_hidden_during_combat()
+    {
+        await OpenMapAsync();
+        Services.GetRequiredService<CombatController>().Start([new InitiativeEntry("t1", 10)]);
+
+        var cut = Render<MapControls>();
+
+        ButtonNames(cut).Should().NotContain("Empezar combate");
+    }
+
+    [Fact]
+    public async Task Start_combat_button_is_hidden_in_read_only()
+    {
+        await OpenMapAsync(rawState: "esto no es json");
+
+        var cut = Render<MapControls>();
+
+        ButtonNames(cut).Should().NotContain("Empezar combate");
+    }
+
+    [Fact]
+    public async Task Start_combat_button_opens_the_dialog()
+    {
+        await OpenMapAsync();
+        var cut = Render<MapControls>();
+
+        ButtonText(cut, "Empezar combate").Click();
+
+        Services.GetRequiredService<ShellState>().StartCombatOpen.Should().BeTrue();
+    }
+
+    private const string HideLabel = "Ocultar la barra de herramientas";
+    private const string ShowLabel = "Mostrar la barra de herramientas";
+
+    [Fact]
+    public async Task Toggle_hides_and_shows_the_toolbar()
+    {
+        await OpenMapAsync();
+        var cut = Render<MapControls>();
+
+        ByLabel(cut, HideLabel).Click();
+        var hidden = cut.FindAll("[aria-label='Modo']").Count;
+        ByLabel(cut, ShowLabel).Click();
+
+        (hidden, cut.FindAll("[aria-label='Modo']").Count).Should().Be((0, 1));
+    }
+
+    [Fact]
+    public async Task Toggle_lives_inside_the_toolbar_as_its_last_group()
+    {
+        await OpenMapAsync();
+        var cut = Render<MapControls>();
+
+        cut.Find("[aria-label='Herramientas del mapa'] > .map-controls__toggle-group .map-controls__toggle").GetAttribute("aria-label")
+            .Should().Be(HideLabel);
+    }
+
+    [Fact]
+    public async Task Folded_toolbar_keeps_only_the_toggle()
+    {
+        await OpenMapAsync();
+        var cut = Render<MapControls>();
+
+        ByLabel(cut, HideLabel).Click();
+
+        cut.FindAll("[aria-label='Herramientas del mapa'] button").Select(b => b.GetAttribute("aria-label"))
+            .Should().Equal(ShowLabel);
+    }
+
+    [Fact]
+    public async Task Hidden_toolbar_closes_grid_settings()
+    {
+        await OpenMapAsync();
+        var cut = Render<MapControls>();
+        ByLabel(cut, "Ajustes de cuadrícula").Click();
+
+        ByLabel(cut, HideLabel).Click();
+        ByLabel(cut, ShowLabel).Click();
+
+        cut.FindAll("[aria-label='Ajustes de la cuadrícula']").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Toolbar_visibility_is_remembered_in_preferences()
+    {
+        await OpenMapAsync();
+        var cut = Render<MapControls>();
+
+        ByLabel(cut, HideLabel).Click();
+
+        Services.GetRequiredService<IAppPreferences>().Get("map.toolbar.visible").Should().Be("false");
+    }
+
+    [Fact]
+    public async Task Toolbar_starts_hidden_when_preferences_say_so()
+    {
+        Services.GetRequiredService<IAppPreferences>().Set("map.toolbar.visible", "false");
+        await OpenMapAsync();
+
+        var cut = Render<MapControls>();
+
+        cut.FindAll("[aria-label='Modo']").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Mode_is_kept_when_hiding_the_toolbar()
+    {
+        await OpenMapAsync();
+        await Services.GetRequiredService<MapCanvasInterop>().LoadAsync(default);
+        var cut = Render<MapControls>();
+        ButtonText(cut, "Medir").Click();
+
+        ByLabel(cut, HideLabel).Click();
+        ByLabel(cut, ShowLabel).Click();
+
+        (Services.GetRequiredService<MapCanvasInterop>().Mode, ButtonText(cut, "Medir").GetAttribute("aria-pressed"))
+            .Should().Be((MapMode.Measure, "true"));
     }
 }

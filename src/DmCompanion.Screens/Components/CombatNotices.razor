@@ -1,0 +1,180 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.Maps
+@inject CombatController Combat
+@inject MapSession Session
+
+@if (_visible.Count > 0)
+{
+    <div class="combat-strip__notices" data-testid="combat-notices" role="status">
+        @foreach (var notice in _visible)
+        {
+            switch (notice)
+            {
+                case ConditionExpired expired when Resolve(expired) is var (token, condition):
+                    <InlineNotice Kind="NoticeKind.Warning" OnClose="@(Combat.CanEdit ? EventCallback.Factory.Create(this, () => Combat.Dismiss(expired)) : default)">
+                        <div data-testid="notice-expired">
+                            <span>A @token.Name se le acaba @condition.Label</span>
+                            <div class="combat-notice__actions">
+                                <Button Disabled="!Combat.CanEdit" OnClick="@(() => Remove(expired))">Quitar</Button>
+                                <Button Disabled="!Combat.CanEdit" IsPressed="@(_keeping == expired)" OnClick="@(() => _keeping = _keeping == expired ? null : expired)">Mantener</Button>
+                            </div>
+                            @if (_keeping == expired)
+                            {
+                                <div class="combat-notice__keep">
+                                    <Button Disabled="!Combat.CanEdit" data-testid="keep-forever" OnClick="@(() => Keep(expired, null))">Sin duración</Button>
+                                    <TextField Label="Rondas" Value="@_rounds" ValueChanged="@(v => _rounds = v)" data-testid="keep-rounds" inputmode="numeric" />
+                                    <Button Variant="ButtonVariant.Primary" Disabled="!Combat.CanEdit" data-testid="keep-apply" OnClick="@(() => KeepRounds(expired))">Aplicar</Button>
+                                </div>
+                                @if (_error is { } error)
+                                {
+                                    <span data-testid="keep-error">@error</span>
+                                }
+                            }
+                        </div>
+                    </InlineNotice>
+                    break;
+                case ConcentrationCheck check when NameOf(check.TokenId) is { } name:
+                    <InlineNotice Kind="NoticeKind.Warning">
+                        <div data-testid="notice-concentration">
+                            <span>@name: Salvación de Constitución para mantener la concentración: CD @check.Dc</span>
+                            <div class="combat-notice__actions">
+                                <Button OnClick="@(() => Combat.Dismiss(check))">Entendido</Button>
+                            </div>
+                        </div>
+                    </InlineNotice>
+                    break;
+                case ThreeFailures failures when NameOf(failures.TokenId) is { } name:
+                    <InlineNotice Kind="NoticeKind.Warning">
+                        <div data-testid="notice-three-failures">
+                            <span>@name: 3 fallos. ¿Marcar como muerto?</span>
+                            <div class="combat-notice__actions">
+                                <Button Variant="ButtonVariant.Damage" Disabled="!Combat.CanEdit" OnClick="@(() => MarkDead(failures))">Marcar como muerto</Button>
+                                <Button OnClick="@(() => Combat.Dismiss(failures))">Ahora no</Button>
+                            </div>
+                        </div>
+                    </InlineNotice>
+                    break;
+                case CombatEnded:
+                    <InlineNotice Kind="NoticeKind.Info" OnClose="@(() => Combat.Dismiss(notice))">
+                        <div data-testid="notice-ended">
+                            <span>Combate terminado</span>
+                            <div class="combat-notice__actions">
+                                <Button Disabled="!Combat.CanRecover" OnClick="Combat.Recover">Deshacer</Button>
+                            </div>
+                        </div>
+                    </InlineNotice>
+                    break;
+            }
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<CombatNotice> _visible = [];
+    private List<CombatNotice> _stale = [];
+    private CombatNotice? _keeping;
+    private string _rounds = string.Empty;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Combat.Changed += OnCombatChanged;
+        Classify();
+    }
+
+    private void Classify()
+    {
+        // Los avisos de algo que ya no existe (recarga externa, token quitado) se descartan sin mostrarlos.
+        var all = Combat.Notices;
+        _stale = [.. all.Where(n => !IsLive(n))];
+        _visible = [.. all.Except(_stale)];
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_stale.Count == 0) return;
+        var stale = _stale;
+        _stale = [];
+        await InvokeAsync(() =>
+        {
+            foreach (var notice in stale) Combat.Dismiss(notice);
+        });
+    }
+
+    private bool IsLive(CombatNotice notice) => notice switch
+    {
+        ConditionExpired expired => Resolve(expired) is not null,
+        ConcentrationCheck check => NameOf(check.TokenId) is not null,
+        // Si el token ya está muerto (marcado por otra vía) la pregunta no tiene sentido.
+        ThreeFailures failures => Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == failures.TokenId) is { IsDead: false },
+        CombatEnded => true,
+        _ => false,
+    };
+
+    private void MarkDead(ThreeFailures notice)
+    {
+        if (!Combat.CanEdit) return;
+        Combat.MarkDead(notice.TokenId);
+        Combat.Dismiss(notice);
+    }
+
+    private string? NameOf(string tokenId) => Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == tokenId)?.Name;
+
+    private (MapToken Token, TokenCondition Condition)? Resolve(ConditionExpired notice)
+    {
+        var token = Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == notice.TokenId);
+        return token?.ConditionList.FirstOrDefault(c => c.Id == notice.ConditionId && c.Expired) is { } condition ? (token, condition) : null;
+    }
+
+    // Sin permiso de edición no se hace nada ni se descarta el aviso (tampoco hay ✕): el estado vencido sigue pendiente de decisión.
+    private void Remove(ConditionExpired notice)
+    {
+        if (!Combat.CanEdit) return;
+        Combat.RemoveCondition(notice.TokenId, notice.ConditionId);
+        Combat.Dismiss(notice);
+    }
+
+    private void Keep(ConditionExpired notice, int? rounds)
+    {
+        if (!Combat.CanEdit) return;
+        Combat.KeepExpired(notice.TokenId, notice.ConditionId, rounds);
+        Combat.Dismiss(notice);
+        (_keeping, _rounds, _error) = (null, string.Empty, null);
+    }
+
+    private void KeepRounds(ConditionExpired notice)
+    {
+        if (!int.TryParse(_rounds.Trim(), out var rounds) || rounds < 1)
+        {
+            _error = "Las rondas son un número entero positivo";
+            return;
+        }
+        Keep(notice, rounds);
+    }
+
+    private void OnCombatChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                Classify();
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+    }
+
+    public override void Dispose()
+    {
+        Combat.Changed -= OnCombatChanged;
+        base.Dispose();
+    }
+}

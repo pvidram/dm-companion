@@ -11,6 +11,7 @@ public sealed class GenericSystem(string id) : IGameSystem
     public SystemDefinition Definition => SystemDefinition.Empty;
     public HitPointsRule HitPoints { get; } = HitPointsRule.FromStat("HP", "stats.hp");
     public GridRules Grid => GridRules.Feet5;
+    public ICombatRules Combat => BasicCombatRules.Instance;
 
     public StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter)
     {

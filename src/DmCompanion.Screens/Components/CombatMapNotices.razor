@@ -1,0 +1,37 @@
+@inherits DmComponentBase
+@inject CombatController Combat
+
+@* Con la tira retraída (en la franja) los avisos de combate salen sobre el mapa; con la expandida van dentro de su panel.
+   Sin combate (p. ej. «Combate terminado») no hay tira: también salen aquí. *@
+@if (Combat.State is null || !Combat.StripExpanded)
+{
+    <CombatNotices />
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Combat.Changed += OnCombatChanged;
+    }
+
+    private void OnCombatChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+    }
+
+    public override void Dispose()
+    {
+        Combat.Changed -= OnCombatChanged;
+        base.Dispose();
+    }
+}

@@ -22,6 +22,13 @@ public class GameSystemRegistryTests
     [Fact]
     public void All_lists_dnd5e_and_cosmere() =>
         GameSystemRegistry.Default.All.Select(s => s.Id).Should().Equal("dnd5e", "cosmere");
+
+    [Theory]
+    [InlineData("dnd5e", typeof(Dnd5eCombatRules))]
+    [InlineData("cosmere", typeof(BasicCombatRules))]
+    [InlineData("pathfinder", typeof(BasicCombatRules))]
+    public void Each_system_exposes_its_combat_rules(string id, Type expected) =>
+        GameSystemRegistry.Default.Get(id).Combat.Should().BeOfType(expected);
 }
 
 public class StatFormatTests

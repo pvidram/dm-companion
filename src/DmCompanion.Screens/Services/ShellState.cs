@@ -27,6 +27,12 @@ public sealed class ShellState
     public bool AddTokenOpen { get; private set; }
     public TokenCardRequest? TokenCard { get; private set; }
 
+    /// <summary>Panel flotante del historial de la tira retraída.</summary>
+    public bool HistoryOpen { get; private set; }
+    public bool StartCombatOpen { get; private set; }
+    public string? SelectedCombatTokenId { get; private set; }
+    public bool EndCombatOpen { get; private set; }
+
     public MapNameRequest? MapName { get; private set; }
     public string? DeletingMapPath { get; private set; }
     public bool DiscardingMap { get; private set; }
@@ -235,6 +241,7 @@ public sealed class ShellState
 
     public void OpenTokenCard(TokenCardRequest request)
     {
+        HistoryOpen = false;
         TokenCard = request;
         Notify();
     }
@@ -242,6 +249,49 @@ public sealed class ShellState
     public void CloseTokenCard()
     {
         TokenCard = null;
+        Notify();
+    }
+
+    public void ToggleHistory()
+    {
+        HistoryOpen = !HistoryOpen;
+        Notify();
+    }
+
+    public void CloseHistory()
+    {
+        if (!HistoryOpen) return;
+        HistoryOpen = false;
+        Notify();
+    }
+
+    public void OpenStartCombat()
+    {
+        StartCombatOpen = true;
+        Notify();
+    }
+
+    public void CloseStartCombat()
+    {
+        StartCombatOpen = false;
+        Notify();
+    }
+
+    public void SelectCombatToken(string? tokenId)
+    {
+        SelectedCombatTokenId = tokenId;
+        Notify();
+    }
+
+    public void RequestEndCombat()
+    {
+        EndCombatOpen = true;
+        Notify();
+    }
+
+    public void CancelEndCombat()
+    {
+        EndCombatOpen = false;
         Notify();
     }
 
@@ -256,6 +306,10 @@ public sealed class ShellState
         ConflictsOpen = false;
         AddTokenOpen = false;
         TokenCard = null;
+        HistoryOpen = false;
+        StartCombatOpen = false;
+        SelectedCombatTokenId = null;
+        EndCombatOpen = false;
 
         MapName = null;
         DeletingMapPath = null;

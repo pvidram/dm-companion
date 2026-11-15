@@ -14,12 +14,18 @@ else
 {
     <div @ref="_host" class="ds-frame__layer map-canvas"></div>
     <MapControls OnAddToken="OnAddToken" />
+    <GridAdjustBar />
+    <div class="map-notices">
+    @if (Session.HasUnsavedChanges)
+    {
+        <SaveIndicator />
+    }
     @if (Session.Notice is not null || Session.ImageNotice is not null)
     {
         <div class="map-canvas__notices">
             @if (Session.Notice is { } text)
             {
-                <InlineNotice Kind="NoticeKind.Warning">
+                <InlineNotice Kind="NoticeKind.Warning" OnClose="@(Session.HasSaveFailure ? default : EventCallback.Factory.Create(this, Session.DismissNotice))">
                     @text
                     @if (Session.HasSaveFailure)
                     {
@@ -29,13 +35,18 @@ else
             }
             @if (Session.ImageNotice is { } imageText)
             {
-                <InlineNotice Kind="NoticeKind.Warning">@imageText</InlineNotice>
+                <InlineNotice Kind="NoticeKind.Warning" OnClose="Session.DismissImageNotice">@imageText</InlineNotice>
             }
         </div>
     }
+    @Notices
+    </div>
 }
 
 @code {
+    /// <summary>Avisos de otros componentes (p. ej. los de combate), apilados con los del mapa arriba a la derecha.</summary>
+    [Parameter] public RenderFragment? Notices { get; set; }
+
     /// <summary>«Añadir token» de la barra; lo conecta el diálogo de la Task 10.</summary>
     [Parameter] public EventCallback OnAddToken { get; set; }
 

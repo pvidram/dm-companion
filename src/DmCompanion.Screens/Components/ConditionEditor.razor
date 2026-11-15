@@ -1,0 +1,112 @@
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.GameSystems
+@using DmCompanion.Core.Maps
+
+<div class="condition-editor" data-testid="condition-editor" role="group" aria-label="Estado">
+    <Select TValue="ConditionDefinition" Label="Estado" Options="_options" Value="_selected" LabelOf="@(d => d.Label)"
+            ValueChanged="Choose" data-testid="condition-select" />
+    @if (IsCustom)
+    {
+        <TextField Label="Nombre del estado" Value="@_label" ValueChanged="@(v => _label = v)" data-testid="condition-label" />
+    }
+    @if (_selected.MaxLevel is { } max)
+    {
+        <NumberStepper Label="Nivel" Value="_level" Min="1" Max="max" ValueChanged="@(v => _level = (int)v)" data-testid="condition-level" />
+    }
+    @if (InCombat)
+    {
+        <TextField Label="Rondas (vacío: sin duración)" Value="@_rounds" ValueChanged="@(v => _rounds = v)" data-testid="condition-rounds" inputmode="numeric" />
+        <details class="condition-editor__anchor">
+            <summary>Cuenta en el turno de…</summary>
+            <Select TValue="CombatEntryChoice" Label="Turno de" Options="Anchors" Value="_anchor" LabelOf="@(a => a.Name)"
+                    ValueChanged="@(a => _anchor = a)" data-testid="condition-anchor" />
+        </details>
+    }
+    @if (_error is { } error)
+    {
+        <InlineNotice Kind="NoticeKind.Warning"><span data-testid="condition-error">@error</span></InlineNotice>
+    }
+    <div class="condition-editor__actions">
+        <Button Variant="ButtonVariant.Primary" data-testid="condition-save" OnClick="Save">@(Initial is null ? "Añadir estado" : "Guardar")</Button>
+        <Button data-testid="condition-cancel" OnClick="OnCancel">Cancelar</Button>
+    </div>
+</div>
+
+@code {
+    private static readonly ConditionDefinition Custom = new(string.Empty, "Otro (texto libre)");
+
+    /// <summary>Entrada del combate donde puede anclarse la duración.</summary>
+    public sealed record CombatEntryChoice(string EntryId, string Name);
+
+    [Parameter, EditorRequired] public IReadOnlyList<ConditionDefinition> Catalog { get; set; } = [];
+    /// <summary>Solo durante el combate hay rondas que contar.</summary>
+    [Parameter] public bool InCombat { get; set; }
+    [Parameter] public IReadOnlyList<CombatEntryChoice> Anchors { get; set; } = [];
+    /// <summary>Entrada propuesta por defecto: la del token afectado.</summary>
+    [Parameter] public string? DefaultAnchorEntryId { get; set; }
+    /// <summary>Estado que se edita; null para crear uno nuevo.</summary>
+    [Parameter] public TokenCondition? Initial { get; set; }
+    [Parameter] public EventCallback<ConditionDraft> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private IReadOnlyList<ConditionDefinition> _options = [];
+    private ConditionDefinition _selected = Custom;
+    private CombatEntryChoice? _anchor;
+    private string _label = string.Empty;
+    private string _rounds = string.Empty;
+    private int _level = 1;
+    private string? _error;
+
+    public static IReadOnlyList<CombatEntryChoice> AnchorsOf(CombatState state, IReadOnlyList<MapToken> tokens) =>
+        [.. state.Entries.Select(e => new CombatEntryChoice(e.Id, tokens.FirstOrDefault(t => t.Id == e.TokenId)?.Name ?? "—"))];
+
+    private bool IsCustom => _selected == Custom;
+
+    protected override void OnInitialized()
+    {
+        _options = [.. Catalog, Custom];
+        _selected = _options[0];
+        if (Initial is { } initial) Load(initial);
+    }
+
+    protected override void OnParametersSet() =>
+        _anchor ??= Anchors.FirstOrDefault(a => a.EntryId == (Initial?.Duration?.EntryId ?? DefaultAnchorEntryId)) ?? Anchors.FirstOrDefault();
+
+    private void Load(TokenCondition condition)
+    {
+        _selected = _options.FirstOrDefault(d => d != Custom && d.Key == condition.Key) ?? Custom;
+        _label = condition.Label;
+        _level = condition.Level ?? 1;
+        _rounds = condition.Duration is { } duration && !condition.Expired ? duration.TurnsLeft.ToString() : string.Empty;
+    }
+
+    private void Choose(ConditionDefinition definition)
+    {
+        _selected = definition;
+        _level = 1;
+        _error = null;
+    }
+
+    private Task Save()
+    {
+        var label = IsCustom ? _label.Trim() : _selected.Label;
+        if (label.Length == 0) return Fail("Escribe el nombre del estado");
+
+        int? rounds = null;
+        if (InCombat && !string.IsNullOrWhiteSpace(_rounds))
+        {
+            if (!int.TryParse(_rounds.Trim(), out var n) || n < 1) return Fail("Las rondas son un número entero positivo");
+            rounds = n;
+        }
+
+        int? level = _selected.MaxLevel is { } max ? Math.Clamp(_level, 1, max) : null;
+        var anchor = rounds is null ? null : _anchor?.EntryId;
+        return OnSave.InvokeAsync(new ConditionDraft(IsCustom ? null : _selected.Key, label, level, rounds, anchor));
+    }
+
+    private Task Fail(string message)
+    {
+        _error = message;
+        return Task.CompletedTask;
+    }
+}

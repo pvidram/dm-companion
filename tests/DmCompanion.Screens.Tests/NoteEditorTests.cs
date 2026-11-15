@@ -30,8 +30,12 @@ public sealed class NoteEditorTests : BunitContext, IAsyncLifetime
         Services.AddScoped<ShellState>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
+        Services.AddScoped<TurnStripInterop>();
+        Services.AddScoped<DragPanelInterop>();
         Services.AddScoped<WikilinkInterop>();
     }
 

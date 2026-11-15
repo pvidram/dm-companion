@@ -1,0 +1,6 @@
+<span class="ds-save-indicator" role="status" aria-label="@Label" title="@Label"><Icon Name="IconName.Save" /></span>
+
+@code {
+    /// <summary>Texto para lectores de pantalla (y como tooltip). El icono parpadea; con reducción de movimiento queda fijo.</summary>
+    [Parameter] public string Label { get; set; } = "Guardando…";
+}

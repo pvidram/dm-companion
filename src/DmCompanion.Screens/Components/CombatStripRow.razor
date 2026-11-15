@@ -1,0 +1,84 @@
+@using DmCompanion.Core.GameSystems
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.Maps
+
+<li class="@RowClass" data-entry-id="@Entry.Id" data-testid="strip-row" aria-current="@(IsCurrent ? "true" : null)">
+    <span class="@HandleClass" data-testid="strip-handle" aria-hidden="true">⋮⋮</span>
+    <button type="button" class="combat-strip__select" data-testid="strip-select" @onclick="OnSelect">
+        <TokenAvatar Name="@Name" Faction="@Faction" />
+        <span class="combat-strip__name" data-testid="strip-name">@Name</span>
+        <span class="combat-strip__initiative ds-numeric" data-testid="strip-initiative">@(Entry.Initiative?.ToString() ?? StatFormat.Dash)</span>
+        <span class="combat-strip__hp ds-numeric" data-testid="strip-hp">@HpText</span>
+        @if (Token is { TempHp: > 0 } temp)
+        {
+            <span class="combat-strip__temp ds-numeric" data-testid="strip-temp">+@temp.TempHp</span>
+        }
+    </button>
+    <IconButton Icon="IconName.Ellipsis" Label="@($"Acciones de {Name}")" Disabled="!CanEdit" IsPressed="MenuOpen"
+                data-testid="strip-menu" OnClick="OnToggleMenu" />
+    @if (MenuOpen)
+    {
+        <div class="combat-strip__menu" role="group" aria-label="@($"Acciones de {Name}")">
+            <Button data-testid="menu-set-current" OnClick="OnSetCurrent">Pasar el turno aquí</Button>
+            <Button data-testid="menu-up" Disabled="IsFirst" OnClick="OnMoveUp">Subir</Button>
+            <Button data-testid="menu-down" Disabled="IsLast" OnClick="OnMoveDown">Bajar</Button>
+            <Button data-testid="menu-dead" Disabled="@(Token is null)" OnClick="OnToggleDead">@(Token?.IsDead == true ? "Revivir" : "Marcar como muerto")</Button>
+            <Button data-testid="menu-remove" Variant="ButtonVariant.Damage" OnClick="OnRemove">Sacar del combate</Button>
+        </div>
+    }
+    @if (Token is { } token)
+    {
+        <ConditionChips Conditions="token.ConditionList" OnRemove="@(CanEdit ? OnRemoveCondition : default)" OnEdit="@(CanEdit ? OnEditCondition : default)" />
+        @Editor
+        @if (ShowDeathSaves)
+        {
+            <DeathSavesControl Value="token.DeathSaves" Disabled="!CanEdit" OnChanged="OnDeathSaves" />
+        }
+    }
+</li>
+
+@code {
+    [Parameter, EditorRequired] public CombatEntry Entry { get; set; } = default!;
+    [Parameter] public MapToken? Token { get; set; }
+    /// <summary>Máximo de HP; null si no se conoce.</summary>
+    [Parameter] public int? Max { get; set; }
+    [Parameter] public bool IsCurrent { get; set; }
+    [Parameter] public bool IsSelected { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool IsFirst { get; set; }
+    [Parameter] public bool IsLast { get; set; }
+    [Parameter] public bool MenuOpen { get; set; }
+    [Parameter] public EventCallback OnSelect { get; set; }
+    [Parameter] public EventCallback OnToggleMenu { get; set; }
+    [Parameter] public EventCallback OnSetCurrent { get; set; }
+    [Parameter] public EventCallback OnMoveUp { get; set; }
+    [Parameter] public EventCallback OnMoveDown { get; set; }
+    [Parameter] public EventCallback OnRemove { get; set; }
+    [Parameter] public EventCallback OnToggleDead { get; set; }
+    [Parameter] public bool ShowDeathSaves { get; set; }
+    /// <summary>Recibe el id del estado que se quita.</summary>
+    [Parameter] public EventCallback<string> OnRemoveCondition { get; set; }
+    /// <summary>Recibe el id del estado que se quiere editar.</summary>
+    [Parameter] public EventCallback<string> OnEditCondition { get; set; }
+    /// <summary>Editor de estado abierto bajo los chips, si lo hay.</summary>
+    [Parameter] public RenderFragment? Editor { get; set; }
+    [Parameter] public EventCallback<DeathSaves> OnDeathSaves { get; set; }
+
+    private string Name => Token?.Name ?? StatFormat.Dash;
+    private Faction Faction => Token is null ? Faction.Enemy : TokenSideMapping.ToFaction(Token.Side);
+
+    // «—» solo si no hay valor actual; sin máximo conocido se muestra el actual sin «/máx».
+    private string HpText => Token is null ? StatFormat.Dash
+        : Max is { } max ? $"{Math.Min(Token.HpCurrent ?? max, max)}/{max}"
+        : Token.HpCurrent?.ToString() ?? StatFormat.Dash;
+
+    // Sin la clase `combat-strip__handle` el arrastre (turn-strip.js) no arranca.
+    private string HandleClass => CanEdit ? "combat-strip__grip combat-strip__handle" : "combat-strip__grip combat-strip__grip--disabled";
+
+    private string RowClass =>
+        "combat-strip__row"
+        + (IsCurrent ? " combat-strip__row--current ds-initiative--current" : string.Empty)
+        + (IsSelected ? " combat-strip__row--selected" : string.Empty)
+        + (Token is not null && HitPointOps.IsDown(Token) ? " combat-strip__row--down" : string.Empty)
+        + (Token is { IsDead: true } ? " combat-strip__row--dead" : string.Empty);
+}

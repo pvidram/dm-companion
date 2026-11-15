@@ -128,13 +128,15 @@ public sealed class MapsPanelTests : MapsTestContext
         var cut = RenderOpenMaps();
         cut.Find("button[aria-label='Renombrar Cueva']").Click();
         cut.WaitForAssertion(() => OpenDialog(cut).QuerySelector("input[type=text]")!.GetAttribute("value").Should().Be("Cueva"), Wait);
-        OpenDialog(cut).QuerySelector("input[type=text]")!.Input("Gruta");
+        cut.WaitForAssertion(() => OpenDialog(cut).QuerySelector("input[type=text]")!.Input("Gruta"), Wait);
         // Un re-render tardío (recarga del catálogo, watcher) entre Input y Click puede retirar el manejador o pisar el valor: se espera a que el campo lo refleje.
         cut.WaitForAssertion(() => OpenDialog(cut).QuerySelector("input[type=text]")!.GetAttribute("value").Should().Be("Gruta"), Wait);
 
         cut.WaitForAssertion(() => OpenDialog(cut).QuerySelector("button.ds-button--primary")!.Click(), Wait);
 
-        cut.WaitForAssertion(() => File.Exists(PathOf("Mapas/Gruta.md")).Should().BeTrue(), Wait);
+        // El fichero nuevo aparece al mover, pero el renombrado aún reescribe la nota: hasta que el diálogo se cierra la operación no ha terminado y liberar la carpeta temporal antes la pisa.
+        cut.WaitForAssertion(() => OpenDialogText(cut).Should().BeEmpty(), Wait);
+        File.Exists(PathOf("Mapas/Gruta.md")).Should().BeTrue();
     }
 
     [Fact]

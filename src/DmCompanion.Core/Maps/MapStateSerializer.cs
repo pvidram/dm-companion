@@ -41,8 +41,13 @@ public static class MapStateSerializer
                 return Invalid();
             }
 
-            var status = state.Version > MapState.CurrentVersion ? MapStateReadStatus.FutureVersion : MapStateReadStatus.Ok;
-            return new MapStateReadResult(state, status);
+            if (state.Version > MapState.CurrentVersion)
+            {
+                return new MapStateReadResult(MapStateRepair.Normalize(state), MapStateReadStatus.FutureVersion);
+            }
+
+            var (repaired, repairs) = MapStateRepair.Repair(state with { Version = MapState.CurrentVersion });
+            return new MapStateReadResult(repaired, MapStateReadStatus.Ok, repairs);
         }
         catch (JsonException)
         {

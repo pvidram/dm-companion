@@ -1,0 +1,84 @@
+@inherits DmComponentBase
+@using Microsoft.Extensions.Logging
+@inject CombatController Combat
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject ILogger<CombatStripBar> Log
+
+@* Tira retraída: va en la franja superior del marco (slot Strip), no sobre el mapa. La expandida es CombatStrip. *@
+@if (Combat.State is { } state && !Combat.StripExpanded)
+{
+    var edit = Combat.CanEdit;
+    <section class="combat-strip combat-strip--collapsed" data-testid="combat-strip" aria-label="Combate">
+        <IconButton Icon="IconName.ChevronRight" Label="Expandir la tira de turnos" class="combat-strip__toggle"
+                    data-testid="strip-toggle" OnClick="Expand" />
+        <span class="combat-strip__round" data-testid="strip-round">Ronda @state.Round</span>
+        <CombatStripCompact Entries="state.Entries" Tokens="Session.Editor?.State.Tokens ?? []" CurrentEntryId="@state.CurrentEntryId" OnTap="OpenCardAsync" />
+        <IconButton Icon="IconName.Undo2" Label="Deshacer en el combate" Disabled="!Combat.CanUndo" class="combat-strip__undo"
+                    data-testid="undo" OnClick="Combat.Undo" />
+        <IconButton Icon="IconName.History" Label="Historial del combate" IsPressed="Shell.HistoryOpen" class="combat-strip__history"
+                    data-testid="history-toggle" OnClick="Shell.ToggleHistory" />
+        <IconButton Icon="IconName.SkipForward" Label="Siguiente turno" Disabled="!edit" class="combat-strip__next"
+                    data-testid="next-turn" OnClick="Combat.NextTurn" />
+    </section>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Combat.Changed += OnCombatChanged;
+    }
+
+    // El historial flotante es de la tira retraída: al expandirla se cierra.
+    private void Expand()
+    {
+        Shell.CloseHistory();
+        Combat.StripExpanded = true;
+    }
+
+    // La tarjeta se abre junto al toque (la tira se desplaza y las casillas varían de ancho), dentro del área del mapa.
+    private async Task OpenCardAsync(StripTap tap)
+    {
+        try
+        {
+            var area = await Canvas.HostRectAsync();
+            await InvokeAsync(() =>
+            {
+                if (Combat.State?.Entries.ElementAtOrDefault(tap.Index) is not { } entry) return;
+                var (x, y) = area is { } a
+                    ? TokenPlacement.CardPositionNear(tap.ClientX - a.Left, tap.ClientY - a.Top, a.Width, a.Height)
+                    : (Math.Max(TokenPlacement.CardMargin, tap.ClientX), TokenPlacement.CardMargin);
+                Shell.OpenTokenCard(new TokenCardRequest(entry.TokenId, x, y));
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el toque.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al abrir la tarjeta del token ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    private void OnCombatChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+    }
+
+    public override void Dispose()
+    {
+        Combat.Changed -= OnCombatChanged;
+        base.Dispose();
+    }
+}

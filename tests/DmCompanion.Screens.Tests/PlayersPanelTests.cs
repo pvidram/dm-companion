@@ -31,6 +31,8 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
         Services.AddScoped<WikilinkInterop>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);

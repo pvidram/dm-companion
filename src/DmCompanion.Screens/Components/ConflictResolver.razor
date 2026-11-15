@@ -78,9 +78,9 @@
     {
         var read = MapStateSerializer.Read(json);
         var when = written is { } w ? $"modificado el {w.ToLocalTime():dd/MM/yyyy HH:mm}" : "fecha desconocida";
-        return read.Status == MapStateReadStatus.Invalid
-            ? $"estado no válido, {when}"
-            : $"{Count(read.State.Tokens.Count, "token", "tokens")}, {Count(read.State.Strokes.Count, "trazo", "trazos")}, {when}";
+        if (read.Status == MapStateReadStatus.Invalid) return $"estado no válido, {when}";
+        var combat = read.State.Combat is { } c ? $", combate en ronda {c.Round}" : string.Empty;
+        return $"{Count(read.State.Tokens.Count, "token", "tokens")}, {Count(read.State.Strokes.Count, "trazo", "trazos")}{combat}, {when}";
     }
 
     private static string Count(int n, string singular, string plural) => $"{n} {(n == 1 ? singular : plural)}";

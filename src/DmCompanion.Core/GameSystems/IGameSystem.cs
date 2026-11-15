@@ -13,6 +13,9 @@ public interface IGameSystem
     /// <summary>De dónde sale el máximo de vida de una nota en este sistema.</summary>
     HitPointsRule HitPoints { get; }
 
+    /// <summary>Reglas de combate del sistema (condiciones, vida temporal, concentración).</summary>
+    ICombatRules Combat { get; }
+
     StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter);
 
     /// <summary>Bloque YAML "stats:" (y claves hermanas) para plantillas pc/npc.</summary>

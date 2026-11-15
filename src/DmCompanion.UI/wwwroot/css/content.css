@@ -27,5 +27,24 @@
 .ds-empty__title { margin: 0; font-family: var(--font-heading); font-size: var(--font-size-h3); color: var(--text-ink); }
 
 .ds-notice { padding: var(--space-2) var(--space-3); border-left: 4px solid var(--text-ink-secondary); border-radius: var(--radius-control); background-color: var(--surface-sheet-sunken); color: var(--text-ink); }
+/* Con ✕: el contenido ocupa el ancho y el botón se queda arriba a la derecha. */
+.ds-notice--closable { display: flex; align-items: flex-start; gap: var(--space-2); }
+.ds-notice__body { flex: 1; min-width: 0; }
 .ds-notice--warning { border-left-color: var(--accent-on-sheet); }
 .ds-notice--error { border-left-color: var(--text-damage); color: var(--text-damage); font-weight: 600; }
+
+/* Guardado pendiente: parpadeo suave de opacidad; fijo si se pide menos movimiento. */
+.ds-save-indicator {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: var(--space-1); border-radius: var(--radius-control);
+    background-color: color-mix(in srgb, var(--surface-sheet-sunken) 85%, transparent);
+    color: var(--text-ink-secondary);
+    animation: ds-save-blink 1.2s ease-in-out infinite alternate;
+}
+@keyframes ds-save-blink {
+    from { opacity: 1; }
+    to { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ds-save-indicator { animation: none; }
+}

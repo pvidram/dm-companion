@@ -31,8 +31,12 @@ public sealed class ConflictTests : BunitContext, IAsyncLifetime
         Services.AddScoped<ShellState>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
+        Services.AddScoped<TurnStripInterop>();
+        Services.AddScoped<DragPanelInterop>();
         Services.AddScoped<WikilinkInterop>();
     }
 
@@ -225,6 +229,31 @@ public sealed class ConflictTests : BunitContext, IAsyncLifetime
             texts[0].Should().StartWith("1 token, 0 trazos, modificado el ");
             texts[1].Should().StartWith("0 tokens, 2 trazos, modificado el ");
             Resolver(cut).QuerySelectorAll("pre").Should().BeEmpty();
+        }, Timeout);
+    }
+
+    [Fact]
+    public async Task A_map_state_conflict_summary_mentions_combat_round()
+    {
+        const string State = "Mapas/cripta.state.json";
+        const string StateCopy = "Mapas/cripta.sync-conflict-20261103-101500-ABCDEF1.state.json";
+        Directory.CreateDirectory(Path.GetDirectoryName(_vault.PathOf(State))!);
+        File.WriteAllText(_vault.PathOf(State), "{\"version\":2,\"tokens\":[{\"id\":\"a\",\"name\":\"Goblin\",\"side\":\"enemy\",\"size\":1,\"x\":1,\"y\":1}],\"strokes\":[],\"combat\":{\"round\":2,\"currentEntryId\":\"e1\",\"entries\":[{\"id\":\"e1\",\"tokenId\":\"a\",\"initiative\":10,\"phase\":null}]}}");
+        File.WriteAllText(_vault.PathOf(StateCopy), "{\"version\":2,\"tokens\":[],\"strokes\":[]}");
+        await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+        var cut = Render<DmShell>();
+        cut.WaitForAssertion(() => cut.FindAll("button").First(b => b.TextContent.Trim() == "Revisar"), Timeout);
+        await cut.InvokeAsync(() => Shell.OpenConflicts());
+        cut.WaitForAssertion(() => Resolver(cut).TextContent.Should().Contain(CopyText), Timeout);
+        var select = Resolver(cut).QuerySelector("select")!;
+        select.Change(select.QuerySelectorAll("option").First(o => o.TextContent == State).GetAttribute("value"));
+
+        cut.WaitForAssertion(() =>
+        {
+            var texts = Resolver(cut).QuerySelectorAll("section p").Select(p => p.TextContent).ToList();
+            texts.Should().HaveCount(2);
+            texts[0].Should().StartWith("1 token, 0 trazos, combate en ronda 2, modificado el ");
+            texts[1].Should().StartWith("0 tokens, 0 trazos, modificado el ");
         }, Timeout);
     }
 }

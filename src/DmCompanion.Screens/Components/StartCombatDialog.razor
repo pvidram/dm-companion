@@ -1,0 +1,115 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.Maps
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@inject MapSession Session
+@inject CombatController Combat
+
+<Dialog Title="Empezar combate" IsOpen="@Shell.StartCombatOpen" OnClose="Shell.CloseStartCombat">
+    <ChildContent>
+        @if (Combat.CanRecover && !Combat.IsActive)
+        {
+            <Button data-testid="recover-combat" OnClick="Recover">Recuperar el combate anterior</Button>
+        }
+        @foreach (var token in Tokens())
+        {
+            var included = IsIncluded(token.Id);
+            <div @key="token.Id" class="start-combat__row" data-testid="combat-token" data-name="@token.Name">
+                <Checkbox Label="@token.Name" Value="included" ValueChanged="@(on => SetIncluded(token.Id, on))" />
+                @if (included)
+                {
+                    <label class="ds-field">
+                        <span class="ds-field__label">@token.Name</span>
+                        <input class="ds-field__input" type="text" inputmode="numeric" enterkeyhint="next"
+                               aria-invalid="@(HasError(token.Id) ? "true" : null)" value="@TextOf(token.Id)"
+                               @ref="_refs[token.Id]" @oninput="e => _texts[token.Id] = e.Value?.ToString() ?? string.Empty"
+                               @onkeydown="e => OnKeyDownAsync(e, token.Id)" />
+                    </label>
+                    @if (HasError(token.Id))
+                    {
+                        <InlineNotice Kind="NoticeKind.Error">@InitiativeText.Error</InlineNotice>
+                    }
+                }
+            </div>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="@(!Tokens().Any(t => IsIncluded(t.Id)))" OnClick="StartCombat">Empezar</Button>
+        <Button OnClick="Shell.CloseStartCombat">Cancelar</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private readonly HashSet<string> _excluded = [];
+    private readonly Dictionary<string, string> _texts = [];
+    private readonly Dictionary<string, ElementReference> _refs = [];
+    private bool _attempted;
+    private bool _wasOpen;
+
+    private IReadOnlyList<MapToken> Tokens() => Session.Editor?.State.Tokens ?? [];
+
+    private bool IsIncluded(string id) => !_excluded.Contains(id);
+
+    private void SetIncluded(string id, bool on)
+    {
+        if (on) _excluded.Remove(id);
+        else _excluded.Add(id);
+    }
+
+    private string TextOf(string id) => _texts.GetValueOrDefault(id, string.Empty);
+
+    private bool HasError(string id) => _attempted && !TryParse(TextOf(id), out _);
+
+    // Cada vez que se abre el diálogo se parte de todos marcados y sin números.
+    protected override void OnVaultChanged()
+    {
+        if (Shell.StartCombatOpen && !_wasOpen)
+        {
+            _excluded.Clear();
+            _texts.Clear();
+            _attempted = false;
+        }
+        _wasOpen = Shell.StartCombatOpen;
+    }
+
+    private static bool TryParse(string text, out int? value) => InitiativeText.TryParse(text, out value);
+
+    // Enter pasa al siguiente campo; en el último no hace nada (no envía).
+    private async Task OnKeyDownAsync(KeyboardEventArgs e, string id)
+    {
+        if (e.Key != "Enter") return;
+        var included = Tokens().Where(t => IsIncluded(t.Id)).Select(t => t.Id).ToList();
+        var next = included.IndexOf(id) + 1;
+        if (next == 0 || next >= included.Count || !_refs.TryGetValue(included[next], out var target)) return;
+        try
+        {
+            await target.FocusAsync();
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or ObjectDisposedException)
+        {
+            // Sin foco el campo sigue siendo tocable.
+        }
+    }
+
+    private void Recover()
+    {
+        Combat.Recover();
+        Shell.CloseStartCombat();
+    }
+
+    private void StartCombat()
+    {
+        if (!Combat.CanEdit || Combat.IsActive) return;
+        _attempted = true;
+        var entries = new List<InitiativeEntry>();
+        foreach (var token in Tokens().Where(t => IsIncluded(t.Id)))
+        {
+            if (!TryParse(TextOf(token.Id), out var initiative)) return;
+            entries.Add(new InitiativeEntry(token.Id, initiative));
+        }
+        if (entries.Count == 0) return;
+        Combat.Start(entries);
+        Shell.CloseStartCombat();
+    }
+}

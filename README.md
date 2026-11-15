@@ -120,8 +120,11 @@ scripts/publish-desktop.sh   # genera dist/dm_companion_pc.zip (win-x64, autocon
 
 `dist/` no se commitea.
 
+**Aviso:** la fase 3 sube el `.state.json` del mapa a la versión 2. Una app anterior lo abre en solo lectura, así que conviene actualizar todas las instalaciones (tablet y PC) que compartan vault.
+
 ## Documentación
 
 - Diseño: [docs/design/2026-11-03-dm-companion-design.md](docs/design/2026-11-03-dm-companion-design.md)
 - Fase 2 (mapa): [spec](docs/design/2026-11-12-fase-2-mapa-design.md)
+- Fase 3 (combate): [spec](docs/design/2026-11-13-fase-3-combate-design.md)
 - Design system: [docs/design/2026-11-03-design-system-design.md](docs/design/2026-11-03-design-system-design.md)

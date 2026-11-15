@@ -95,6 +95,20 @@ public class OverlayTests : UiTestContext
     }
 
     [Fact]
+    public void Draggable_quick_card_marks_its_header_as_the_handle()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.Draggable, true));
+        cut.Find(".ds-parchment__header").HasAttribute("data-drag-handle").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Quick_card_is_not_draggable_by_default()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin"));
+        cut.Find(".ds-parchment__header").HasAttribute("data-drag-handle").Should().BeFalse();
+    }
+
+    [Fact]
     public void Escape_closes_the_quick_card()
     {
         var closed = false;

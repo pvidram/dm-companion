@@ -1,17 +1,23 @@
 @inherits DmComponentBase
 @using DmCompanion.Core.Maps
+@using DmCompanion.Screens.Platform
 @using Microsoft.Extensions.Logging
 @inject MapSession Session
 @inject MapCanvasInterop Canvas
 @inject ILogger<MapControls> Log
+@inject CombatController Combat
+@inject IAppPreferences Prefs
 
-@if (Session.Editor is { } editor)
+@* Durante el ajuste con los dedos la barra entera se oculta (sin tocar la preferencia de plegado): nada de ella puede mutar el mapa y cancelarlo. *@
+@if (Session.Editor is { } editor && !Canvas.GridAdjusting)
 {
     var grid = editor.State.Grid;
     var readOnly = Session.IsReadOnly;
     var mode = EffectiveMode;
     var tool = Canvas.Tool;
-    <MapToolbar Label="Herramientas del mapa" Edge="MapToolbarEdge.Right" class="map-controls">
+    <MapToolbar Label="Herramientas del mapa" Edge="MapToolbarEdge.Bottom" class="@("map-controls" + (_toolbarVisible ? string.Empty : " map-controls--folded"))">
+        @if (_toolbarVisible)
+        {
         <MapToolbarGroup Label="Modo">
             <IconButton Icon="IconName.Hand" Label="Navegar" IsPressed="@(mode == MapMode.Navigate)" OnClick="() => SetModeAsync(MapMode.Navigate)" />
             @if (!readOnly)
@@ -45,8 +51,8 @@
             </MapToolbarGroup>
             <MapToolbarGroup Label="Trazos">
                 <IconButton Icon="IconName.Eraser" Label="Goma" IsPressed="@tool.Eraser" OnClick="() => ChooseAsync(tool with { Eraser = !tool.Eraser })" />
-                <IconButton Icon="IconName.Undo2" Label="Deshacer" Disabled="@(!editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
-                <IconButton Icon="IconName.Redo2" Label="Rehacer" Disabled="@(!editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
+                <IconButton Icon="IconName.Undo2" Label="Deshacer trazo" Disabled="@(!editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
+                <IconButton Icon="IconName.Redo2" Label="Rehacer trazo" Disabled="@(!editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
             </MapToolbarGroup>
         }
 
@@ -64,9 +70,24 @@
             }
             <IconButton Icon="IconName.Maximize" Label="Ajustar a pantalla" OnClick="() => Canvas.FitAsync()" />
         </MapToolbarGroup>
+
+        @if (!readOnly && !Combat.IsActive)
+        {
+            <MapToolbarGroup Label="Combate">
+                <IconButton Icon="IconName.Swords" Label="Empezar combate" OnClick="Shell.OpenStartCombat" />
+            </MapToolbarGroup>
+        }
+        }
+
+        @* Siempre visible, al extremo derecho de la barra; plegada, la barra queda reducida a este botón en la esquina. *@
+        <MapToolbarGroup Label="Barra" class="map-controls__toggle-group">
+            <IconButton Icon="IconName.ChevronRight" Label="@(_toolbarVisible ? "Ocultar la barra de herramientas" : "Mostrar la barra de herramientas")"
+                        class="@("map-controls__toggle" + (_toolbarVisible ? " map-controls__toggle--open" : string.Empty))"
+                        aria-expanded="@Pressed(_toolbarVisible)" OnClick="ToggleToolbar" />
+        </MapToolbarGroup>
     </MapToolbar>
 
-    @if (_gridOpen && !readOnly)
+    @if (_toolbarVisible && _gridOpen && !readOnly)
     {
         <div class="map-controls__panel" role="group" aria-label="Ajustes de la cuadrícula">
             <NumberStepper Label="Tamaño de casilla" Unit="px" Min="MinCell" Max="MaxCell" Value="grid.CellSize"
@@ -75,6 +96,7 @@
                            ValueChanged="x => ChangeGrid(g => g with { OffsetX = x })" />
             <NumberStepper Label="Desplazamiento Y" Unit="px" Min="0" Max="grid.CellSize" Value="grid.OffsetY"
                            ValueChanged="y => ChangeGrid(g => g with { OffsetY = y })" />
+            <Button Disabled="@(Combat.IsActive || !grid.Enabled)" OnClick="BeginAdjustAsync">Ajustar con los dedos</Button>
         </div>
     }
 }
@@ -85,13 +107,16 @@
     private static readonly string[] ColorNames = ["Tinta", "Rojo", "Azul", "Verde", "Latón", "Hueso"];
     public static readonly IReadOnlyList<double> Widths = [3, 6, 12];
 
-    private const double MinCell = 20;
-    private const double MaxCell = 200;
+    private const double MinCell = MapCanvasInterop.MinCellSize;
+    private const double MaxCell = MapCanvasInterop.MaxCellSize;
 
     /// <summary>«Añadir token» de la barra; lo conecta el diálogo de la Task 10.</summary>
     [Parameter] public EventCallback OnAddToken { get; set; }
 
+    private const string ToolbarVisibleKey = "map.toolbar.visible";
+
     private bool _gridOpen;
+    private bool _toolbarVisible = true;
 
     // En solo lectura no se dibuja: aunque se recordara Dibujar, se muestra y se comporta como Navegar.
     private MapMode EffectiveMode => Session.IsReadOnly && Canvas.Mode == MapMode.Draw ? MapMode.Navigate : Canvas.Mode;
@@ -99,12 +124,15 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        _toolbarVisible = Prefs.Get(ToolbarVisibleKey) != "false";
         Session.Changed += OnSessionChanged;
+        Canvas.GridAdjustChanged += OnSessionChanged;
     }
 
     public override void Dispose()
     {
         Session.Changed -= OnSessionChanged;
+        Canvas.GridAdjustChanged -= OnSessionChanged;
         base.Dispose();
     }
 
@@ -125,6 +153,21 @@
         {
             Log.LogError("Fallo al refrescar la barra del mapa ({ExceptionType}).", ex.GetType().FullName);
         }
+    }
+
+    // Plegar no toca el modo activo; solo cierra los desplegables de la barra.
+    private void ToggleToolbar()
+    {
+        _toolbarVisible = !_toolbarVisible;
+        if (!_toolbarVisible) _gridOpen = false;
+        Prefs.Set(ToolbarVisibleKey, _toolbarVisible ? "true" : "false");
+    }
+
+    // El ajuste ocupa el mapa: el panel se cierra y sus valores, al reabrirlo, son los vigentes.
+    private async Task BeginAdjustAsync()
+    {
+        _gridOpen = false;
+        await Canvas.BeginGridAdjustAsync();
     }
 
     private Task SetModeAsync(MapMode mode) => Canvas.SetModeAsync(mode, Canvas.Tool);

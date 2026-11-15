@@ -33,10 +33,16 @@ public sealed class MapCanvasInterop(
     VaultFileUrls urls,
     VaultHost host,
     PortraitUrlProvider portraits,
-    ILogger<MapCanvasInterop> logger) : IAsyncDisposable
+    ShellState shell,
+    ILogger<MapCanvasInterop> logger,
+    CombatController? combat = null) : IAsyncDisposable
 {
     /// <summary>Lado mayor máximo (px) que el WebView de la tablet pinta sin fallar; ver la prueba de la Task 0.</summary>
     public const int MaxImageSide = 8192;
+
+    /// <summary>Límites del tamaño de casilla: los de los campos numéricos de la barra y los del pellizco.</summary>
+    public const double MinCellSize = 20;
+    public const double MaxCellSize = 200;
 
     private const double MinStrokeWidth = 1;
     private const double MaxStrokeWidth = 100;
@@ -49,6 +55,16 @@ public sealed class MapCanvasInterop(
     // Estado y modo que se enviaron la última vez: un guardado o un aviso no cambian el State y no repintan.
     private MapState? _paintedState;
     private bool _paintedReadOnly;
+    private string? _paintedSelectedId;
+    private bool _subscribed;
+    // Estado del mapa al empezar el ajuste de la cuadrícula: si cambia por otra vía (recarga externa), se cancela.
+    private MapState? _adjustBase;
+
+    /// <summary>Hay un ajuste de la cuadrícula con los dedos en curso (el mapa no hace pan ni zoom y el lápiz no pinta).</summary>
+    public bool GridAdjusting { get; private set; }
+
+    /// <summary>Entra o sale del modo de ajuste de la cuadrícula; lo consume la franja «Ajustando cuadrícula».</summary>
+    public event EventHandler? GridAdjustChanged;
 
     /// <summary>Lo consume la tarjeta rápida del token.</summary>
     public event EventHandler<TokenTappedEventArgs>? TokenTapped;
@@ -59,11 +75,13 @@ public sealed class MapCanvasInterop(
         try
         {
             if (await BuildDtoAsync() is not { } built) return;
+            SetGridAdjusting(false); // un lienzo nuevo nace sin ajuste
             _self ??= DotNetObjectReference.Create(this);
+            Subscribe();
             _loaded = await TryInvokeAsync("mapCanvas.load", hostElement, built.Dto, _self);
             if (!_loaded) return;
             // Se recuerda lo que se envió, no lo vigente: un Mutate durante BuildDtoAsync debe repintarse después.
-            (_paintedState, _paintedReadOnly) = (built.State, built.ReadOnly);
+            (_paintedState, _paintedReadOnly, _paintedSelectedId) = (built.State, built.ReadOnly, built.SelectedId);
             // Un lienzo nuevo nace en Navegar: si la barra ya tenía otro modo, se le vuelve a decir.
             if (Mode != MapMode.Navigate) await TryInvokeAsync("mapCanvas.setMode", Mode.ToString(), Tool);
         }
@@ -80,9 +98,10 @@ public sealed class MapCanvasInterop(
         try
         {
             if (!_loaded || session.Editor?.State is not { } state) return;
-            if (ReferenceEquals(state, _paintedState) && session.IsReadOnly == _paintedReadOnly) return;
+            if (ReferenceEquals(state, _paintedState) && session.IsReadOnly == _paintedReadOnly
+                && shell.SelectedCombatTokenId == _paintedSelectedId) return;
             if (await BuildDtoAsync() is not { } built) return;
-            (_paintedState, _paintedReadOnly) = (built.State, built.ReadOnly);
+            (_paintedState, _paintedReadOnly, _paintedSelectedId) = (built.State, built.ReadOnly, built.SelectedId);
             await TryInvokeAsync("mapCanvas.render", built.Dto);
         }
         finally
@@ -103,6 +122,57 @@ public sealed class MapCanvasInterop(
 
     public Task FitAsync() => InvokeLoadedAsync("mapCanvas.fit");
 
+    /// <summary>Empieza el ajuste de la cuadrícula con los dedos. No hace nada en solo lectura ni sin lienzo cargado.</summary>
+    public async Task BeginGridAdjustAsync()
+    {
+        if (GridAdjusting || session.IsReadOnly || combat is { IsActive: true }) return;
+        await _gate.WaitAsync();
+        try
+        {
+            // El JS tiene la cuadrícula del último estado pintado: esa es la base con la que se compara.
+            if (!_loaded || GridAdjusting || _paintedState is not { } painted) return;
+            if (!await TryInvokeAsync("mapCanvas.beginGridAdjust", MinCellSize, MaxCellSize)) return;
+            _adjustBase = painted;
+            SetGridAdjusting(true);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Termina el ajuste. Con <paramref name="commit"/> guarda la cuadrícula ajustada en una sola mutación; si no, la descarta.
+    /// Lo que devuelve el JS se valida igual que un campo numérico: va al `.state.json`.
+    /// </summary>
+    public async Task FinishGridAdjustAsync(bool commit)
+    {
+        if (!GridAdjusting) return;
+        SetGridAdjusting(false);
+        var adjusted = await QueryLoadedAsync("mapCanvas.endGridAdjust", 3, commit);
+        if (!commit || adjusted is not [var rawSize, var rawX, var rawY])
+        {
+            if (commit) await RepaintAsync(); // Hecho sin valor del JS: se vuelve a la cuadrícula real
+            return;
+        }
+        // Un decimal, como las posiciones de los tokens: el pellizco da tamaños como 73,2846…
+        var (size, offsetX, offsetY) = (Math.Round(rawSize, 1), Math.Round(rawX, 1), Math.Round(rawY, 1));
+        var saved = false;
+        if (size is >= MinCellSize and <= MaxCellSize && offsetX is >= 0 && offsetY is >= 0 && offsetX <= size && offsetY <= size)
+        {
+            session.Mutate(editor =>
+            {
+                var current = editor.State.Grid;
+                var next = current with { CellSize = size, OffsetX = offsetX, OffsetY = offsetY };
+                if (next == current || !MapStateSerializer.IsValidGrid(next)) return false;
+                editor.SetGrid(next);
+                return saved = true;
+            });
+        }
+        // Si no se guardó nada (rechazada o sin cambios), el JS puede haber conservado la cuadrícula ajustada: se fuerza el repintado.
+        if (!saved) await RepaintAsync();
+    }
+
     /// <summary>Centro de la vista en coordenadas del mapa; null si no hay lienzo cargado o la respuesta no es válida.</summary>
     public async Task<(double X, double Y)?> ViewCenterAsync() =>
         await QueryLoadedAsync("mapCanvas.viewCenter", 2) is [var x, var y] ? (x, y) : null;
@@ -119,6 +189,7 @@ public sealed class MapCanvasInterop(
         await _gate.WaitAsync();
         try
         {
+            SetGridAdjusting(false);
             if (!_loaded) return;
             _loaded = false;
             await TryInvokeAsync("mapCanvas.dispose");
@@ -176,8 +247,59 @@ public sealed class MapCanvasInterop(
 
     public async ValueTask DisposeAsync()
     {
+        if (_subscribed)
+        {
+            shell.Changed -= OnShellChanged;
+            session.Changed -= OnSessionChanged;
+        }
+        _subscribed = false;
         await UnloadAsync();
         _self?.Dispose();
+    }
+
+    private async Task RepaintAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            if (!_loaded || await BuildDtoAsync() is not { } built) return;
+            (_paintedState, _paintedReadOnly, _paintedSelectedId) = (built.State, built.ReadOnly, built.SelectedId);
+            await TryInvokeAsync("mapCanvas.render", built.Dto);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private void SetGridAdjusting(bool value)
+    {
+        if (GridAdjusting == value) return;
+        GridAdjusting = value;
+        if (!value) _adjustBase = null;
+        GridAdjustChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Una recarga externa, el solo lectura o abrir otro mapa durante el ajuste lo cancelan: la cuadrícula en vivo ya no vale.
+    private void OnSessionChanged(object? sender, EventArgs e)
+    {
+        if (!GridAdjusting) return;
+        if (session.IsReadOnly || session.Editor?.State is not { } state || !ReferenceEquals(state, _adjustBase))
+            _ = FinishGridAdjustAsync(false);
+    }
+
+    // La selección del combate vive en ShellState, no en MapState: un cambio de selección repinta el lienzo.
+    private void Subscribe()
+    {
+        if (_subscribed) return;
+        shell.Changed += OnShellChanged;
+        session.Changed += OnSessionChanged;
+        _subscribed = true;
+    }
+
+    private void OnShellChanged(object? sender, EventArgs e)
+    {
+        if (_loaded && shell.SelectedCombatTokenId != _paintedSelectedId) _ = RenderAsync();
     }
 
     private async Task InvokeLoadedAsync(string identifier, params object?[] args)
@@ -194,13 +316,13 @@ public sealed class MapCanvasInterop(
     }
 
     // Consulta de lectura al lienzo: solo se acepta un array finito de la longitud esperada.
-    private async Task<double[]?> QueryLoadedAsync(string identifier, int length)
+    private async Task<double[]?> QueryLoadedAsync(string identifier, int length, params object?[] args)
     {
         await _gate.WaitAsync();
         try
         {
             if (!_loaded) return null;
-            var answer = await js.InvokeAsync<double[]?>(identifier);
+            var answer = await js.InvokeAsync<double[]?>(identifier, args);
             return answer is { } values && values.Length == length && values.All(double.IsFinite) ? values : null;
         }
         catch (JSDisconnectedException)
@@ -238,11 +360,12 @@ public sealed class MapCanvasInterop(
     }
 
     // Foto única del estado al empezar: los awaits de abajo no pueden mezclar dos estados en un mismo DTO.
-    private async Task<(object Dto, MapState State, bool ReadOnly)?> BuildDtoAsync()
+    private async Task<(object Dto, MapState State, bool ReadOnly, string? SelectedId)?> BuildDtoAsync()
     {
         if (session.Current is not { } map || session.Editor is not { } editor) return null;
         var state = editor.State;
         var readOnly = session.IsReadOnly;
+        var selectedId = shell.SelectedCombatTokenId;
         var vault = host.Current;
         // Regla de medición del sistema de juego activo (con Chebyshev: máx(Δcasillas) × cantidad).
         var unit = (vault?.ActiveSystem.Grid ?? GridRules.Feet5).DefaultUnit;
@@ -252,6 +375,7 @@ public sealed class MapCanvasInterop(
         {
             var entity = token.Source is { } source ? vault?.Index.Get(source) : null;
             var portrait = await portraits.GetAsync(entity?.Portrait);
+            var marks = TokenCombatMarks.For(state, token, selectedId);
             tokens.Add(new
             {
                 id = token.Id,
@@ -262,6 +386,12 @@ public sealed class MapCanvasInterop(
                 size = token.Size,
                 x = token.X,
                 y = token.Y,
+                down = marks.Down,
+                current = marks.Current,
+                selected = marks.Selected,
+                conditions = marks.Conditions,
+                expired = marks.Expired,
+                dead = marks.Dead,
             });
         }
 
@@ -279,7 +409,7 @@ public sealed class MapCanvasInterop(
             readOnly,
             maxImageSide = MaxImageSide,
         };
-        return (dto, state, readOnly);
+        return (dto, state, readOnly, selectedId);
     }
 
     // Si la imagen no existe se envía igualmente una URL (con mtime 0): el 404 llega al `onerror` del lienzo,

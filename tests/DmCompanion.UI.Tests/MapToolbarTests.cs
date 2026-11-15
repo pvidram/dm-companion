@@ -27,6 +27,13 @@ public class MapToolbarTests : UiTestContext
     }
 
     [Fact]
+    public void Toolbar_can_sit_on_the_bottom_edge()
+    {
+        var cut = Render<MapToolbar>(p => p.Add(x => x.Label, "Herramientas").Add(x => x.Edge, MapToolbarEdge.Bottom));
+        cut.Find(".ds-map-toolbar").ClassList.Should().Contain("ds-map-toolbar--bottom");
+    }
+
+    [Fact]
     public void Toolbar_renders_its_buttons()
     {
         var cut = Render<MapToolbar>(p => p.Add(x => x.Label, "Herramientas")

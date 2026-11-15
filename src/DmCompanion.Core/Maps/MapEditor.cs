@@ -1,3 +1,5 @@
+using DmCompanion.Core.Combat;
+
 namespace DmCompanion.Core.Maps;
 
 /// <summary>
@@ -42,14 +44,28 @@ public sealed class MapEditor(MapState initial, double width, double height, Fun
         return Replace(id, t => t with { Side = edit.Side, Size = edit.Size, Name = edit.Name, Ac = edit.Ac, Hp = edit.Hp });
     }
 
-    /// <summary>Guarda los HP actuales recortados a [0, max]; max lo pone quien llama (sale de la nota o del genérico). Sin deshacer.</summary>
-    public bool SetHp(string id, int value, int max) =>
-        Replace(id, t => t with { HpCurrent = Math.Clamp(value, 0, Math.Max(max, 0)) });
+    /// <summary>Guarda los HP actuales recortados a [0, max]; max lo pone quien llama (sale de la nota o del genérico). Al subir de 0 se ponen a cero las salvaciones de muerte. Sin deshacer.</summary>
+    public bool SetHp(string id, int value, int max)
+    {
+        if (State.Tokens.All(t => t.Id != id)) return false;
+        State = HitPointOps.SetHp(State, id, value, max);
+        return true;
+    }
 
     public bool RemoveToken(string id)
     {
         if (State.Tokens.All(t => t.Id != id)) return false;
-        State = State with { Tokens = [.. State.Tokens.Where(t => t.Id != id)] };
+        var cleaned = TurnOps.RemoveEntriesOf(State, id);
+        State = cleaned with { Tokens = [.. cleaned.Tokens.Where(t => t.Id != id)] };
+        return true;
+    }
+
+    /// <summary>Aplica una operación de combate (fuera de la pila de deshacer). Devuelve true si el estado cambió.</summary>
+    public bool ReplaceState(Func<MapState, MapState> change)
+    {
+        var next = change(State);
+        if (ReferenceEquals(next, State)) return false;
+        State = next;
         return true;
     }
 

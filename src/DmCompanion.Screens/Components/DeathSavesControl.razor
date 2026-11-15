@@ -1,0 +1,30 @@
+@using DmCompanion.Core.Combat
+
+<div class="death-saves" data-testid="death-saves" role="group" aria-label="Salvaciones de muerte">
+    <div class="death-saves__group" role="group" aria-label="Éxitos">
+        @for (var i = 1; i <= 3; i++)
+        {
+            var n = i;
+            <Checkbox Label="@($"Éxito {n}")" Value="@(Saves.Successes >= n)" Disabled="Disabled" data-testid="@($"save-success-{n}")"
+                      ValueChanged="@(on => Changed(on ? n : n - 1, Saves.Failures))" />
+        }
+    </div>
+    <div class="death-saves__group" role="group" aria-label="Fallos">
+        @for (var i = 1; i <= 3; i++)
+        {
+            var n = i;
+            <Checkbox Label="@($"Fallo {n}")" Value="@(Saves.Failures >= n)" Disabled="Disabled" data-testid="@($"save-failure-{n}")"
+                      ValueChanged="@(on => Changed(Saves.Successes, on ? n : n - 1))" />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public DeathSaves? Value { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<DeathSaves> OnChanged { get; set; }
+
+    private DeathSaves Saves => Value ?? DeathSaves.None;
+
+    private Task Changed(int successes, int failures) => OnChanged.InvokeAsync(new DeathSaves(successes, failures));
+}

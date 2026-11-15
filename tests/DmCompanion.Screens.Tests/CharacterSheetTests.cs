@@ -27,6 +27,8 @@ public sealed class CharacterSheetTests : BunitContext, IAsyncLifetime
         Services.AddScoped<WikilinkInterop>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Task.CompletedTask;

@@ -4,10 +4,13 @@
 @using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
 @inject MapSession Session
+@inject TokenHitPoints Hp
+@inject CombatController Combat
 @inject MapCanvasInterop Canvas
+@inject DragPanelInterop DragPanel
 @inject ILogger<TokenCard> Log
 
-<QuickCard Title="@(_token?.Name ?? string.Empty)" Faction="@(_token is null ? null : TokenSideMapping.ToFaction(_token.Side))"
+<QuickCard @ref="_card" Draggable="true" Title="@(_token?.Name ?? string.Empty)" Faction="@(_token is null ? null : TokenSideMapping.ToFaction(_token.Side))"
            X="@(Shell.TokenCard?.X ?? 0)" Y="@(Shell.TokenCard?.Y ?? 0)" IsOpen="@(_token is not null)" OnClose="Shell.CloseTokenCard">
     @if (_token is { } token)
     {
@@ -34,7 +37,7 @@
                 @if (Index.Get(source) is { } entity)
                 {
                     var values = ActiveSystem.Evaluate(entity.Frontmatter);
-                    @HpRow(token, ActiveSystem.HitPoints.Label, ActiveSystem.HitPoints.Max(values))
+                    @HpRow(token, ActiveSystem.HitPoints.Label, Hp.MaxFor(token))
                     <div class="ds-stats" data-testid="token-stats">
                         @foreach (var stat in QuickStats(values))
                         {
@@ -78,6 +81,8 @@
     private static readonly IReadOnlyList<TokenSide> Sides = [TokenSide.Pc, TokenSide.Ally, TokenSide.Enemy];
     private static readonly IReadOnlyList<int> Sizes = [1, 2, 3];
 
+    private QuickCard? _card;
+    private TokenCardRequest? _placed;
     private MapToken? _token;
     private string? _editingTokenId;
     private bool _editing;
@@ -201,6 +206,7 @@
         {
             <div data-testid="token-hp-notice"><InlineNotice Kind="NoticeKind.Warning">@notice</InlineNotice></div>
         }
+        <TokenCombatInfo Token="token" />
     </div>;
 
     private void StartHpEdit()
@@ -224,8 +230,14 @@
         if (!_editingHp) return;
         _editingHp = false;
         if (string.IsNullOrWhiteSpace(_hpText)) return;
-        // El token se relee dentro del Mutate: una recarga externa puede haber cambiado sus HP entre el render y el Enter.
         var text = _hpText;
+        // Con combate activo el cambio pasa por el controlador (queda en el historial); si no, se guarda directamente.
+        if (Combat.IsActive)
+        {
+            if (!Combat.SetHpFromText(token.Id, text)) _hpNotice = "Escribe un número, o con + o − para sumar o restar.";
+            return;
+        }
+        // El token se relee dentro del Mutate: una recarga externa puede haber cambiado sus HP entre el render y el Enter.
         var invalid = false;
         Session.Mutate(editor =>
         {
@@ -245,6 +257,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await PlaceAsync();
         if (!_focusHpInput) return;
         _focusHpInput = false;
         try
@@ -255,6 +268,15 @@
         {
             // Sin foco la entrada sigue funcionando: solo hay que tocar el campo.
         }
+    }
+
+    // Cada apertura (una petición nueva) vuelve a colocar la tarjeta junto al token; entre aperturas el arrastre manda.
+    private async Task PlaceAsync()
+    {
+        var request = _token is null ? null : Shell.TokenCard;
+        if (ReferenceEquals(request, _placed) || _card is null) return;
+        _placed = request;
+        if (request is not null) await DragPanel.AttachAsync(_card.Root, request.X, request.Y);
     }
 
     private static string Text(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? StatFormat.Dash;

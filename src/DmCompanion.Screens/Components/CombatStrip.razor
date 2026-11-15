@@ -1,0 +1,184 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.GameSystems
+@using DmCompanion.Core.Maps
+@using Microsoft.Extensions.Logging
+@inject CombatController Combat
+@inject MapSession Session
+@inject TokenHitPoints Hp
+@inject TurnStripInterop Drag
+@inject ILogger<CombatStrip> Log
+
+@* Solo la tira expandida (panel a la derecha del mapa); la retraída vive en la franja superior (CombatStripBar). *@
+@if (Combat.State is { } state && Combat.StripExpanded)
+{
+    var edit = Combat.CanEdit;
+    var tokens = Session.Editor?.State.Tokens ?? [];
+    <section class="combat-strip combat-strip--expanded" data-testid="combat-strip" aria-label="Combate">
+        <div class="combat-strip__sticky">
+        <header class="combat-strip__header">
+            <IconButton Icon="IconName.ChevronRight" Label="Retraer la tira de turnos"
+                        class="combat-strip__toggle" data-testid="strip-toggle" OnClick="@(() => Combat.StripExpanded = false)" />
+            <span class="combat-strip__round" data-testid="strip-round">Ronda @state.Round</span>
+            <Button Variant="ButtonVariant.Primary" Disabled="!edit" data-testid="next-turn" OnClick="Combat.NextTurn">Siguiente turno</Button>
+            <IconButton Icon="IconName.Undo2" Label="Deshacer en el combate" Disabled="!Combat.CanUndo" data-testid="undo" OnClick="Combat.Undo" />
+            <IconButton Icon="IconName.Redo2" Label="Rehacer en el combate" Disabled="!Combat.CanRedo" data-testid="redo" OnClick="Combat.Redo" />
+            <IconButton Icon="IconName.UserPlus" Label="Añadir al combate" Disabled="!edit" IsPressed="_adding"
+                        data-testid="strip-add" OnClick="@(() => _adding = !_adding)" />
+            <IconButton Icon="IconName.X" Label="Terminar combate" Disabled="!edit" data-testid="strip-end" OnClick="Shell.RequestEndCombat" />
+        </header>
+        <CombatHistoryView Log="Combat.Log" />
+        </div>
+        <CombatNotices />
+        @if (_adding && edit)
+        {
+            <div class="combat-strip__add" data-testid="strip-add-panel">
+                <label class="ds-field">
+                    <span class="ds-field__label">Iniciativa</span>
+                    <input class="ds-field__input ds-numeric" type="text" inputmode="numeric" autocomplete="off" data-testid="add-initiative"
+                           value="@_addInitiative" @oninput="@(e => (_addInitiative, _addError) = (e.Value?.ToString(), null))" />
+                </label>
+                @if (_addError is { } addError)
+                {
+                    <InlineNotice Kind="NoticeKind.Warning"><span data-testid="add-initiative-error">@addError</span></InlineNotice>
+                }
+                <div class="combat-strip__add-list">
+                    @foreach (var token in tokens.Where(t => state.Entries.All(e => e.TokenId != t.Id)))
+                    {
+                        <Button data-testid="@("add-token-" + token.Id)" OnClick="@(() => AddToken(token))">@token.Name</Button>
+                    }
+                </div>
+            </div>
+        }
+        <ul class="combat-strip__list" @ref="_list">
+            @foreach (var (entry, index) in state.Entries.Select((e, i) => (e, i)))
+            {
+                var token = tokens.FirstOrDefault(t => t.Id == entry.TokenId);
+                <CombatStripRow @key="entry.Id" Entry="entry" Token="token" Max="@(token is null ? null : Hp.MaxFor(token))"
+                                IsCurrent="@(entry.Id == state.CurrentEntryId)" IsSelected="@(token is not null && token.Id == Shell.SelectedCombatTokenId)"
+                                CanEdit="edit" IsFirst="@(index == 0)" IsLast="@(index == state.Entries.Count - 1)"
+                                MenuOpen="@(_menuEntryId == entry.Id)"
+                                OnSelect="@(() => Shell.SelectCombatToken(entry.TokenId))"
+                                OnToggleMenu="@(() => _menuEntryId = _menuEntryId == entry.Id ? null : entry.Id)"
+                                OnSetCurrent="@(() => Run(() => Combat.SetCurrent(entry.Id)))"
+                                OnMoveUp="@(() => Run(() => Combat.MoveEntry(entry.Id, index - 1)))"
+                                OnMoveDown="@(() => Run(() => Combat.MoveEntry(entry.Id, index + 1)))"
+                                OnRemove="@(() => Run(() => Combat.RemoveEntry(entry.Id)))"
+                                OnToggleDead="@(() => Run(() => ToggleDead(token)))"
+                                ShowDeathSaves="@(token is not null && token.Side == TokenSide.Pc && HitPointOps.IsDown(token) && Hp.Rules.HasDeathSaves)"
+                                OnRemoveCondition="@(id => Combat.RemoveCondition(entry.TokenId, id))"
+                                OnEditCondition="@(id => _editing = (entry.TokenId, id))"
+                                Editor="@EditorFor(state, token)"
+                                OnDeathSaves="@(saves => Combat.SetDeathSaves(entry.TokenId, saves.Successes, saves.Failures))" />
+            }
+        </ul>
+        <CombatTokenActions />
+    </section>
+}
+
+@code {
+    private ElementReference _list;
+    private bool _attached;
+    private bool _adding;
+    private string? _addInitiative;
+    private string? _addError;
+    private string? _menuEntryId;
+    private (string TokenId, string ConditionId)? _editing;
+
+    // Editor de un estado existente, precargado; se muestra solo bajo la fila de su token.
+    private RenderFragment? EditorFor(CombatState state, MapToken? token)
+    {
+        if (token is null || _editing is not { } editing || editing.TokenId != token.Id || !Combat.CanEdit) return null;
+        if (token.ConditionList.FirstOrDefault(c => c.Id == editing.ConditionId) is not { } condition) return null;
+        return @<ConditionEditor Catalog="Hp.Rules.Conditions" InCombat="true" Anchors="ConditionEditor.AnchorsOf(state, Session.Editor?.State.Tokens ?? [])"
+                                 DefaultAnchorEntryId="@state.Entries.FirstOrDefault(e => e.TokenId == token.Id)?.Id" Initial="condition"
+                                 OnSave="@(d => SaveEdit(token, condition, d))" OnCancel="@(() => _editing = null)" />;
+    }
+
+    private void SaveEdit(MapToken token, TokenCondition condition, ConditionDraft draft)
+    {
+        _editing = null;
+        Combat.UpdateCondition(token.Id, condition.Id, draft);
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Combat.Changed += OnCombatChanged;
+        Drag.EntryMoved += OnEntryMoved;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var want = Combat.IsActive && Combat.StripExpanded;
+        if (want == _attached) return;
+        _attached = want;
+        if (want) await Drag.AttachAsync(_list);
+        else await Drag.DetachAsync();
+    }
+
+    private void Run(Action action)
+    {
+        _menuEntryId = null;
+        action();
+    }
+
+    private void ToggleDead(MapToken? token)
+    {
+        if (token is null) return;
+        if (token.IsDead) Combat.Revive(token.Id);
+        else Combat.MarkDead(token.Id);
+    }
+
+    private void AddToken(MapToken token)
+    {
+        if (!InitiativeText.TryParse(_addInitiative, out var initiative))
+        {
+            _addError = InitiativeText.Error;
+            return;
+        }
+        Combat.AddEntry(new InitiativeEntry(token.Id, initiative));
+        (_adding, _addInitiative, _addError) = (false, null, null);
+    }
+
+    private void OnCombatChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    // Llega desde JS: se vuelve al dispatcher y la tarea se observa.
+    private void OnEntryMoved(object? sender, EntryMovedEventArgs e) => _ = MoveAsync(e);
+
+    private async Task MoveAsync(EntryMovedEventArgs e)
+    {
+        try
+        {
+            await InvokeAsync(() => Combat.MoveEntry(e.EntryId, e.NewIndex));
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el gesto.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al reordenar la tira de turnos ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+    }
+
+    public override void Dispose()
+    {
+        Combat.Changed -= OnCombatChanged;
+        Drag.EntryMoved -= OnEntryMoved;
+        _ = Drag.DetachAsync();
+        base.Dispose();
+    }
+}

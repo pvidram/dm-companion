@@ -14,7 +14,7 @@ public static class TokenPlacement
     // Tarjeta rápida: ancho máximo de `.ds-quick-card`, alto razonable y holguras.
     private const double CardWidth = 340;
     private const double CardHeight = 320;
-    private const double CardMargin = 16;
+    public const double CardMargin = 16;
     private const double CardGap = 32;
 
     /// <summary>

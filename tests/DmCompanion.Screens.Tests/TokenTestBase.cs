@@ -27,10 +27,14 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
+        Services.AddSingleton<TokenHitPoints>();
+        Services.AddSingleton<CombatController>();
         Services.AddSingleton<VaultFileUrls>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
         Services.AddScoped<MapCanvasInterop>();
+        Services.AddScoped<TurnStripInterop>();
+        Services.AddScoped<DragPanelInterop>();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Task.CompletedTask;

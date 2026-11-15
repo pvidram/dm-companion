@@ -1,0 +1,39 @@
+@using DmCompanion.Core.GameSystems
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.Maps
+
+<ul class="combat-strip__cells" aria-label="Orden de turnos">
+    @foreach (var (entry, index) in Entries.Select((e, i) => (e, i)))
+    {
+        var token = Tokens.FirstOrDefault(t => t.Id == entry.TokenId);
+        <li>
+            <button type="button" class="@CellClass(entry, token)" data-testid="strip-cell" aria-label="@CellLabel(entry, token)"
+                    aria-current="@(entry.Id == CurrentEntryId ? "true" : null)" @onclick="@(e => OnTap.InvokeAsync(new StripTap(index, e.ClientX, e.ClientY)))">
+                <TokenAvatar Name="@(token?.Name ?? StatFormat.Dash)" Faction="@(token is null ? Faction.Enemy : TokenSideMapping.ToFaction(token.Side))" />
+                <span class="combat-strip__cell-name" data-testid="strip-cell-name">@(token?.Name ?? StatFormat.Dash)</span>
+                <span class="ds-initiative__value ds-numeric">@(entry.Initiative?.ToString() ?? StatFormat.Dash)</span>
+                @if (token is not null && token.ConditionList.Any(c => c.Expired))
+                {
+                    <span class="combat-strip__dot" data-testid="expired-dot" title="Estado vencido"></span>
+                }
+            </button>
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<CombatEntry> Entries { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<MapToken> Tokens { get; set; } = [];
+    [Parameter] public string? CurrentEntryId { get; set; }
+    /// <summary>Se invoca con la posición de la celda tocada y el punto del toque.</summary>
+    [Parameter] public EventCallback<StripTap> OnTap { get; set; }
+
+    private string CellClass(CombatEntry entry, MapToken? token) =>
+        "ds-initiative combat-strip__cell"
+        + (entry.Id == CurrentEntryId ? " ds-initiative--current" : string.Empty)
+        + (token is not null && HitPointOps.IsDown(token) ? " combat-strip__cell--down" : string.Empty)
+        + (token is { IsDead: true } ? " combat-strip__cell--dead" : string.Empty);
+
+    private static string CellLabel(CombatEntry entry, MapToken? token) =>
+        $"{token?.Name ?? StatFormat.Dash}, iniciativa {entry.Initiative?.ToString() ?? StatFormat.Dash}";
+}

@@ -53,15 +53,17 @@
 .ds-dialog__body { overflow-y: auto; }
 .ds-dialog__footer { display: flex; gap: var(--space-2); justify-content: flex-end; }
 
-/* Aviso efímero: madera opaca abajo en el centro del área del mapa, entre la tarjeta (20) y el diálogo (30). */
+/* Aviso efímero: arriba a la derecha del área del mapa (abajo va la barra de herramientas), entre la tarjeta (20) y el diálogo (30). Madera translúcida: solo el fondo, el texto y los botones no pierden opacidad. */
 .ds-toast-region {
-    position: absolute; left: 50%; bottom: var(--space-4); z-index: var(--z-toast);
-    transform: translateX(-50%); width: max-content; max-width: calc(100% - 2 * var(--space-4));
+    position: absolute; top: var(--space-4); right: var(--space-4); z-index: var(--z-toast);
+    width: max-content; max-width: calc(100% - 2 * var(--space-4));
 }
 .ds-toast {
     display: flex; align-items: center; gap: var(--space-2);
     padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-    background-color: var(--surface-frame-raised); color: var(--text-on-wood);
+    background-color: var(--surface-frame-raised);
+    background-color: color-mix(in srgb, var(--surface-frame-raised) 85%, transparent); color: var(--text-on-wood);
+    backdrop-filter: blur(4px);
     border: 1px solid var(--border-frame); border-radius: var(--radius-control);
     box-shadow: var(--elevation-2);
     animation: ds-sheet-enter var(--motion-enter) var(--motion-ease);
@@ -71,3 +73,5 @@
 @keyframes ds-sheet-enter {
     from { opacity: 0; transform: translateY(var(--motion-offset)); }
 }
+/* Cabecera arrastrable (el JS vive en Screens): touch-action none para que el dedo o el lápiz no desplacen la página ni el mapa. */
+.ds-parchment__header--drag { touch-action: none; cursor: grab; user-select: none; }

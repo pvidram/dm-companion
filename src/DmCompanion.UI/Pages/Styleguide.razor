@@ -29,6 +29,17 @@
                 <IconButton Icon="IconName.Maximize" Label="Ajustar a la vista" />
             </MapToolbarGroup>
         </MapToolbar>
+        <MapToolbar Label="Herramientas del mapa (abajo)" Edge="MapToolbarEdge.Bottom">
+            <MapToolbarGroup Label="Modo">
+                <IconButton Icon="IconName.Hand" Label="Navegar" IsPressed="true" />
+                <IconButton Icon="IconName.Pencil" Label="Dibujar" />
+                <IconButton Icon="IconName.Ruler" Label="Medir" />
+            </MapToolbarGroup>
+            <MapToolbarGroup Label="Mapa">
+                <IconButton Icon="IconName.UserPlus" Label="Añadir token" />
+                <IconButton Icon="IconName.Maximize" Label="Ajustar a la vista" />
+            </MapToolbarGroup>
+        </MapToolbar>
         <Parchment Title="Controles" IsOpen="@(_open == Sample.Controls)" OnClose="Close"><ControlsSample OnOpenDialog="() => _confirm = true" /></Parchment>
         <Parchment Title="Combate" Size="ParchmentSize.Wide" IsOpen="@(_open == Sample.Combat)" OnClose="Close"><CombatSample /></Parchment>
         <Parchment Title="Listas" IsOpen="@(_open == Sample.Lists)" OnClose="Close"><ListsSample /></Parchment>

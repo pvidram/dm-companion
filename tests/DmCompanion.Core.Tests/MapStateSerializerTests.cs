@@ -1,3 +1,4 @@
+using DmCompanion.Core.Combat;
 using DmCompanion.Core.Maps;
 
 namespace DmCompanion.Core.Tests;
@@ -64,11 +65,39 @@ public class MapStateSerializerTests
     [Fact]
     public void Read_flags_future_version_and_keeps_content()
     {
-        var result = MapStateSerializer.Read(Example.Replace("\"version\": 1", "\"version\": 2"));
+        var result = MapStateSerializer.Read(Example.Replace("\"version\": 1", "\"version\": 3"));
 
         result.Status.Should().Be(MapStateReadStatus.FutureVersion);
-        result.State.Version.Should().Be(2);
+        result.State.Version.Should().Be(3);
         result.State.Tokens.Should().HaveCount(2);
+    }
+
+    private const string FutureShape =
+        "{\"version\": 3, \"tokens\": [{\"id\": \"a\", \"name\": \"A\", \"size\": 1, \"x\": 0, \"y\": 0, "
+        + "\"conditions\": [null, {\"id\": null, \"label\": \"X\"}, {\"id\": \"c\", \"label\": \"Y\"}]}], \"combat\": {\"round\": 1}}";
+
+    [Fact]
+    public void Read_future_version_keeps_the_status_with_an_odd_shape()
+    {
+        MapStateSerializer.Read(FutureShape).Status.Should().Be(MapStateReadStatus.FutureVersion);
+    }
+
+    [Fact]
+    public void Read_future_version_turns_null_entries_into_an_empty_list()
+    {
+        MapStateSerializer.Read(FutureShape).State.Combat!.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Read_future_version_drops_null_and_incomplete_conditions()
+    {
+        MapStateSerializer.Read(FutureShape).State.Tokens[0].ConditionList.Select(c => c.Id).Should().Equal("c");
+    }
+
+    [Fact]
+    public void Read_future_version_does_not_count_repairs()
+    {
+        MapStateSerializer.Read(FutureShape).Repairs.Should().Be(0);
     }
 
     [Fact]
@@ -84,7 +113,7 @@ public class MapStateSerializerTests
     public void Write_then_Read_round_trips()
     {
         var state = new MapState(
-            1,
+            2,
             new GridSettings(true, 50, 5, -3),
             [
                 new MapToken("t-1", "Lyra", "Personajes/Lyra.md", TokenSide.Pc, 1, 100.5, 200, null, null),
@@ -196,5 +225,114 @@ public class MapStateSerializerTests
         var read = MapStateSerializer.Read(StateWithToken(""","ac":0,"hp":12"""));
 
         (read.Status, read.State.Tokens[0].Ac, read.State.Tokens[0].Hp).Should().Be((MapStateReadStatus.Ok, 0, 12));
+    }
+
+    [Fact]
+    public void Version_1_file_reads_as_version_2_with_empty_combat_fields()
+    {
+        var result = MapStateSerializer.Read(Example.Replace("\"hp\": 11", "\"hp\": 11, \"hpCurrent\": 4"));
+
+        var expected = new MapState(
+            2,
+            new GridSettings(false, 70, 0, 0),
+            [
+                new MapToken("t-8f3a", "Goblin 2", "Personajes/Goblin.md", TokenSide.Enemy, 1, 455, 280, null, null),
+                new MapToken("t-91c0", "Bandido", null, TokenSide.Enemy, 1, 525, 280, 12, 11, 4),
+            ],
+            [new MapStroke("s-02d1", "#2b2b2b", 6, [10.5, 20.0, 0.5, 12.0, 24.5, 0.6])]);
+        (result.Status, result.Repairs).Should().Be((MapStateReadStatus.Ok, 0));
+        result.State.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public void Read_applies_repair_and_reports_the_count()
+    {
+        const string json = """
+            {"version":2,"tokens":[{"id":"a","name":"A","side":"pc","size":1,"x":0,"y":0}],
+             "combat":{"round":1,"currentEntryId":"e1","entries":[{"id":"e1","tokenId":"a","initiative":9},{"id":"e2","tokenId":"ghost","initiative":3}]}}
+            """;
+
+        var result = MapStateSerializer.Read(json);
+
+        (result.Status, result.Repairs, result.State.Combat!.Entries.Count).Should().Be((MapStateReadStatus.Ok, 1, 1));
+    }
+
+    [Fact]
+    public void Read_with_null_condition_repairs_instead_of_throwing()
+    {
+        const string json = """{"version":2,"tokens":[{"id":"a","name":"A","side":"pc","size":1,"x":0,"y":0,"conditions":[null]}]}""";
+
+        var result = MapStateSerializer.Read(json);
+
+        (result.Status, result.Repairs > 0, result.State.Tokens[0].ConditionList.Count).Should().Be((MapStateReadStatus.Ok, true, 0));
+    }
+
+    [Fact]
+    public void Version_2_state_round_trips()
+    {
+        var condition = new TokenCondition("c1", "poisoned", "Envenenado", 1, new ConditionDuration("e2", 1), false);
+        var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 10, 20, null, null, null, 5, [condition], new DeathSaves(1, 2));
+        var other = new MapToken("t2", "Elfa", null, TokenSide.Pc, 1, 30, 40, null, null);
+        var combat = new CombatState(2, "e2", [new CombatEntry("e1", "t2", 18, CombatPhase.Fast), new CombatEntry("e2", "t1", 15), new CombatEntry("e3", "t2", null)]);
+        var s = new MapState(2, GridSettings.Default, [token, other], [], combat);
+
+        var read = MapStateSerializer.Read(MapStateSerializer.Write(s)).State;
+
+        read.Should().BeEquivalentTo(s);
+    }
+
+    [Fact]
+    public void Written_json_omits_empty_combat_fields()
+    {
+        var json = MapStateSerializer.Write(MapState.Empty with { Tokens = [new MapToken("t", "A", null, TokenSide.Pc, 1, 0, 0, null, null)] });
+
+        json.Should().Contain("\"version\":2").And.NotContainAny("combat", "hpTemp", "conditions", "deathSaves");
+    }
+
+    [Fact]
+    public void Version_3_is_future_version()
+    {
+        MapStateSerializer.Read("{\"version\": 3}").Status.Should().Be(MapStateReadStatus.FutureVersion);
+    }
+
+    private static CombatSnapshot Snapshot(CombatState? combat, params TokenCombatFields[] tokens) => new(combat, tokens);
+
+    [Fact]
+    public void Dead_round_trips()
+    {
+        var s = MapState.Empty with { Tokens = [new MapToken("t", "A", null, TokenSide.Enemy, 1, 0, 0, null, null, Dead: true)] };
+
+        MapStateSerializer.Read(MapStateSerializer.Write(s)).State.Tokens[0].IsDead.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Dead_false_is_omitted()
+    {
+        var s = MapState.Empty with { Tokens = [new MapToken("t", "A", null, TokenSide.Enemy, 1, 0, 0, null, null)] };
+
+        MapStateSerializer.Write(s).Should().NotContain("dead");
+    }
+
+    [Fact]
+    public void Log_round_trips()
+    {
+        var condition = new TokenCondition("c1", "poisoned", "Envenenado", 1, new ConditionDuration("e1", 1), false);
+        var before = Snapshot(new CombatState(1, "e1", [new CombatEntry("e1", "t1", 15)]), new TokenCombatFields("t1", 7, 2, [condition], new DeathSaves(1, 0), null));
+        var after = Snapshot(new CombatState(2, "e1", [new CombatEntry("e1", "t1", 15)]), new TokenCombatFields("t1", 0, null, null, null, true));
+        var log = new[] { new CombatLogEntry("l1", 1, "Daño", before, after, true), new CombatLogEntry("l2", 1, "Empieza", null, after, false, false) };
+        var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 0, 0, null, null);
+        var s = new MapState(2, GridSettings.Default, [token], [], new CombatState(2, "e1", [new CombatEntry("e1", "t1", 15)], log));
+
+        MapStateSerializer.Read(MapStateSerializer.Write(s)).State.Should().BeEquivalentTo(s);
+    }
+
+    [Fact]
+    public void LastCombat_round_trips()
+    {
+        var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 0, 0, null, null);
+        var combat = new CombatState(3, "e1", [new CombatEntry("e1", "t1", 15)], [new CombatLogEntry("l1", 3, "Daño", null, null, false, false)]);
+        var s = new MapState(2, GridSettings.Default, [token], [], null, Snapshot(combat, new TokenCombatFields("t1", 4, null, null, null, null)));
+
+        MapStateSerializer.Read(MapStateSerializer.Write(s)).State.Should().BeEquivalentTo(s);
     }
 }

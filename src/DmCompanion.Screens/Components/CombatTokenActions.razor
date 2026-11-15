@@ -1,0 +1,183 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Combat
+@using DmCompanion.Core.Maps
+@using System.Globalization
+@inject CombatController Combat
+@inject MapSession Session
+@inject TokenHitPoints Hp
+
+@if (Target is { } token && Combat.State is { } state)
+{
+    var edit = Combat.CanEdit;
+    var max = Hp.MaxFor(token);
+    var current = token.HpCurrent ?? max;
+    <section class="combat-actions" data-testid="combat-actions" aria-label="@($"Acciones de {token.Name}")">
+        <h3 class="combat-actions__title">@token.Name</h3>
+        <div class="combat-actions__hp">
+            <span class="ds-numeric combat-actions__value" data-testid="hp-value" aria-live="polite">
+                @(current is { } now ? now.ToString(CultureInfo.InvariantCulture) : "—") / @(max?.ToString(CultureInfo.InvariantCulture) ?? "—")
+            </span>
+            <label class="ds-field">
+                <span class="ds-field__label">Cantidad</span>
+                <input class="ds-field__input ds-numeric" type="text" inputmode="numeric" autocomplete="off" data-testid="hp-amount"
+                       value="@_amount" @oninput="@(e => _amount = e.Value?.ToString())" />
+            </label>
+            <Button Variant="ButtonVariant.Damage" Icon="IconName.Minus" Disabled="@(!edit || current is null)" data-testid="hp-damage"
+                    OnClick="@(() => Apply(token, damage: true))">Daño</Button>
+            <Button Variant="ButtonVariant.Heal" Icon="IconName.Plus" Disabled="@(!edit || current is null)" data-testid="hp-heal"
+                    OnClick="@(() => Apply(token, damage: false))">Curar</Button>
+        </div>
+        @if (_amountError is { } amountError)
+        {
+            <InlineNotice Kind="NoticeKind.Warning"><span data-testid="hp-error">@amountError</span></InlineNotice>
+        }
+        <div class="combat-actions__temp">
+            <label class="ds-field">
+                <span class="ds-field__label">HP temp. (ahora @token.TempHp)</span>
+                <input class="ds-field__input ds-numeric" type="text" inputmode="numeric" autocomplete="off" data-testid="temp-input"
+                       value="@_temp" @oninput="@(e => _temp = e.Value?.ToString())" />
+            </label>
+            <Button Disabled="!edit" data-testid="temp-set" OnClick="@(() => SetTemp(token))">Poner</Button>
+        </div>
+        @if (_tempConfirm is not null)
+        {
+            <div class="combat-actions__temp-confirm" data-testid="temp-confirm-panel">
+                <label class="ds-field">
+                    <span class="ds-field__label">HP temp. finales (no se suman: se queda el mayor)</span>
+                    <input class="ds-field__input ds-numeric" type="text" inputmode="numeric" autocomplete="off" data-testid="temp-confirm"
+                           value="@_tempConfirm" @oninput="@(e => _tempConfirm = e.Value?.ToString())" />
+                </label>
+                <Button Variant="ButtonVariant.Primary" data-testid="temp-accept" OnClick="@(() => AcceptTemp(token))">Aceptar</Button>
+                <Button OnClick="@(() => _tempConfirm = null)">Cancelar</Button>
+            </div>
+        }
+        @if (_tempError is { } tempError)
+        {
+            <InlineNotice Kind="NoticeKind.Warning"><span data-testid="temp-error">@tempError</span></InlineNotice>
+        }
+        @if (_adding && edit)
+        {
+            <ConditionEditor Catalog="Hp.Rules.Conditions" InCombat="true" Anchors="ConditionEditor.AnchorsOf(state, Session.Editor?.State.Tokens ?? [])" DefaultAnchorEntryId="@state.Entries.FirstOrDefault(e => e.TokenId == token.Id)?.Id"
+                             OnSave="@(d => AddCondition(token, d))" OnCancel="@(() => _adding = false)" />
+        }
+        else
+        {
+            <Button Icon="IconName.Plus" Disabled="!edit" data-testid="add-condition" OnClick="@(() => _adding = true)">Estado</Button>
+        }
+    </section>
+}
+
+@code {
+    private string? _amount;
+    private string? _amountError;
+    private string? _temp;
+    private string? _tempConfirm;
+    private string? _tempError;
+    private bool _adding;
+    private string? _targetId;
+
+    private MapToken? Target
+    {
+        get
+        {
+            var tokens = Session.Editor?.State.Tokens ?? [];
+            var selected = Shell.SelectedCombatTokenId;
+            var id = selected is not null && Combat.State?.Entries.Any(e => e.TokenId == selected) == true
+                ? selected
+                : Combat.State?.Entries.FirstOrDefault(e => e.Id == Combat.State.CurrentEntryId)?.TokenId;
+            return tokens.FirstOrDefault(t => t.Id == id);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Combat.Changed += OnCombatChanged;
+        ResetOnTargetChange();
+    }
+
+    protected override bool ShouldRender()
+    {
+        ResetOnTargetChange();
+        return true;
+    }
+
+    // Lo tecleado era para otro token: se descarta al cambiar de objetivo.
+    private void ResetOnTargetChange()
+    {
+        var id = Target?.Id;
+        if (id == _targetId) return;
+        (_targetId, _amount, _amountError, _temp, _tempConfirm, _tempError, _adding) = (id, null, null, null, null, null, false);
+    }
+
+    private void Apply(MapToken token, bool damage)
+    {
+        if (!TryPositive(_amount, out var amount))
+        {
+            _amountError = "Escribe un número entero positivo";
+            return;
+        }
+        _amountError = null;
+        _amount = null;
+        if (damage) Combat.Damage(token.Id, amount);
+        else Combat.Heal(token.Id, amount);
+    }
+
+    private void SetTemp(MapToken token)
+    {
+        _tempError = null;
+        if (!int.TryParse(_temp?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var typed))
+        {
+            _tempError = "Escribe un número entero, 0 o más";
+            return;
+        }
+        var suggestion = Math.Max(token.TempHp, typed);
+        if (typed == 0 || suggestion == typed)
+        {
+            Combat.SetTempHp(token.Id, typed);
+            (_temp, _tempConfirm) = (null, null);
+            return;
+        }
+        _tempConfirm = suggestion.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private void AcceptTemp(MapToken token)
+    {
+        if (!int.TryParse(_tempConfirm?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+        {
+            _tempError = "Escribe un número entero, 0 o más";
+            return;
+        }
+        Combat.SetTempHp(token.Id, value);
+        (_temp, _tempConfirm, _tempError) = (null, null, null);
+    }
+
+    private void AddCondition(MapToken token, ConditionDraft draft)
+    {
+        Combat.AddCondition(token.Id, draft);
+        _adding = false;
+    }
+
+    private static bool TryPositive(string? text, out int value) =>
+        int.TryParse(text?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out value) && value > 0;
+
+    private void OnCombatChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+    }
+
+    public override void Dispose()
+    {
+        Combat.Changed -= OnCombatChanged;
+        base.Dispose();
+    }
+}

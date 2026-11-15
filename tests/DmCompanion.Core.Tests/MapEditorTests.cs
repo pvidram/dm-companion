@@ -1,3 +1,4 @@
+using DmCompanion.Core.Combat;
 using DmCompanion.Core.Maps;
 
 namespace DmCompanion.Core.Tests;
@@ -234,6 +235,30 @@ public class MapEditorTests
     }
 
     [Fact]
+    public void SetHp_clears_death_saves_when_rising_from_zero()
+    {
+        var ed = NewEditor();
+        var t = ed.AddToken(Generic(), 10, 10);
+        ed.ReplaceState(s => s with { Tokens = [s.Tokens[0] with { HpCurrent = 0, DeathSaves = new DeathSaves(1, 2) }] });
+
+        ed.SetHp(t.Id, 3, max: 11);
+
+        ed.State.Tokens[0].DeathSaves.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetHp_keeps_death_saves_while_staying_at_zero()
+    {
+        var ed = NewEditor();
+        var t = ed.AddToken(Generic(), 10, 10);
+        ed.ReplaceState(s => s with { Tokens = [s.Tokens[0] with { HpCurrent = 0, DeathSaves = new DeathSaves(1, 2) }] });
+
+        ed.SetHp(t.Id, 0, max: 11);
+
+        ed.State.Tokens[0].DeathSaves.Should().Be(new DeathSaves(1, 2));
+    }
+
+    [Fact]
     public void SetHp_returns_false_for_an_unknown_token() =>
         NewEditor().SetHp("nope", 5, 11).Should().BeFalse();
 
@@ -246,5 +271,26 @@ public class MapEditorTests
         ed.SetHp(t.Id, 5, 11);
 
         ed.CanUndo.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RemoveToken_in_combat_removes_its_entry_and_passes_the_turn()
+    {
+        var ed = NewEditor();
+        var a = ed.AddToken(Generic(), 1, 1);
+        var b = ed.AddToken(Generic(), 2, 2);
+        ed.ReplaceState(s => TurnOps.Start(s, [new(a.Id, 18), new(b.Id, 9)], () => "entry" + Guid.NewGuid()).State);
+        ed.RemoveToken(a.Id).Should().BeTrue();
+        ed.State.Combat!.Entries.Select(e => e.TokenId).Should().Equal(b.Id);
+        ed.State.Combat.CurrentEntryId.Should().Be(ed.State.Combat.Entries[0].Id);
+    }
+
+    [Fact]
+    public void ReplaceState_returns_false_when_nothing_changes()
+    {
+        var ed = NewEditor();
+        var same = ed.ReplaceState(s => s);
+        var copy = ed.ReplaceState(s => s with { Version = s.Version });
+        (same, copy).Should().Be((false, true));
     }
 }

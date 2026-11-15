@@ -1,4 +1,4 @@
-// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, fit, viewCenter, hostRect, dispose}.
+// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, fit, viewCenter, hostRect, beginGridAdjust, endGridAdjust, dispose}.
 // Capas, de abajo arriba: imagen o lienzo, cuadrícula, trazos, tokens y borrador (trazo en curso o medición).
 // El estado manda C#: JS pinta lo que recibe y solo informa de gestos (token movido o tocado, imagen cargada,
 // trazo añadido o borrado). La medición no cruza el puente.
@@ -36,6 +36,9 @@
             enemy: get('--faction-enemy', '#a42a2a'),
             outlineDark: get('--faction-outline-on-sheet', '#1b1712'),
             outlineLight: get('--faction-outline-on-wood', '#f2ead8'),
+            accent: get('--accent-on-wood', '#C9A24A'),
+            danger: get('--fill-damage', '#9E2B25'),
+            textOnDanger: get('--text-on-wood', '#F2EAD8'),
             sheet: get('--surface-sheet', '#e4d5b0'),
             sheetSunken: get('--surface-sheet-sunken', '#d3c29a'),
             text: get('--text-ink', '#1b1712'),
@@ -108,7 +111,8 @@
     function drawGrid(inst) {
         const layer = inst.layers.grid;
         layer.destroyChildren();
-        const grid = inst.dto.grid;
+        // Con el ajuste con los dedos en curso se pinta la cuadrícula provisional; C# aún no la conoce.
+        const grid = inst.adjust ? { ...inst.dto.grid, ...inst.adjust.grid() } : inst.dto.grid;
         const { w, h } = mapSize(inst);
         if (grid && grid.enabled && grid.cellSize >= 4 && w > 0 && h > 0) {
             const colors = theme(inst.host);
@@ -191,6 +195,42 @@
         return entry.loaded ? entry.image : null;
     }
 
+    // Marcas del combate: turno actual (anillo exterior de acento), selección (contorno discontinuo),
+    // 0 HP (token atenuado), muerto (más atenuado y con cruz) y estados (insignia con su número; de aviso si alguno está vencido).
+    function addCombatMarks(group, token, radius, colors) {
+        const overlay = { strokeScaleEnabled: false, listening: false };
+        if (token.current) {
+            group.add(new Konva.Circle({ radius: radius + 9, stroke: colors.outlineDark, strokeWidth: 8, ...overlay }));
+            group.add(new Konva.Circle({ radius: radius + 9, stroke: colors.accent, strokeWidth: 4, ...overlay }));
+        }
+        if (token.selected) {
+            group.add(new Konva.Circle({ radius: radius + 5, stroke: colors.outlineLight, strokeWidth: 3, dash: [8, 5], ...overlay }));
+        }
+        if (token.conditions > 0) {
+            const badgeRadius = 12;
+            const offset = radius * Math.SQRT1_2;
+            const badge = new Konva.Group({ x: offset, y: -offset, listening: false });
+            badge.add(new Konva.Circle({
+                radius: badgeRadius, fill: token.expired ? colors.danger : colors.sheet,
+                stroke: colors.outlineDark, strokeWidth: 2, strokeScaleEnabled: false,
+            }));
+            badge.add(new Konva.Text({
+                text: String(token.conditions), fontSize: 14, fontFamily: colors.font, fontStyle: 'bold', fill: token.expired ? colors.textOnDanger : colors.text,
+                width: badgeRadius * 2, height: badgeRadius * 2, offsetX: badgeRadius, offsetY: badgeRadius,
+                align: 'center', verticalAlign: 'middle',
+            }));
+            group.add(badge);
+        }
+        if (token.dead) {
+            // Muerto: más atenuado que a 0 HP y una cruz (dos líneas) sobre el avatar, sin fuentes de iconos.
+            const arm = radius * 0.55;
+            for (const [x1, y1, x2, y2] of [[-arm, -arm, arm, arm], [-arm, arm, arm, -arm]]) {
+                group.add(new Konva.Line({ points: [x1, y1, x2, y2], stroke: colors.outlineDark, strokeWidth: 9, lineCap: 'round', ...overlay }));
+                group.add(new Konva.Line({ points: [x1, y1, x2, y2], stroke: colors.outlineLight, strokeWidth: 5, lineCap: 'round', ...overlay }));
+            }
+        }
+    }
+
     function tokenNode(inst, token, colors) {
         const cell = (inst.dto.grid && inst.dto.grid.cellSize) || 70;
         const radius = (token.size * cell) / 2;
@@ -199,16 +239,19 @@
 
         // Anillo con doble contorno (claro y oscuro) para que se lea sobre cualquier imagen:
         // claro | oscuro | color del bando | oscuro | claro.
+        // El cuerpo (avatar y anillos) se atenúa solo; las marcas de combate (cruz, turno, insignia) quedan a opacidad normal.
+        const body = new Konva.Group({ opacity: window.tokenOpacity.tokenBodyOpacity(token) });
+        group.add(body);
         const face = new Konva.Circle({ radius, fill: colors.sheetSunken, stroke: colors.outlineLight, strokeWidth: 7, strokeScaleEnabled: false });
-        group.add(face);
-        group.add(new Konva.Circle({ radius, stroke: colors.outlineDark, strokeWidth: 5, strokeScaleEnabled: false }));
+        body.add(face);
+        body.add(new Konva.Circle({ radius, stroke: colors.outlineDark, strokeWidth: 5, strokeScaleEnabled: false }));
 
         const inner = Math.max(1, radius - 3);
         const image = portrait(inst, token.portraitUrl);
         if (image) {
             const side = Math.min(image.naturalWidth, image.naturalHeight) || 1;
             const scale = (2 * inner) / side;
-            group.add(new Konva.Circle({
+            body.add(new Konva.Circle({
                 radius: inner,
                 fillPatternImage: image,
                 fillPatternRepeat: 'no-repeat',
@@ -217,31 +260,38 @@
             }));
         } else {
             const fontSize = Math.max(8, inner * 1.1);
-            group.add(new Konva.Text({
+            body.add(new Konva.Text({
                 text: token.initial || '?', fontSize, fontFamily: colors.font, fontStyle: 'bold', fill: colors.text,
                 width: inner * 2, height: inner * 2, offsetX: inner, offsetY: inner, align: 'center', verticalAlign: 'middle',
                 listening: false,
             }));
         }
-        group.add(new Konva.Circle({ radius, stroke: ring, strokeWidth: 3, strokeScaleEnabled: false, listening: false }));
+        body.add(new Konva.Circle({ radius, stroke: ring, strokeWidth: 3, strokeScaleEnabled: false, listening: false }));
+        addCombatMarks(group, token, radius, colors);
 
         group.on('dragstart', () => group.moveToTop());
-        group.on('dragend', () => {
-            // Un pellizco que corta el arrastre no es un movimiento: se devuelve el token a su sitio.
-            if (inst.pinching) {
-                group.position({ x: token.x, y: token.y });
-                inst.layers.tokens.batchDraw();
-                return;
-            }
-            notify(inst, 'OnTokenMoved', token.id, group.x(), group.y());
-        });
+        group.setAttr('hitRadius', radius);
+        group.on('dragend', () => commitTokenMove(inst, group, token));
         // Konva no emite click/tap si hubo arrastre, así que arrastrar un token nunca abre su tarjeta.
-        group.on('click tap', () => {
-            const rect = inst.host.getBoundingClientRect();
-            const center = group.getAbsolutePosition();
-            notify(inst, 'OnTokenTapped', token.id, rect.left + center.x, rect.top + center.y);
-        });
+        group.on('click tap', () => notifyTokenTapped(inst, group, token.id));
         return group;
+    }
+
+    // Fin de un movimiento de token (arrastre en Navegar o lápiz en Dibujar).
+    // Un pellizco que corta el arrastre no es un movimiento: se devuelve el token a su sitio.
+    function commitTokenMove(inst, group, token) {
+        if (inst.pinching) {
+            group.position({ x: token.x, y: token.y });
+            inst.layers.tokens.batchDraw();
+            return;
+        }
+        notify(inst, 'OnTokenMoved', token.id, group.x(), group.y());
+    }
+
+    function notifyTokenTapped(inst, group, tokenId) {
+        const rect = inst.host.getBoundingClientRect();
+        const center = group.getAbsolutePosition();
+        notify(inst, 'OnTokenTapped', tokenId, rect.left + center.x, rect.top + center.y);
     }
 
     function drawTokens(inst) {
@@ -332,6 +382,7 @@
 
     // En solo lectura no se dibuja, aunque C# recordara Dibujar.
     function effectiveMode(inst) {
+        if (inst.adjust) return 'GridAdjust';
         return inst.dto.readOnly && inst.mode === 'Draw' ? 'Navigate' : inst.mode;
     }
 
@@ -360,6 +411,7 @@
     // El arrastre del fondo es de Konva; aquí se le quita cuando el gesto es de otra herramienta.
     function stageDragVetoed(inst, native) {
         const mode = effectiveMode(inst);
+        if (mode === 'GridAdjust') return true; // los dedos mueven la cuadrícula, no el mapa
         if (mode === 'Measure') return inst.gesture !== null;
         if (mode !== 'Draw') return false;
         if (inst.gesture !== null) return true; // lápiz (o ratón) apoyado
@@ -386,6 +438,7 @@
 
         stage.on('touchmove', event => {
             const touches = event.evt.touches;
+            if (inst.adjust) return; // el pellizco cambia la casilla, no el zoom
             if (!touches || touches.length !== 2) return;
             event.evt.preventDefault();
             if (touchBlocked(inst)) {
@@ -417,7 +470,10 @@
         stage.on('touchend touchcancel', event => {
             if (event.evt.touches && event.evt.touches.length >= 2) return;
             // Sin dedos en pantalla no puede quedar ninguno apuntado (un pointerup perdido dejaría uno fantasma).
-            if (event.evt.touches && event.evt.touches.length === 0) inst.touches.clear();
+            if (event.evt.touches && event.evt.touches.length === 0) {
+                inst.touches.clear();
+                if (inst.adjust) inst.adjust.reset();
+            }
             inst.cancelPinch();
             // Un dedo sobrante tras el pellizco no debe arrastrar el mapa ni mover un token.
             if (inst.pinching) setTimeout(() => { inst.pinching = false; }, 0);
@@ -425,6 +481,7 @@
 
         stage.on('wheel', event => {
             event.evt.preventDefault();
+            if (inst.adjust) return;
             const pointer = stage.getPointerPosition();
             if (!pointer) return;
             const factor = event.evt.deltaY < 0 ? 1.1 : 1 / 1.1;
@@ -465,6 +522,7 @@
         const gesture = inst.gesture;
         if (!gesture) return;
         inst.gesture = null;
+        if (gesture.handler.cancel) gesture.handler.cancel(inst, gesture);
         if (gesture.kind !== 'erase') clearDraft(inst);
         try { inst.host.releasePointerCapture(gesture.id); } catch { /* el puntero ya no existe */ }
     }
@@ -565,22 +623,145 @@
         end(inst) { clearDraft(inst); },
     };
 
-    function beginGesture(inst, event, kind, handler) {
-        inst.gesture = { id: event.pointerId, kind, handler };
+    // Lápiz apoyado sobre un token en Dibujar: espera a saber si es toque, coger o trazo (`penTokenGesture`).
+    function tokenUnderPen(inst, event) {
+        const point = worldPoint(inst, containerPoint(inst, event));
+        const groups = inst.layers.tokens.getChildren().filter(g => g.draggable());
+        const circles = groups.map(g => ({ id: g.id(), x: g.x(), y: g.y(), radius: g.getAttr('hitRadius') || 0 }));
+        return window.penTokenGesture.tokenAt(point, circles);
+    }
+
+    // El grupo se busca por id en cada uso: un repintado de C# reconstruye la capa y deja obsoleta cualquier referencia.
+    function penGroup(inst, gesture) {
+        return inst.layers.tokens.findOne('#' + gesture.tokenId);
+    }
+
+    function applyGrab(inst, gesture, group) {
+        if (gesture.zIndex === undefined) gesture.zIndex = group.zIndex();
+        group.moveToTop();
+        group.scale({ x: 1.12, y: 1.12 });
+        group.position(gesture.position);
+        inst.layers.tokens.batchDraw();
+    }
+
+    const penTokenGesture = {
+        start(inst, gesture, event) {
+            const group = penGroup(inst, gesture);
+            gesture.startedAt = performance.now();
+            gesture.startEvent = { clientX: event.clientX, clientY: event.clientY, pressure: event.pressure, type: 'pointermove' };
+            gesture.startWorld = worldPoint(inst, containerPoint(inst, event));
+            gesture.home = { x: group.x(), y: group.y() };
+            gesture.position = gesture.home;
+            gesture.phase = 'pending';
+            gesture.distance = 0;
+            gesture.buffered = [];
+            gesture.timer = setTimeout(() => {
+                gesture.timer = null;
+                if (inst.gesture !== gesture) return;
+                const action = window.penTokenGesture.penTimerAction(gesture.phase, gesture.distance);
+                if (action === 'grab') {
+                    gesture.phase = 'grab';
+                    const live = penGroup(inst, gesture);
+                    if (live) applyGrab(inst, gesture, live); else cancelGesture(inst);
+                }
+            }, window.penTokenGesture.PEN_HOLD_MS);
+        },
+        move(inst, gesture, event) {
+            const pen = window.penTokenGesture;
+            const group = penGroup(inst, gesture);
+            if (!group) { cancelGesture(inst); return; } // el token ya no está (repintado, quitado): se abandona sin avisar
+            if (gesture.phase === 'grab') {
+                gesture.position = pen.grabPosition(gesture.home, gesture.startWorld, worldPoint(inst, containerPoint(inst, event)));
+                applyGrab(inst, gesture, group);
+                return;
+            }
+            gesture.distance = Math.hypot(event.clientX - gesture.startEvent.clientX, event.clientY - gesture.startEvent.clientY);
+            // Mientras se decide, los puntos se guardan: si es trazo, empieza con todos; si no, se descartan.
+            if (gesture.phase === 'pending') gesture.buffered = pen.bufferPenPoints(gesture.buffered, eventPoints(event));
+            const action = pen.penMoveAction(gesture.phase, performance.now() - gesture.startedAt, gesture.distance);
+            if (action !== 'stroke') return;
+            // Se movió antes de tiempo: es un trazo que empieza donde se apoyó el lápiz y sigue por los puntos guardados.
+            const points = pen.pendingStrokePoints(action, gesture.startEvent, gesture.buffered);
+            gesture.buffered = [];
+            penTokenGesture.release(inst, gesture);
+            gesture.kind = 'stroke';
+            gesture.handler = strokeGesture;
+            strokeGesture.start(inst, gesture, points[0]);
+            for (const p of points.slice(1)) strokeGesture.move(inst, gesture, p);
+        },
+        end(inst, gesture) {
+            const group = penGroup(inst, gesture);
+            const action = window.penTokenGesture.penReleaseAction(gesture.phase, performance.now() - gesture.startedAt, gesture.distance);
+            penTokenGesture.release(inst, gesture);
+            if (!group) return;
+            // El lápiz no pasa por la regla del pellizco de los dedos (`inst.pinching`): suelta y guarda.
+            if (action === 'commit') {
+                if (window.penTokenGesture.hasMoved(gesture.home, gesture.position)) notify(inst, 'OnTokenMoved', gesture.tokenId, gesture.position.x, gesture.position.y);
+            } else if (action === 'tap') notifyTokenTapped(inst, group, gesture.tokenId);
+        },
+        // Gesto cancelado (pointercancel, cambio de modo, dispose): si el token estaba cogido, vuelve a su sitio.
+        cancel(inst, gesture) {
+            const wasGrabbed = gesture.phase === 'grab';
+            penTokenGesture.release(inst, gesture);
+            const group = wasGrabbed ? penGroup(inst, gesture) : null;
+            if (group) {
+                group.position(gesture.home);
+                inst.layers.tokens.batchDraw();
+            }
+        },
+        // Temporizador y resalte fuera (escala y orden de dibujo como estaban).
+        release(inst, gesture) {
+            if (gesture.timer) clearTimeout(gesture.timer);
+            gesture.timer = null;
+            if (gesture.phase === 'grab') {
+                const group = penGroup(inst, gesture);
+                if (group) {
+                    group.scale({ x: 1, y: 1 });
+                    const last = inst.layers.tokens.getChildren().length - 1;
+                    group.zIndex(Math.min(gesture.zIndex, last));
+                    inst.layers.tokens.batchDraw();
+                }
+            }
+            gesture.phase = 'done';
+        },
+    };
+
+    function beginGesture(inst, event, kind, handler, extra) {
+        inst.gesture = { id: event.pointerId, kind, handler, ...extra };
         // La captura va en el contenedor (donde se escuchan los eventos de puntero), no en el `content` de Konva.
         try { inst.host.setPointerCapture(event.pointerId); } catch { /* el puntero ya no existe */ }
         handler.start(inst, inst.gesture, event);
     }
 
+    // ---- ajuste de la cuadrícula con los dedos (la lógica está en grid-adjust-mode.js) ----
+
+    // Dedos y ratón (en DevHost) mueven la cuadrícula; el lápiz no hace nada en este modo.
+    function adjustPointer(inst, phase, event) {
+        if (event.pointerType === 'pen') return;
+        const adjust = inst.adjust;
+        if (phase === 'down') {
+            try { inst.host.setPointerCapture(event.pointerId); } catch { /* el puntero ya no existe */ }
+            adjust.down(event.pointerId, event.clientX, event.clientY);
+        } else if (phase === 'move') {
+            adjust.move(event.pointerId, event.clientX, event.clientY);
+        } else {
+            adjust.up(event.pointerId);
+            try { inst.host.releasePointerCapture(event.pointerId); } catch { /* ya liberado */ }
+        }
+    }
+
     function onPointerDown(inst, event) {
         if (event.pointerType === 'touch') inst.touches.add(event.pointerId);
         if (event.pointerType === 'mouse' && event.button !== 0) return;
+        if (inst.adjust) { adjustPointer(inst, 'down', event); return; }
         const mode = effectiveMode(inst);
         if (mode === 'Draw' && drawsWith(event)) {
             if (event.pointerType === 'pen') inst.lastPenAt = performance.now();
             if (inst.gesture) return;
             cancelTouchGestures(inst); // un pellizco o arrastre táctil en curso cede ante el lápiz
+            const tokenId = event.pointerType === 'pen' && !isErasing(inst) ? tokenUnderPen(inst, event) : null;
             if (isErasing(inst)) beginGesture(inst, event, 'erase', eraseGesture);
+            else if (tokenId !== null) beginGesture(inst, event, 'penToken', penTokenGesture, { tokenId });
             else beginGesture(inst, event, 'stroke', strokeGesture);
         } else if (mode === 'Measure') {
             // Un segundo dedo no mide: cancela la medición y el pellizco de Konva hace zoom.
@@ -590,6 +771,7 @@
     }
 
     function onPointerMove(inst, event) {
+        if (inst.adjust) { adjustPointer(inst, 'move', event); return; }
         const gesture = inst.gesture;
         if (event.pointerType === 'pen' && effectiveMode(inst) === 'Draw') {
             inst.lastPenAt = performance.now();
@@ -600,6 +782,7 @@
 
     function onPointerEnd(inst, event, completed) {
         inst.touches.delete(event.pointerId);
+        if (inst.adjust) { adjustPointer(inst, 'up', event); return; }
         if (event.pointerType === 'pen') inst.lastPenAt = performance.now();
         const gesture = inst.gesture;
         if (!gesture || gesture.id !== event.pointerId) return;
@@ -633,7 +816,7 @@
         inst.appliedKey = modeKey(inst);
         inst.layers.tokens.listening(mode === 'Navigate');
         inst.layers.strokes.listening(isErasing(inst));
-        inst.host.style.cursor = mode === 'Navigate' ? '' : 'crosshair';
+        inst.host.style.cursor = mode === 'Navigate' ? '' : mode === 'GridAdjust' ? 'move' : 'crosshair';
         drawStrokes(inst); // dibuja también el grafo de impacto que la goma necesita
     }
 
@@ -644,6 +827,7 @@
         if (!inst) return;
         current = null;
         inst.bgTicket++;
+        cancelGesture(inst);
         inst.abort.abort();
         inst.host.style.cursor = '';
         inst.observer.disconnect();
@@ -673,6 +857,7 @@
             mode: 'Navigate', tool: null,
             mapW: 0, mapH: 0, fitScale: 0, needsFit: true,
             bgImage: null, bgTicket: 0, pinching: false,
+            adjust: null, // ajuste de la cuadrícula con los dedos en curso (grid-adjust-mode.js), o null
             portraits: new Map(),
             // Dibujo, goma y medición: gesto en curso (o null), dedos apoyados, último evento del lápiz y trazos ya borrados.
             gesture: null, touches: new Set(), lastPenAt: -Infinity, erased: new Set(),
@@ -716,6 +901,35 @@
         applyMode(current);
     }
 
+    // Entra en el modo de ajuste con la cuadrícula del último estado de C#. `minCell` y `maxCell` son los límites de los campos numéricos.
+    function beginGridAdjust(minCell, maxCell) {
+        const inst = current;
+        if (!inst || inst.adjust || !inst.dto.grid) return false;
+        const { cellSize, offsetX, offsetY } = inst.dto.grid;
+        inst.adjust = window.gridAdjustMode.create({
+            grid: { cellSize, offsetX, offsetY },
+            limits: { min: minCell, max: maxCell },
+            toMap: point => worldPoint(inst, containerPoint(inst, { clientX: point.x, clientY: point.y })),
+            onChange: () => drawGrid(inst),
+        });
+        applyMode(inst);
+        return true;
+    }
+
+    // Sale del modo y devuelve la cuadrícula ajustada [cellSize, offsetX, offsetY]; con `commit` C# la guardará, si no se descarta.
+    function endGridAdjust(commit) {
+        const inst = current;
+        if (!inst || !inst.adjust) return null;
+        const adjusted = inst.adjust.grid();
+        const { cellSize, offsetX, offsetY } = adjusted;
+        inst.adjust = null;
+        // Al aceptar se conserva lo ajustado hasta que llegue el repintado de C#: la cuadrícula no parpadea.
+        if (commit) inst.dto = { ...inst.dto, grid: { ...inst.dto.grid, ...adjusted } };
+        applyMode(inst);
+        drawGrid(inst); // vuelve a la cuadrícula de C# (o a la nueva, cuando llegue el repintado)
+        return [cellSize, offsetX, offsetY];
+    }
+
     function fit() {
         if (!current) return;
         current.needsFit = true;
@@ -737,5 +951,5 @@
         return [rect.left, rect.top, rect.width, rect.height];
     }
 
-    window.mapCanvas = { load, render, setMode, fit, viewCenter, hostRect, dispose };
+    window.mapCanvas = { load, render, setMode, fit, viewCenter, hostRect, beginGridAdjust, endGridAdjust, dispose };
 })();

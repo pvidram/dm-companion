@@ -27,6 +27,7 @@ public class TvStylesheetTests
     [Theory]
     [InlineData("ds-map-toolbar")]
     [InlineData("ds-toast-region")]
+    [InlineData("ds-save-indicator")]
     public void Tv_stylesheet_hides_dm_tools(string cssClass)
     {
         var css = UiAssets.Read("css/tv.css");

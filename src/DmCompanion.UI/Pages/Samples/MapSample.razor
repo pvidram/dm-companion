@@ -11,6 +11,7 @@
 <NumberStepper Label="Celda" Unit="px" Step="0.1" Decimals="1" Min="1" @bind-Value="_cell" />
 <NumberStepper Label="Desplazamiento X" Unit="px" @bind-Value="_offsetX" />
 <p><Button Icon="IconName.Trash2" OnClick="OnRemove">Quitar del mapa</Button></p>
+<p><SaveIndicator /> Guardado pendiente (parpadea; fijo con movimiento reducido)</p>
 
 @code {
     /// <summary>Simula «Quitar del mapa»: la página muestra el aviso con «Deshacer».</summary>
