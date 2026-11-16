@@ -1,0 +1,92 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R /PageMode /UseOutlines >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Outlines /First 11 0 R /Last 12 0 R /Count 5 >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 325 >>
+stream
+BT /F1 24 Tf 72 720 Td (Manual de prueba) Tj ET
+BT /F1 12 Tf 72 680 Td (Capítulo 1: Introducción) Tj ET
+BT /F1 12 Tf 72 656 Td (Este manual es una muestra para el visor de DM Companion.) Tj ET
+BT /F1 12 Tf 72 632 Td (Sirve para probar el índice, la búsqueda y el paso de página.) Tj ET
+BT /F1 10 Tf 280 40 Td (Página 1) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 360 >>
+stream
+BT /F1 24 Tf 72 720 Td (Capítulo 2: Combate) Tj ET
+BT /F1 12 Tf 72 680 Td (Iniciativa) Tj ET
+BT /F1 12 Tf 72 656 Td (Cada criatura tira un dado de veinte caras y suma su destreza.) Tj ET
+BT /F1 12 Tf 72 632 Td (Acciones) Tj ET
+BT /F1 12 Tf 72 608 Td (En su turno, una criatura puede moverse y realizar una acción.) Tj ET
+BT /F1 10 Tf 280 40 Td (Página 2) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 291 >>
+stream
+BT /F1 24 Tf 72 720 Td (Capítulo 2: Combate \(cont.\)) Tj ET
+BT /F1 12 Tf 72 680 Td (Ataques de oportunidad) Tj ET
+BT /F1 12 Tf 72 656 Td (Un dragón rojo provoca miedo en los aventureros.) Tj ET
+BT /F1 12 Tf 72 632 Td (Fin del manual de prueba.) Tj ET
+BT /F1 10 Tf 280 40 Td (Página 3) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Title <FEFF00430061007000ED00740075006C006F00200031003A00200049006E00740072006F0064007500630063006900F3006E> /Parent 4 0 R /Dest [5 0 R /XYZ 0 792 null] /Next 12 0 R >>
+endobj
+12 0 obj
+<< /Title <FEFF00430061007000ED00740075006C006F00200032003A00200043006F006D0062006100740065> /Parent 4 0 R /Dest [7 0 R /XYZ 0 792 null] /Prev 11 0 R /First 13 0 R /Last 15 0 R /Count 3 >>
+endobj
+13 0 obj
+<< /Title <FEFF0049006E00690063006900610074006900760061> /Parent 12 0 R /Dest [7 0 R /XYZ 0 792 null] /Next 14 0 R >>
+endobj
+14 0 obj
+<< /Title <FEFF0041006300630069006F006E00650073> /Parent 12 0 R /Dest [7 0 R /XYZ 0 792 null] /Prev 13 0 R /Next 15 0 R >>
+endobj
+15 0 obj
+<< /Title <FEFF00410074006100710075006500730020006400650020006F0070006F007200740075006E0069006400610064> /Parent 12 0 R /Dest [9 0 R /XYZ 0 792 null] /Prev 14 0 R >>
+endobj
+xref
+0 16
+0000000000 65535 f 
+0000000015 00000 n 
+0000000103 00000 n 
+0000000172 00000 n 
+0000000269 00000 n 
+0000000342 00000 n 
+0000000468 00000 n 
+0000000844 00000 n 
+0000000970 00000 n 
+0000001381 00000 n 
+0000001508 00000 n 
+0000001851 00000 n 
+0000002040 00000 n 
+0000002245 00000 n 
+0000002379 00000 n 
+0000002518 00000 n 
+trailer
+<< /Size 16 /Root 1 0 R >>
+startxref
+2700
+%%EOF

@@ -198,3 +198,34 @@
 .glossary-row__summary { flex-basis: 100%; font-size: 0.875em; opacity: 0.75; }
 .glossary-attribution { margin-top: var(--ds-space-4, 1rem); font-size: 0.75em; opacity: 0.7; }
 .glossary-detail__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+
+/* Manuales (pestaña del panel del glosario y visor de PDF) */
+.glossary-tabs { display: flex; gap: var(--ds-space-2, 0.5rem); margin-bottom: var(--ds-space-3, 0.75rem); }
+.glossary-tab {
+  min-height: 44px; padding: 0 var(--ds-space-4, 1rem); cursor: pointer; font: inherit; color: inherit;
+  border: 0; border-bottom: 3px solid transparent; background: transparent;
+}
+.glossary-tab[aria-selected="true"] { border-bottom-color: var(--ds-color-accent, #7a1f1f); font-weight: 600; }
+.manuals-tab__group { margin: var(--ds-space-3, 0.75rem) 0 var(--ds-space-1, 0.25rem); font-size: 1em; opacity: 0.75; }
+.manuals-tab__empty { margin: var(--ds-space-4, 1rem) 0; opacity: 0.8; }
+.manual-viewer { display: flex; flex-direction: column; gap: var(--ds-space-2, 0.5rem); min-height: 60vh; }
+.manual-viewer__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-2, 0.5rem); }
+.manual-viewer__title { margin: 0; flex: 1 1 8rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1em; }
+.manual-viewer__goto { display: inline-flex; align-items: center; gap: var(--ds-space-1, 0.25rem); }
+.manual-viewer__goto input { width: 4.5rem; min-height: 44px; font: inherit; text-align: center; }
+.manual-viewer .ds-button[aria-pressed="true"] { background: var(--ds-color-accent, #7a1f1f); color: var(--ds-color-on-accent, #fff); }
+.manual-viewer__body { display: flex; flex: 1; gap: var(--ds-space-2, 0.5rem); min-height: 0; }
+.manual-viewer__pane { flex: 0 0 min(20rem, 40%); max-height: 70vh; overflow-y: auto; }
+.manual-viewer__host { flex: 1; min-width: 0; overflow: auto; touch-action: pan-x pan-y pinch-zoom; }
+.manual-outline__title { margin: 0 0 var(--ds-space-2, 0.5rem); }
+.manual-outline__empty { opacity: 0.8; }
+.manual-outline__list { display: flex; flex-direction: column; }
+.manual-outline__heading { padding-left: calc(var(--ds-depth, 0) * 1rem); font-weight: 600; opacity: 0.75; }
+.manual-search__title, .manual-bookmarks__title { margin: 0 0 var(--ds-space-2, 0.5rem); }
+.manual-search__empty, .manual-search__limit { opacity: 0.8; }
+.manual-search__list, .manual-bookmarks__list { display: flex; flex-direction: column; }
+.manual-bookmarks__row { display: flex; align-items: center; gap: var(--ds-space-1, 0.25rem); }
+.manual-bookmarks__row .ds-list-row { flex: 1; min-width: 0; }
+.manual-tv-actions, .manual-crop-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-2, 0.5rem); }
+.manual-crop { background: color-mix(in srgb, var(--text-ink) 15%, transparent); }
+.manual-crop-rect { box-sizing: border-box; border: 2px dashed var(--accent-on-sheet); background: color-mix(in srgb, var(--accent-on-sheet) 20%, transparent); }

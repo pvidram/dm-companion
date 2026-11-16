@@ -6,7 +6,7 @@ namespace DmCompanion.Screens.Services;
 // Contenido en la TV: una ficha de PJ o una nota de lugar a pantalla completa, hasta «Volver al mapa».
 public sealed partial class TvSession
 {
-    private sealed record ShownContent(string? Path, string? GlossaryKey, string Title, VaultService? Vault);
+    private sealed record ShownContent(string? Path, string? GlossaryKey, string? ManualPath, string Title, VaultService? Vault);
 
     // Inmutable para que la UI lo lea sin el gate.
     private ShownContent? _showing;
@@ -28,7 +28,7 @@ public sealed partial class TvSession
         try
         {
             if (Mode == TvMode.Off || _content.Build(notePath) is not { } message) return;
-            _showing = new ShownContent(notePath, null, message.Title, _host.Current);
+            _showing = new ShownContent(notePath, null, null, message.Title, _host.Current);
             Mode = TvMode.Content;
             Send(message.Json, message.Files);
         }
@@ -48,7 +48,29 @@ public sealed partial class TvSession
         {
             if (Mode == TvMode.Off) return;
             var message = _content.BuildGlossary(entry);
-            _showing = new ShownContent(null, entry.Key, message.Title, _host.Current);
+            _showing = new ShownContent(null, entry.Key, null, message.Title, _host.Current);
+            Mode = TvMode.Content;
+            Send(message.Json, message.Files);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+        Notify();
+    }
+
+    /// <summary>
+    /// Muestra en la TV esa página o recorte de un manual (un PNG). La imagen vive solo en la lista blanca del mensaje en curso y
+    /// se suelta al enviar otro contenido. No hace nada con la TV apagada.
+    /// </summary>
+    public async Task ShowManualImageAsync(string manualPath, string title, byte[] png)
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            if (Mode == TvMode.Off) return;
+            var message = _content.BuildManualImage(title, png);
+            _showing = new ShownContent(null, null, manualPath, message.Title, _host.Current);
             Mode = TvMode.Content;
             Send(message.Json, message.Files);
         }
@@ -80,6 +102,13 @@ public sealed partial class TvSession
     private bool RefreshContent()
     {
         if (Mode != TvMode.Content || _showing is not { } shown) return false;
+        if (shown.ManualPath is not null)
+        {
+            // La imagen de un manual no depende de las notas: solo se abandona al cambiar de vault.
+            if (ReferenceEquals(_host.Current, shown.Vault)) return false;
+            LeaveContent();
+            return true;
+        }
         if (shown.GlossaryKey is { } key)
         {
             // El SRD no cambia con el vault: solo se abandona si el vault o el sistema dejan de ofrecerlo.

@@ -1,0 +1,39 @@
+@using DmCompanion.Core.Manuals
+
+<div class="manual-outline">
+    <h4 class="manual-outline__title">Índice</h4>
+    @if (Context.Doc.Outline.Count == 0)
+    {
+        <p class="manual-outline__empty">Este PDF no tiene índice</p>
+    }
+    else
+    {
+        <SearchField Label="Filtrar secciones" Value="@_filter" ValueChanged="text => _filter = text" />
+        <div class="manual-outline__list">
+            @RenderLevel(ManualOutline.Filter(Context.Outline, _filter), 0)
+        </div>
+    }
+</div>
+
+@code {
+    [CascadingParameter] private ManualViewerContext Context { get; set; } = default!;
+
+    private string? _filter;
+
+    private RenderFragment RenderLevel(IReadOnlyList<OutlineItem> items, int depth) => __builder =>
+    {
+        foreach (var item in items)
+        {
+            var current = item;
+            if (current.Page is { } page)
+            {
+                <ListRow Depth="depth" OnSelect="() => Context.GoToPageAsync(page)">@current.Title</ListRow>
+            }
+            else
+            {
+                <span class="manual-outline__heading" style="--ds-depth: @depth">@current.Title</span>
+            }
+            @RenderLevel(current.Children, depth + 1)
+        }
+    };
+}

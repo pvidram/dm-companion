@@ -1,0 +1,201 @@
+@inherits DmComponentBase
+@implements IAsyncDisposable
+@using DmCompanion.Core.Manuals
+@using DmCompanion.Core.Vault
+@using Microsoft.Extensions.Logging
+@inject ManualViewerInterop Viewer
+@inject ManualPositions Positions
+@inject ManualBookmarkStore Bookmarks
+@inject VaultFileUrls Urls
+@inject ILogger<ManualViewer> Log
+
+@* Quien lo monte debe usar @key por ruta (ManualsTab lo hace): el documento se abre una sola vez, en el primer render. *@
+<div class="manual-viewer">
+    <div class="manual-viewer__bar" role="toolbar" aria-label="Visor de manual">
+        <Button OnClick="BackAsync">Atrás</Button>
+        <h3 class="manual-viewer__title">@ManualPaths.TitleOf(Path)</h3>
+        @if (_doc is not null)
+        {
+            var count = _doc.PageCount;
+            <Button Disabled="@(_page <= 1 || _cropping)" OnClick="() => GoToAsync(_page - 1)">Anterior</Button>
+            <label class="manual-viewer__goto">
+                Página
+                <input type="number" inputmode="numeric" min="1" max="@count" aria-label="Página" value="@_goText" @key="_goKey" disabled="@_cropping"
+                       @onchange="args => _goText = args.Value?.ToString() ?? string.Empty" />
+                de @count
+            </label>
+            <Button Disabled="_cropping" OnClick="GoToTypedAsync">Ir</Button>
+            <Button Disabled="@(_page >= count || _cropping)" OnClick="() => GoToAsync(_page + 1)">Siguiente</Button>
+            <Button aria-pressed="@PaneState(ManualPane.Outline)" OnClick="() => Shell.ToggleManualPane(ManualPane.Outline)">Índice</Button>
+            <Button aria-pressed="@PaneState(ManualPane.Search)" OnClick="() => Shell.ToggleManualPane(ManualPane.Search)">Buscar</Button>
+            <Button aria-pressed="@PaneState(ManualPane.Bookmarks)" OnClick="() => Shell.ToggleManualPane(ManualPane.Bookmarks)">Marcadores</Button>
+            @* Amplía el visor, no la página: el zoom de la página es con pellizco o con Ctrl + rueda. *@
+            <Button Icon="IconName.Maximize" aria-pressed="@(Shell.ManualViewerExpanded ? "true" : "false")"
+                    OnClick="Shell.ToggleManualViewerExpanded">@(Shell.ManualViewerExpanded ? "Reducir" : "Ampliar")</Button>
+        }
+    </div>
+    @if (_failed)
+    {
+        <InlineNotice Kind="NoticeKind.Error">No se pudo abrir este manual</InlineNotice>
+    }
+    else if (_pageFailed)
+    {
+        <InlineNotice Kind="NoticeKind.Error">No se pudo mostrar esta página</InlineNotice>
+    }
+    <CascadingValue Value="_context">
+        @* Los hijos usan Context.Interop, no inyectan ManualViewerInterop. *@
+        <ManualTvActions />
+        <div class="manual-viewer__body">
+            @if (_context is not null && Shell.ActiveManualPane == ManualPane.Outline)
+            {
+                <aside class="manual-viewer__pane"><ManualOutlinePane /></aside>
+            }
+            @if (_context is not null && Shell.ActiveManualPane == ManualPane.Search)
+            {
+                <aside class="manual-viewer__pane"><ManualSearchPane /></aside>
+            }
+            @if (_context is not null && Shell.ActiveManualPane == ManualPane.Bookmarks)
+            {
+                <aside class="manual-viewer__pane"><ManualBookmarksPane /></aside>
+            }
+            <div @ref="_host" class="manual-viewer__host" hidden="@_failed"></div>
+        </div>
+    </CascadingValue>
+</div>
+
+@code {
+    /// <summary>Ruta relativa del PDF dentro del vault.</summary>
+    [Parameter, EditorRequired] public string Path { get; set; } = string.Empty;
+
+    private ElementReference _host;
+    private ManualDocInfo? _doc;
+    private ManualViewerContext? _context;
+    private IReadOnlyList<OutlineItem> _outline = [];
+    private int _page = 1;
+    private string _goText = "1";
+    private bool _failed;
+    private bool _pageFailed;
+    private bool _cropping;
+    private bool _closed;
+    private int _goKey;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Viewer.PageTurnRequested += OnPageTurn;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await OpenAsync();
+    }
+
+    private string? PaneState(ManualPane pane) => Shell.ActiveManualPane == pane ? "true" : "false";
+
+    private async Task OpenAsync()
+    {
+        var url = await UrlAsync();
+        var remembered = Positions.LastPage(Path) ?? 1;
+        var doc = url is null ? null : await Viewer.OpenAsync(_host, url, remembered);
+        if (_closed)
+        {
+            // Atrás o el desmontaje llegaron con la apertura en vuelo: el documento no tiene dueño y se cierra.
+            if (doc is not null) await Viewer.CloseAsync();
+            return;
+        }
+        if (doc is null)
+        {
+            _failed = true;
+            StateHasChanged();
+            return;
+        }
+        _doc = doc;
+        // El árbol del índice no cambia con la página: se construye una vez por documento.
+        _outline = ManualOutline.Build(doc.Outline);
+        var start = Math.Clamp(remembered, 1, Math.Max(doc.PageCount, 1));
+        SetPage(start);
+        // El PDF puede tener ahora menos páginas que cuando se recordó la posición.
+        if (start != remembered) _pageFailed = !await Viewer.ShowPageAsync(start);
+        // Cargar los marcadores al abrir deja constancia en Diagnóstico de un fichero dañado, aunque no se abra el lateral.
+        await Bookmarks.LoadAsync(Path);
+        StateHasChanged();
+    }
+
+    private async Task<string?> UrlAsync()
+    {
+        try
+        {
+            if (Host.Current is not { } vault || await vault.StatAsync(Path) is not { } info) return null;
+            return Urls.UrlFor(Path, info.LastWriteTimeUtc);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Log.LogWarning("No se pudo leer un manual del vault ({ExceptionType}).", ex.GetType().Name);
+            return null;
+        }
+    }
+
+    private void SetPage(int page)
+    {
+        _page = page;
+        _goText = page.ToString(CultureInfo.InvariantCulture);
+        _context = _doc is null
+            ? null
+            : new ManualViewerContext(Path, ManualPaths.TitleOf(Path), page, _doc, _outline, Viewer, GoToAsync,
+                _cropping, SetCropping);
+    }
+
+    private void SetCropping(bool cropping)
+    {
+        if (_cropping == cropping) return;
+        _cropping = cropping;
+        SetPage(_page);
+        if (!_closed) StateHasChanged();
+    }
+
+    private async Task GoToAsync(int page)
+    {
+        if (_doc is null || _cropping) return;
+        page = Math.Clamp(page, 1, Math.Max(_doc.PageCount, 1));
+        SetPage(page);
+        Positions.Remember(Path, page);
+        // Quien llama puede ser un hijo (el índice): el visor debe repintar la página y el valor en cascada.
+        StateHasChanged();
+        var painted = await Viewer.ShowPageAsync(page);
+        // Si mientras tanto se pidió otra página, el aviso es cosa de esa.
+        if (_page != page) return;
+        _pageFailed = !painted;
+        StateHasChanged();
+    }
+
+    private async Task GoToTypedAsync()
+    {
+        if (int.TryParse(_goText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var page)) await GoToAsync(page);
+        else SetPage(_page);
+        // Un número fuera de rango acaba en la misma página que ya se mostraba: sin @key nuevo el navegador conservaría lo tecleado.
+        _goKey++;
+    }
+
+    // El evento llega desde el interop JS, fuera del dispatcher. Durante un recorte no se cambia de página.
+    private void OnPageTurn(int direction) => _ = InvokeAsync(() => _cropping ? Task.CompletedTask : GoToAsync(_page + direction));
+
+    private async Task BackAsync()
+    {
+        await CloseDocumentAsync();
+        Shell.CloseManual();
+    }
+
+    private async Task CloseDocumentAsync()
+    {
+        if (_closed) return;
+        _closed = true;
+        await Viewer.CloseAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        base.Dispose();
+        Viewer.PageTurnRequested -= OnPageTurn;
+        await CloseDocumentAsync();
+    }
+}

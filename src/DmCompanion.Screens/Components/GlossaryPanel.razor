@@ -2,11 +2,23 @@
 @using DmCompanion.Core.Glossary
 @inject GlossaryService Glossary
 
-<Parchment Title="Glosario" Size="ParchmentSize.Wide" class="glossary-panel" IsOpen="@IsOpen"
+<Parchment Title="Glosario" Size="@PanelSize" class="glossary-panel" IsOpen="@IsOpen"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Glossary))">
     @if (IsOpen)
     {
-        @if (Shell.SelectedGlossaryKey is { } key)
+        <div class="glossary-tabs" role="tablist">
+            @foreach (var (tab, label) in Tabs)
+            {
+                var current = tab;
+                <button type="button" role="tab" class="glossary-tab" aria-selected="@(Shell.GlossaryTab == current ? "true" : "false")"
+                        @onclick="() => Shell.SelectGlossaryTab(current)">@label</button>
+            }
+        </div>
+        @if (Shell.GlossaryTab == GlossaryTab.Manuals)
+        {
+            <ManualsTab />
+        }
+        else if (Shell.SelectedGlossaryKey is { } key)
         {
             <Button Variant="ButtonVariant.Secondary" OnClick="Shell.ShowGlossaryList">Atrás</Button>
             <GlossaryDetail Key="@key" />
@@ -50,7 +62,7 @@
                 <EmptyState Title="Sin resultados" />
             }
         }
-        @if (Glossary.AttributionText is { } attribution)
+        @if (Shell.GlossaryTab == GlossaryTab.Glossary && Glossary.AttributionText is { } attribution)
         {
             <p class="glossary-attribution">@attribution</p>
         }
@@ -58,6 +70,14 @@
 </Parchment>
 
 @code {
+    // «Ampliar» del visor lleva el panel a casi toda la pantalla, solo mientras se ve un manual.
+    private ParchmentSize PanelSize =>
+        Shell.ManualViewerExpanded && Shell.GlossaryTab == GlossaryTab.Manuals && Shell.OpenManualPath is not null
+            ? ParchmentSize.Full
+            : ParchmentSize.Wide;
+
+    private static readonly (GlossaryTab Tab, string Label)[] Tabs = [(GlossaryTab.Glossary, "Glosario"), (GlossaryTab.Manuals, "Manuales")];
+
     private string? _text;
     private GlossaryCategory? _category;
     private GlossaryFilter? _filter;

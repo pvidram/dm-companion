@@ -111,4 +111,26 @@ public sealed class BackNavigationTests
 
         (handled, _shell.ActivePanel, _shell.SelectedGlossaryKey).Should().Be((true, OverlayPanel.Glossary, null));
     }
+
+    [Fact]
+    public async Task Back_from_the_manuals_list_closes_the_panel()
+    {
+        _shell.OpenManual("manuales/dnd5e/PHB.pdf");
+        _shell.CloseManual();
+
+        var handled = await Back.HandleBackAsync();
+
+        (handled, _shell.ActivePanel).Should().Be((true, OverlayPanel.None));
+    }
+
+    [Fact]
+    public async Task Back_in_the_manuals_tab_ignores_the_glossary_selection()
+    {
+        _shell.OpenGlossary("srd:estados/blinded");
+        _shell.SelectGlossaryTab(GlossaryTab.Manuals);
+
+        var handled = await Back.HandleBackAsync();
+
+        (handled, _shell.ActivePanel, _shell.SelectedGlossaryKey).Should().Be((true, OverlayPanel.None, "srd:estados/blinded"));
+    }
 }

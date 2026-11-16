@@ -33,6 +33,10 @@ public static class MauiProgram
 		builder.Services.AddSingleton<GlossaryPackLoader>();
 		builder.Services.AddSingleton<GlossaryService>();
 		builder.Services.AddSingleton<AudioLibraryService>();
+		builder.Services.AddSingleton<ManualLibrary>();
+		builder.Services.AddSingleton<ManualBookmarkStore>();
+		builder.Services.AddSingleton<ManualPositions>();
+		builder.Services.AddScoped<ManualViewerInterop>();
 		builder.Services.AddScoped<AudioMixer>();
 		builder.Services.AddSingleton<AudioStore>();
 		builder.Services.AddSingleton<IImagePicker, MauiImagePicker>();

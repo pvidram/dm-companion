@@ -41,3 +41,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## pdf.js (visor de manuales)
+
+`src/DmCompanion.Screens/wwwroot/lib/pdfjs/` contiene pdf.js (`pdfjs-dist` 6.5.438, de Mozilla), bajo licencia Apache-2.0 (texto completo en `LICENSE` de esa carpeta; las fuentes estándar y los cmaps llevan sus propias licencias junto a ellos). Solo se copian `build/pdf.min.mjs`, `build/pdf.worker.min.mjs`, `standard_fonts/`, `cmaps/` y `wasm/` (decodificadores OpenJPEG, JBIG2 y QCMS, con sus licencias en esa carpeta; sin el motor QuickJS, que solo usa el scripting de PDF, desactivado).

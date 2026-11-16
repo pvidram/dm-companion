@@ -1,4 +1,5 @@
 using System.Text;
+using DmCompanion.Core.Manuals;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
@@ -168,7 +169,8 @@ public sealed class FileSystemVaultStorage : IVaultStorage
     // Ordenados por ruta: el orden de Directory.EnumerateFiles depende del sistema de ficheros y cambiaría de un equipo a otro.
     public Task<IReadOnlyList<SyncConflict>> FindConflictsAsync(CancellationToken ct = default) =>
         Task.Run<IReadOnlyList<SyncConflict>>(() => EnumerateRelativePaths()
-            .Where(path => (VaultPaths.IsMarkdown(path) || MapPaths.IsStateFile(VaultPaths.GetConflictOriginal(path)))
+            .Where(path => (VaultPaths.IsMarkdown(path) || MapPaths.IsStateFile(VaultPaths.GetConflictOriginal(path))
+                    || ManualPaths.IsBookmarksFile(VaultPaths.GetConflictOriginal(path)))
                 && !VaultPaths.IsExcluded(path) && VaultPaths.IsConflictFile(path) && IsSafe(path))
             .Order(StringComparer.Ordinal)
             .Select(path => new SyncConflict(VaultPaths.GetConflictOriginal(path), path))

@@ -1,0 +1,124 @@
+@implements IDisposable
+@using System.Diagnostics
+@using DmCompanion.Core.Manuals
+
+<div class="manual-search">
+    <h4 class="manual-search__title">Buscar</h4>
+    @if (!Context.Doc.HasText)
+    {
+        <p class="manual-search__empty">Este manual no tiene texto que buscar</p>
+    }
+    else
+    {
+        <SearchField Label="Buscar en el manual" Value="@_query" ValueChanged="OnQueryChanged" />
+        <div class="manual-search__list">
+            @foreach (var hit in _hits)
+            {
+                var page = hit.Page;
+                <ListRow OnSelect="() => Context.GoToPageAsync(page)">p. @hit.Page · @hit.Snippet</ListRow>
+            }
+        </div>
+        @if (_hits.Count >= MaxHits)
+        {
+            <p class="manual-search__limit">Se muestran los primeros @MaxHits resultados</p>
+        }
+    }
+</div>
+
+@code {
+    // Mismo tope que MAX_SEARCH_HITS en manual-viewer.js.
+    private const int MaxHits = 500;
+    // Mientras llegan aciertos se repinta como mucho cada 100 ms o cada 20 aciertos, y siempre al terminar.
+    private const int RenderEveryHits = 20;
+    private static readonly TimeSpan RenderInterval = TimeSpan.FromMilliseconds(100);
+
+    [CascadingParameter] private ManualViewerContext Context { get; set; } = default!;
+
+    private readonly List<ManualSearchHit> _hits = [];
+    private CancellationTokenSource? _cts;
+    private string? _query;
+    private long _lastRender;
+    private int _unrendered;
+    private bool _flushScheduled;
+
+    private void OnQueryChanged(string text)
+    {
+        _query = text;
+        CancelSearch();
+        _hits.Clear();
+        _unrendered = 0;
+        _lastRender = 0;
+        if (string.IsNullOrWhiteSpace(text)) return;
+        var cts = _cts = new CancellationTokenSource();
+        _ = RunAsync(text, cts);
+    }
+
+    private async Task RunAsync(string text, CancellationTokenSource cts)
+    {
+        // El token se lee antes: tras liberar la fuente, un acierto en vuelo ya no puede pedirlo.
+        var token = cts.Token;
+        try
+        {
+            await Context.Interop.SearchAsync(text, hit => AddHitAsync(hit, token), token);
+            await InvokeAsync(() =>
+            {
+                if (!token.IsCancellationRequested) Render();
+            });
+        }
+        finally
+        {
+            if (ReferenceEquals(_cts, cts)) _cts = null;
+            cts.Dispose();
+        }
+    }
+
+    private Task AddHitAsync(ManualSearchHit hit, CancellationToken token) =>
+        InvokeAsync(() =>
+        {
+            if (token.IsCancellationRequested) return;
+            _hits.Add(hit);
+            _unrendered++;
+            if (_unrendered >= RenderEveryHits || Stopwatch.GetElapsedTime(_lastRender) >= RenderInterval) Render();
+            else if (!_flushScheduled) _ = RenderLaterAsync(token);
+        });
+
+    // Pinta lo que quedó pendiente al pasar el intervalo, aunque no lleguen más aciertos.
+    private async Task RenderLaterAsync(CancellationToken token)
+    {
+        _flushScheduled = true;
+        try
+        {
+            await Task.Delay(RenderInterval, token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Otra búsqueda o el cierre del lateral: lo pendiente ya no se muestra.
+        }
+        await InvokeAsync(() =>
+        {
+            _flushScheduled = false;
+            if (!token.IsCancellationRequested && _unrendered > 0) Render();
+        });
+    }
+
+    private void Render()
+    {
+        _unrendered = 0;
+        _lastRender = Stopwatch.GetTimestamp();
+        StateHasChanged();
+    }
+
+    private void CancelSearch()
+    {
+        try
+        {
+            _cts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // La búsqueda ya terminó y liberó su fuente: no hay nada que cancelar.
+        }
+    }
+
+    public void Dispose() => CancelSearch();
+}

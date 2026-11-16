@@ -1,0 +1,71 @@
+@inherits DmComponentBase
+@inject ManualLibrary Library
+
+<div class="manuals-tab">
+    @if (_manualGone && Shell.OpenManualPath is null)
+    {
+        <InlineNotice Kind="NoticeKind.Warning" OnClose="() => _manualGone = false">El manual ya no está en el vault.</InlineNotice>
+    }
+    @if (Shell.OpenManualPath is { } path)
+    {
+        <ManualViewer Path="@path" @key="path" />
+    }
+    else if (Library.Manuals.Count == 0)
+    {
+        <p class="manuals-tab__empty">Pon tus manuales en PDF en <code>manuales/@(Library.SystemId ?? "<id>")/</code> dentro del vault</p>
+    }
+    else
+    {
+        @foreach (var group in Library.Manuals.GroupBy(manual => manual.Group))
+        {
+            <section class="manuals-tab__section">
+                @if (group.Key.Length > 0)
+                {
+                    <h3 class="manuals-tab__group">@group.Key</h3>
+                }
+                @foreach (var manual in group)
+                {
+                    var selected = manual;
+                    <ListRow Icon="IconName.BookOpen" OnSelect="() => Open(selected.Path)">@selected.Title</ListRow>
+                }
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private bool _manualGone;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Library.Changed += OnLibraryChanged;
+    }
+
+    private void Open(string path)
+    {
+        _manualGone = false;
+        Shell.OpenManual(path);
+    }
+
+    // ManualLibrary.Changed salta en un hilo del pool: hay que volver al dispatcher de Blazor.
+    private void OnLibraryChanged(object? sender, EventArgs e) => _ = InvokeAsync(CloseIfGoneAndRender);
+
+    // Spec §8: si el PDF abierto desaparece del vault, se vuelve a la lista con un aviso.
+    private void CloseIfGoneAndRender()
+    {
+        if (Shell.OpenManualPath is { } path
+            && !Library.Manuals.Any(manual => string.Equals(manual.Path, path, StringComparison.OrdinalIgnoreCase)))
+        {
+            _manualGone = true;
+            Shell.CloseManual();
+        }
+        StateHasChanged();
+    }
+
+    public override void Dispose()
+    {
+        Library.Changed -= OnLibraryChanged;
+        base.Dispose();
+    }
+}

@@ -39,7 +39,21 @@ public sealed class BackNavigation(ShellState shell)
             shell.CloseEditor();
             return Task.FromResult(true);
         }
-        if (shell.ActivePanel == OverlayPanel.Glossary && shell.SelectedGlossaryKey is not null)
+        if (shell.ActivePanel == OverlayPanel.Glossary && shell.GlossaryTab == GlossaryTab.Manuals)
+        {
+            // Lateral abierto → lo cierra; visor → lista; con la lista, cae al cierre genérico del panel.
+            if (shell.ActiveManualPane != ManualPane.None)
+            {
+                shell.CloseManualPane();
+                return Task.FromResult(true);
+            }
+            if (shell.OpenManualPath is not null)
+            {
+                shell.CloseManual();
+                return Task.FromResult(true);
+            }
+        }
+        else if (shell.ActivePanel == OverlayPanel.Glossary && shell.SelectedGlossaryKey is not null)
         {
             shell.ShowGlossaryList();
             return Task.FromResult(true);

@@ -20,6 +20,8 @@ public sealed class VaultFileEndpointTests : IDisposable
         File.WriteAllText(_vault.PathOf("Mapas/x.svg"), "<svg/>");
         Directory.CreateDirectory(_vault.PathOf("_audio"));
         File.WriteAllBytes(_vault.PathOf("_audio/a.mp3"), Enumerable.Range(0, 100).Select(i => (byte)i).ToArray());
+        Directory.CreateDirectory(_vault.PathOf("manuales/dnd"));
+        File.WriteAllBytes(_vault.PathOf("manuales/dnd/phb.pdf"), Enumerable.Range(0, 300).Select(i => (byte)i).ToArray());
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("DevHost:VaultPath", _vault.Root);
@@ -56,6 +58,20 @@ public sealed class VaultFileEndpointTests : IDisposable
 
         response.StatusCode.Should().Be(HttpStatusCode.PartialContent);
         (await response.Content.ReadAsByteArrayAsync()).Should().Equal(Enumerable.Range(0, 10).Select(i => (byte)i));
+    }
+
+    [Fact]
+    public async Task Pdf_range_request_returns_206_with_content_range()
+    {
+        using var client = _factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/_vault/manuales/dnd/phb.pdf");
+        request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 99);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.PartialContent);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/pdf");
+        response.Content.Headers.ContentRange!.ToString().Should().Be("bytes 0-99/300");
     }
 
     [Theory]

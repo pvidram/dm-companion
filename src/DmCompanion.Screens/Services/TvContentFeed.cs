@@ -63,6 +63,19 @@ public sealed partial class TvContentFeed(VaultHost host, NoteImageResolver imag
         return new TvContentMessage(json, new Dictionary<string, TvFile>(), entry.Name);
     }
 
+    /// <summary>Mensaje de una página (o un recorte) de un manual: una sola imagen PNG, que vive solo en la lista blanca de este mensaje.</summary>
+    public TvContentMessage BuildManualImage(string title, byte[] png)
+    {
+        var id = "manual-" + Guid.NewGuid().ToString("N");
+        var files = new Dictionary<string, TvFile>(StringComparer.Ordinal)
+        {
+            [id] = new TvFile("image/png", _ => Task.FromResult<Stream>(new MemoryStream(png, writable: false))),
+        };
+        var html = $"<img src=\"files/{id}\" alt=\"\" class=\"tv-manual\">";
+        var json = JsonSerializer.Serialize(new { kind = "content", title, html }, Json);
+        return new TvContentMessage(json, files, title);
+    }
+
     private static string SpellFields(SpellInfo? spell) => spell is null
         ? ""
         : "<dl>"

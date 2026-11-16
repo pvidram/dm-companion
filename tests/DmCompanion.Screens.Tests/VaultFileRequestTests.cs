@@ -112,6 +112,25 @@ public sealed class VaultFileRequestTests
     [InlineData("a.jpeg", "image/jpeg")]
     [InlineData("a.webp", "image/webp")]
     [InlineData("a.gif", "image/gif")]
+    [InlineData("manuales/dnd/a.PDF", "application/pdf")]
     public void ContentType_follows_the_extension(string path, string expected) =>
         VaultFileRequest.ContentTypeOf(path).Should().Be(expected);
+
+    [Theory]
+    [InlineData("/_vault/Notas/secreto.pdf")]
+    [InlineData("/_vault/x.pdf")]
+    [InlineData("/_vault/manualesx/a.pdf")]
+    public void TryParse_rejects_pdf_outside_manuals(string url) =>
+        VaultFileRequest.TryParse(url, out _).Should().BeFalse();
+
+    [Fact]
+    public void TryParse_accepts_pdf_under_manuals_regardless_of_case() =>
+        VaultFileRequest.TryParse("/_vault/Manuales/dnd5e/a.pdf", out _).Should().BeTrue();
+
+    [Fact]
+    public void TryParse_accepts_pdf_manuals()
+    {
+        VaultFileRequest.TryParse("/_vault/manuales/dnd/Manual%20del%20jugador.pdf", out var relative).Should().BeTrue();
+        relative.Should().Be("manuales/dnd/Manual del jugador.pdf");
+    }
 }

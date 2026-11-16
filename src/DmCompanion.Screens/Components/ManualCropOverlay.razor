@@ -1,0 +1,10 @@
+@* Barra del modo recorte: el rectángulo se dibuja sobre la página (lo gestiona el JS del visor); aquí solo se confirma o se cancela. *@
+<div class="manual-crop-bar" role="group" aria-label="Recorte para la TV">
+    <Button OnClick="OnSend">Enviar</Button>
+    <Button OnClick="OnCancel">Cancelar</Button>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnSend { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

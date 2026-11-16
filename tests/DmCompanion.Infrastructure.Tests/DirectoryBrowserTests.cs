@@ -9,7 +9,7 @@ public sealed class DirectoryBrowserTests : IDisposable
 
     [Fact]
     public void ListSubdirectories_returns_visible_folders_sorted() =>
-        _browser.ListSubdirectories(_vault.Root).Should().Equal("Historia", "Lugares", "Mapas", "Personajes");
+        _browser.ListSubdirectories(_vault.Root).Should().Equal("Historia", "Lugares", "manuales", "Mapas", "Personajes");
 
     [Fact]
     public void ListSubdirectories_of_missing_folder_is_empty() =>

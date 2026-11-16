@@ -12,6 +12,13 @@ public sealed class FileSystemVaultStorageTests : IDisposable
 
     public void Dispose() => _vault.Dispose();
 
+    // El handler de Android lee el tamaño sin bloquear y depende de que la tarea llegue ya completada.
+    [Theory]
+    [InlineData("Lugares/Puerto Sal.md")]
+    [InlineData("Lugares/NoExiste.md")]
+    public void StatAsync_completes_synchronously(string relativePath) =>
+        _storage.StatAsync(relativePath).IsCompletedSuccessfully.Should().BeTrue();
+
     [Fact]
     public async Task List_returns_only_indexable_markdown() =>
         (await _storage.ListMarkdownFilesAsync()).Should().HaveCount(11);
@@ -322,6 +329,23 @@ public sealed class FileSystemVaultStorageTests : IDisposable
         const string conflict = "Mapas/X.sync-conflict-20261112-101500-ABCDEF1.state.json";
         await _storage.WriteAsync(conflict, "{}", WritePrecondition.MustNotExist);
         (await _storage.FindConflictsAsync()).Should().Contain(new SyncConflict("Mapas/X.state.json", conflict));
+    }
+
+    [Theory]
+    [InlineData("manuales/dnd5e/PHB.marcadores.sync-conflict-20261116-101500-ABCDEF1.json")]
+    [InlineData("manuales/dnd5e/PHB.sync-conflict-20261116-101500-ABCDEF1.marcadores.json")]
+    public async Task FindConflicts_lists_manual_bookmark_conflicts(string conflict)
+    {
+        await _storage.WriteAsync(conflict, "{}", WritePrecondition.MustNotExist);
+        (await _storage.FindConflictsAsync()).Should().Contain(new SyncConflict("manuales/dnd5e/PHB.marcadores.json", conflict));
+    }
+
+    [Fact]
+    public async Task FindConflicts_ignores_bookmark_conflicts_outside_manuals()
+    {
+        const string conflict = "Notas/PHB.marcadores.sync-conflict-20261116-101500-ABCDEF1.json";
+        await _storage.WriteAsync(conflict, "{}", WritePrecondition.MustNotExist);
+        (await _storage.FindConflictsAsync()).Select(c => c.ConflictRelativePath).Should().NotContain(conflict);
     }
 
     [Fact]

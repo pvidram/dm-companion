@@ -4,6 +4,11 @@ namespace DmCompanion.Screens.Services;
 
 public enum OverlayPanel { None, Players, Notes, Maps, Sound, Vault, Tv, Glossary }
 
+public enum GlossaryTab { Glossary, Manuals }
+
+/// <summary>Lateral abierto del visor de manuales; solo hay uno a la vez.</summary>
+public enum ManualPane { None, Outline, Search, Bookmarks }
+
 public enum EditorDialog { None, Conflict, ConfirmClose }
 
 public enum EditorCommand { Overwrite, Reload }
@@ -30,6 +35,11 @@ public sealed class ShellState
     public string? EditingPath { get; private set; }
     public string? SelectedPcPath { get; private set; }
     public string? SelectedGlossaryKey { get; private set; }
+    public GlossaryTab GlossaryTab { get; private set; }
+    public string? OpenManualPath { get; private set; }
+    public ManualPane ActiveManualPane { get; private set; }
+    /// <summary>«Ampliar»: el visor de manuales ocupa casi toda la pantalla (spec 5b §6). Vuelve a false al cerrar el manual.</summary>
+    public bool ManualViewerExpanded { get; private set; }
     public NewNoteRequest? NewNote { get; private set; }
     public bool ConflictsOpen { get; private set; }
     public bool AddTokenOpen { get; private set; }
@@ -331,7 +341,52 @@ public sealed class ShellState
     public void OpenGlossary(string? key = null)
     {
         ActivePanel = OverlayPanel.Glossary;
+        GlossaryTab = GlossaryTab.Glossary;
         SelectedGlossaryKey = key;
+        Notify();
+    }
+
+    public void SelectGlossaryTab(GlossaryTab tab)
+    {
+        GlossaryTab = tab;
+        Notify();
+    }
+
+    public void OpenManual(string relativePath)
+    {
+        ActivePanel = OverlayPanel.Glossary;
+        GlossaryTab = GlossaryTab.Manuals;
+        OpenManualPath = relativePath;
+        ActiveManualPane = ManualPane.None;
+        ManualViewerExpanded = false;
+        Notify();
+    }
+
+    public void CloseManual()
+    {
+        OpenManualPath = null;
+        ActiveManualPane = ManualPane.None;
+        ManualViewerExpanded = false;
+        Notify();
+    }
+
+    public void ToggleManualViewerExpanded()
+    {
+        ManualViewerExpanded = !ManualViewerExpanded;
+        Notify();
+    }
+
+    /// <summary>Abre el lateral pedido; si ya era el abierto, lo cierra.</summary>
+    public void ToggleManualPane(ManualPane pane)
+    {
+        ActiveManualPane = ActiveManualPane == pane ? ManualPane.None : pane;
+        Notify();
+    }
+
+    public void CloseManualPane()
+    {
+        if (ActiveManualPane == ManualPane.None) return;
+        ActiveManualPane = ManualPane.None;
         Notify();
     }
 
@@ -418,6 +473,10 @@ public sealed class ShellState
         EditingPath = null;
         SelectedPcPath = null;
         SelectedGlossaryKey = null;
+        GlossaryTab = GlossaryTab.Glossary;
+        OpenManualPath = null;
+        ActiveManualPane = ManualPane.None;
+        ManualViewerExpanded = false;
         NewNote = null;
         ConflictsOpen = false;
         AddTokenOpen = false;

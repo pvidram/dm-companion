@@ -92,6 +92,16 @@ El glosario (botón «Glosario» del menú) trae el SRD 5.2.1 en español dentro
 - **Paquetes:** JSON embebidos en `src/DmCompanion.Core/Glossary/Packs/`. No llevan HTML: el texto va en spans y solo `GlossaryHtmlRenderer` genera HTML.
 - **Regenerarlos:** clonar compendio-srd en ese commit y ejecutar `dotnet run --project tools/DmCompanion.SrdImport -- <carpeta datos> src/DmCompanion.Core/Glossary/Packs`. Los `datos/*.json` de ese commit ya llevan aplicadas las correcciones; el importador no las aplica.
 
+## Manuales
+
+La pestaña «Manuales» del glosario abre los PDF de tus manuales (de solo lectura, sin conexión).
+
+- **Dónde ponerlos:** `manuales/<id del sistema>/` dentro del vault (por ejemplo `manuales/dnd5e/`), en cualquier subcarpeta. Cada vault solo muestra los manuales del sistema de juego activo. El id se compara sin distinguir mayúsculas.
+- **Visor:** pdf.js carga el PDF por tramos, así que un manual grande abre rápido. Tiene navegación («Anterior», «Siguiente», ir a una página), zoom, índice del PDF con filtro, búsqueda de texto y marcadores. Recuerda la última página de cada manual.
+- **Marcadores:** se guardan junto al PDF, en `<manual>.marcadores.json`; es lo único que la app escribe en el vault y viaja con Syncthing.
+- **TV:** «Mostrar en TV» manda la página actual y «Recortar para la TV» manda la zona que arrastres (imagen en memoria, nunca se escribe en el vault). Se queda en la TV aunque cambie el vault; «Volver al mapa» la quita.
+- **Spec:** [fase 5b](docs/design/2026-11-16-fase-5b-manuales-pdf-design.md).
+
 ## Tablet
 
 ### Vincular por Wi-Fi (una vez por equipo)
@@ -137,4 +147,5 @@ scripts/publish-desktop.sh   # genera dist/dm_companion_pc.zip (win-x64, autocon
 - Fase 2 (mapa): [spec](docs/design/2026-11-12-fase-2-mapa-design.md)
 - Fase 3 (combate): [spec](docs/design/2026-11-13-fase-3-combate-design.md)
 - Fase 5 (glosario): [spec](docs/design/2026-11-16-fase-5-glosario-design.md)
+- Fase 5b (manuales): [spec](docs/design/2026-11-16-fase-5b-manuales-pdf-design.md)
 - Design system: [docs/design/2026-11-03-design-system-design.md](docs/design/2026-11-03-design-system-design.md)

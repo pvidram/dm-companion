@@ -280,4 +280,20 @@ public sealed class TvContentFeedTests : TvSessionTestBase
         (TvContentFeed.CanShow(Host.Current!.Index.Get("Reglas/Cobertura.md")!), TvContentFeed.CanShow(Host.Current.Index.Get("Monstruos/Lobo.md")!))
             .Should().Be((true, false));
     }
+
+    [Fact]
+    public async Task Manual_image_builds_whitelisted_png()
+    {
+        byte[] png = [0x89, 0x50, 0x4E, 0x47, 1, 2, 3];
+
+        await Tv.ShowManualImageAsync("manuales/dnd5e/Manual.pdf", "Manual · p. 3", png);
+
+        var id = Regex.Match(Html, "^<img src=\"files/(?<id>manual-[0-9a-f]{32})\" alt=\"\" class=\"tv-manual\">$").Groups["id"].Value;
+        var file = Server.Files[id];
+        using var stream = await file.Open(CancellationToken.None);
+        using var copy = new MemoryStream();
+        await stream.CopyToAsync(copy);
+        (LastKind, LastMessage.GetProperty("title").GetString(), Server.Files.Count, file.ContentType, Convert.ToHexString(copy.ToArray()))
+            .Should().Be(("content", "Manual · p. 3", 1, "image/png", Convert.ToHexString(png)));
+    }
 }

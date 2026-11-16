@@ -159,4 +159,55 @@ public sealed class ShellStateTests
 
         shell.SelectedGlossaryKey.Should().BeNull();
     }
+
+    [Fact]
+    public void Reset_clears_manual_tab_open_manual_and_pane()
+    {
+        var shell = new ShellState();
+        shell.OpenManual("manuales/dnd5e/PHB.pdf");
+        shell.ToggleManualPane(ManualPane.Outline);
+
+        shell.Reset();
+
+        (shell.GlossaryTab, shell.OpenManualPath, shell.ActiveManualPane).Should().Be((GlossaryTab.Glossary, null, ManualPane.None));
+    }
+
+    [Fact]
+    public void ToggleManualViewerExpanded_alternates_and_raises_Changed()
+    {
+        var shell = new ShellState();
+        shell.OpenManual("manuales/dnd5e/PHB.pdf");
+        var raised = 0;
+        shell.Changed += (_, _) => raised++;
+
+        shell.ToggleManualViewerExpanded();
+        var first = shell.ManualViewerExpanded;
+        shell.ToggleManualViewerExpanded();
+
+        (first, shell.ManualViewerExpanded, raised).Should().Be((true, false, 2));
+    }
+
+    [Fact]
+    public void CloseManual_shrinks_the_expanded_viewer()
+    {
+        var shell = new ShellState();
+        shell.OpenManual("manuales/dnd5e/PHB.pdf");
+        shell.ToggleManualViewerExpanded();
+
+        shell.CloseManual();
+
+        shell.ManualViewerExpanded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reset_shrinks_the_expanded_viewer()
+    {
+        var shell = new ShellState();
+        shell.OpenManual("manuales/dnd5e/PHB.pdf");
+        shell.ToggleManualViewerExpanded();
+
+        shell.Reset();
+
+        shell.ManualViewerExpanded.Should().BeFalse();
+    }
 }

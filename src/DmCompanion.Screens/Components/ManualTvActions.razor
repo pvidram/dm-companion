@@ -1,0 +1,134 @@
+@implements IAsyncDisposable
+@using DmCompanion.Core.Tv
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@inject IServiceProvider Services
+@inject ILogger<ManualTvActions> Log
+
+@* «Mostrar en TV» y «Recortar para la TV»: el visor publica su estado en cascada y el interop se usa desde ahí. *@
+@if (_tv is { Mode: not TvMode.Off } && Context is not null)
+{
+    <div class="manual-tv-actions">
+        @if (_cropping)
+        {
+            <ManualCropOverlay OnSend="ConfirmAsync" OnCancel="CancelAsync" />
+        }
+        else
+        {
+            <Button Icon="IconName.Tv" Disabled="_busy" OnClick="ShowPageAsync">Mostrar en TV</Button>
+            <Button Disabled="_busy" OnClick="CropAsync">Recortar para la TV</Button>
+        }
+        @if (_failed)
+        {
+            <InlineNotice Kind="NoticeKind.Error" OnClose="DismissFailure">No se pudo preparar la imagen para la TV</InlineNotice>
+        }
+    </div>
+}
+
+@code {
+    private const int TvWidth = 1920;
+    private const int TvHeight = 1080;
+
+    [CascadingParameter] public ManualViewerContext? Context { get; set; }
+
+    private TvSession? _tv;
+    private bool _busy;
+    private bool _cropping;
+    private bool _failed;
+
+    // La TV se resuelve opcionalmente: el visor no obliga a registrar el servicio donde no se usa (tests).
+    protected override void OnInitialized()
+    {
+        _tv = Services.GetService<TvSession>();
+        if (_tv is not null) _tv.Changed += OnChanged;
+    }
+
+    private Task ShowPageAsync() => SendAsync(null);
+
+    private async Task CropAsync()
+    {
+        if (Context is null) return;
+        var context = Context;
+        _cropping = true;
+        _failed = false;
+        context.SetCropping?.Invoke(true);
+        StateHasChanged();
+        CropRect? crop;
+        try
+        {
+            crop = await context.Interop.PickCropAsync();
+        }
+        finally
+        {
+            _cropping = false;
+            context.SetCropping?.Invoke(false);
+        }
+        if (crop is null)
+        {
+            StateHasChanged();
+            return;
+        }
+        await SendAsync(crop);
+    }
+
+    private Task ConfirmAsync() => Context?.Interop.ConfirmCropAsync() ?? Task.CompletedTask;
+
+    private Task CancelAsync() => Context?.Interop.CancelCropAsync() ?? Task.CompletedTask;
+
+    private void DismissFailure() => _failed = false;
+
+    private async Task SendAsync(CropRect? crop)
+    {
+        if (_tv is null || Context is null) return;
+        // La página y el título se fijan ahora: el visor puede pasar de página mientras se renderiza.
+        var context = Context;
+        _busy = true;
+        _failed = false;
+        StateHasChanged();
+        try
+        {
+            var png = await context.Interop.RenderPngAsync(context.Page, crop, TvWidth, TvHeight);
+            if (png is null || png.Length == 0) _failed = true;
+            else await _tv.ShowManualImageAsync(context.Path, $"{context.Title} · p. {context.Page}", png);
+        }
+        catch (Exception ex)
+        {
+            _failed = true;
+            Log.LogError("No se pudo mandar el manual a la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Llega desde otros hilos (servidor de la TV, cambios del vault): hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                // Con la TV apagada desaparecen «Enviar» y «Cancelar»: un recorte en curso se cancela.
+                if (_cropping && _tv is { Mode: TvMode.Off }) await CancelAsync();
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar las acciones de TV del manual ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_tv is not null) _tv.Changed -= OnChanged;
+        if (_cropping) await CancelAsync();
+    }
+}

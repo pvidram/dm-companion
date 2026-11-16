@@ -82,6 +82,18 @@
                     </ul>
                 }
 
+                @if (Services.GetService<ManualBookmarkStore>()?.CorruptFiles is { Count: > 0 } corruptBookmarks)
+                {
+                    <h3>Marcadores de manuales</h3>
+                    <p>Estos ficheros están dañados y no se modifican:</p>
+                    <ul>
+                        @foreach (var path in corruptBookmarks)
+                        {
+                            <li>@path</li>
+                        }
+                    </ul>
+                }
+
                 <Button Variant="ButtonVariant.Secondary" OnClick="() => Host.OpenAsync(vault.RootPath)">Reabrir</Button>
             }
             else

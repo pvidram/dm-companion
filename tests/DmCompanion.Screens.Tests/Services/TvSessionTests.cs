@@ -197,6 +197,45 @@ public sealed class TvSessionTests : IAsyncLifetime
         (_session.Mode, _session.ContentTitle).Should().Be((TvMode.Off, (string?)null));
     }
 
+    private const string ManualPath = "manuales/dnd5e/Manual de prueba.pdf";
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47];
+
+    [Fact]
+    public async Task Show_manual_image_switches_to_content()
+    {
+        await _session.EnableAsync();
+
+        await _session.ShowManualImageAsync(ManualPath, "Manual de prueba · p. 2", Png);
+
+        (_session.Mode, _session.ContentPath, _session.ContentTitle, Parse2(_server.Published[^1]), _server.Files.Count)
+            .Should().Be((TvMode.Content, (string?)null, "Manual de prueba · p. 2", "content", 1));
+    }
+
+    [Fact]
+    public async Task Vault_change_keeps_manual_on_tv()
+    {
+        await _session.EnableAsync();
+        await _session.ShowManualImageAsync(ManualPath, "Manual de prueba · p. 2", Png);
+        var published = _server.Published.Count;
+
+        await _host.Current!.SaveAsync("Lugares/Nuevo.md", "---\ntype: location\n---\nNuevo.\n", WritePrecondition.Overwrite);
+        await Task.Delay(400);
+
+        (_session.Mode, _session.ContentTitle, _server.Published.Count, _server.Files.Count).Should().Be((TvMode.Content, "Manual de prueba · p. 2", published, 1));
+    }
+
+    [Fact]
+    public async Task Switching_vault_returns_to_map()
+    {
+        await _session.EnableAsync();
+        await _session.ShowManualImageAsync(ManualPath, "Manual de prueba · p. 2", Png);
+
+        await _host.OpenAsync(_plain.Root);
+
+        await WaitUntilAsync(() => _session.Mode != TvMode.Content);
+        (_session.Mode, _server.Files.Count).Should().Be((TvMode.Waiting, 0));
+    }
+
     private static string? Parse2(string json) => JsonDocument.Parse(json).RootElement.GetProperty("kind").GetString();
 
     private static async Task WaitUntilAsync(Func<bool> condition)

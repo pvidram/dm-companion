@@ -27,6 +27,7 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         Services.AddScoped<ShellState>();
         Services.AddGlossaryForTests();
         Services.AddScoped<WikilinkInterop>();
+        Services.AddManualsForTests();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Task.CompletedTask;
@@ -174,6 +175,19 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         var cut = await RenderAsync();
 
         cut.Markup.Should().NotContain("<h3>Glosario</h3>");
+    }
+
+    [Fact]
+    public async Task Corrupt_bookmarks_are_listed()
+    {
+        Directory.CreateDirectory(_vault.PathOf("manuales/dnd5e"));
+        await File.WriteAllTextAsync(_vault.PathOf("manuales/dnd5e/PHB.marcadores.json"), "{ roto");
+        var cut = await RenderAsync();
+        // Después de abrir el vault: reabrirlo vacía la lista de marcadores dañados.
+        await Services.GetRequiredService<ManualBookmarkStore>().LoadAsync("manuales/dnd5e/PHB.pdf");
+        cut.Render();
+
+        cut.Markup.Should().Contain("<h3>Marcadores de manuales</h3>").And.Contain("manuales/dnd5e/PHB.marcadores.json");
     }
 
     private sealed class NoSpellsSource : IGlossaryPackSource

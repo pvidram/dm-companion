@@ -1,0 +1,91 @@
+@inject ManualBookmarkStore Store
+@using DmCompanion.Core.Manuals
+
+<div class="manual-bookmarks">
+    <h4 class="manual-bookmarks__title">Marcadores</h4>
+    @if (_corrupt)
+    {
+        <InlineNotice Kind="NoticeKind.Error">El fichero de marcadores está dañado</InlineNotice>
+    }
+    @if (_failed)
+    {
+        <InlineNotice Kind="NoticeKind.Error">No se pudo guardar el cambio en los marcadores</InlineNotice>
+    }
+    <Button Disabled="@(_corrupt || _busy)" OnClick="OpenDialog">Añadir marcador aquí</Button>
+    <div class="manual-bookmarks__list">
+        @foreach (var bookmark in _bookmarks)
+        {
+            var id = bookmark.Id;
+            var page = bookmark.Page;
+            <div class="manual-bookmarks__row">
+                <ListRow OnSelect="() => Context.GoToPageAsync(page)">p. @bookmark.Page · @bookmark.Name</ListRow>
+                <Button Icon="IconName.Trash2" aria-label="Borrar marcador" Disabled="@(_corrupt || _busy)" OnClick="() => RemoveAsync(id)" />
+            </div>
+        }
+    </div>
+    <Dialog class="manual-bookmarks__dialog" Title="Añadir marcador" IsOpen="_dialogOpen" OnClose="CloseDialog">
+        <ChildContent>
+            <TextField Label="Nombre" @bind-Value="_name" />
+        </ChildContent>
+        <Footer>
+            <Button Variant="ButtonVariant.Primary" Disabled="@(_busy || string.IsNullOrWhiteSpace(_name))" OnClick="AddAsync">Guardar</Button>
+            <Button OnClick="CloseDialog">Cancelar</Button>
+        </Footer>
+    </Dialog>
+</div>
+
+@code {
+    [CascadingParameter] private ManualViewerContext Context { get; set; } = default!;
+
+    private IReadOnlyList<ManualBookmark> _bookmarks = [];
+    private bool _corrupt;
+    private bool _failed;
+    private bool _busy;
+    private bool _dialogOpen;
+    private int _dialogPage;
+    private string _name = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var read = await Store.LoadAsync(Context.Path);
+        _corrupt = read.Corrupt;
+        Show(read.File);
+    }
+
+    private void Show(ManualBookmarkFile? file) =>
+        _bookmarks = file is null ? [] : [.. file.Bookmarks.OrderBy(b => b.Page)];
+
+    private void OpenDialog()
+    {
+        _dialogPage = Context.Page;
+        _name = ManualOutline.SectionAt(Context.Outline, _dialogPage) ?? $"Página {_dialogPage}";
+        _dialogOpen = true;
+    }
+
+    private void CloseDialog() => _dialogOpen = false;
+
+    private Task AddAsync() => ChangeAsync(() => Store.AddAsync(Context.Path, _name.Trim(), _dialogPage));
+
+    private Task RemoveAsync(string id) => ChangeAsync(() => Store.RemoveAsync(Context.Path, id));
+
+    private async Task ChangeAsync(Func<Task<(BookmarkSaveResult Result, ManualBookmarkFile? File)>> change)
+    {
+        _busy = true;
+        try
+        {
+            var (result, file) = await change();
+            _failed = result == BookmarkSaveResult.Failed;
+            if (result == BookmarkSaveResult.Corrupt) _corrupt = true;
+            // Con Failed se conserva la lista que ya se mostraba.
+            if (result == BookmarkSaveResult.Saved)
+            {
+                Show(file);
+                _dialogOpen = false;
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
