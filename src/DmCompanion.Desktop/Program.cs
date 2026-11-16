@@ -91,6 +91,8 @@ try
     builder.Services.AddScoped<ShellState>();
     builder.Services.AddScoped<WikilinkInterop>();
     builder.Services.AddScoped<MapCanvasInterop>();
+    builder.Services.AddScoped<PlayerPreview>();
+    builder.Services.AddScoped<PlayerPreviewInterop>();
     builder.Services.AddScoped<TurnStripInterop>();
     builder.Services.AddScoped<DragPanelInterop>();
     builder.Services.AddScoped<IAudioPlayer, WebAudioPlayer>();

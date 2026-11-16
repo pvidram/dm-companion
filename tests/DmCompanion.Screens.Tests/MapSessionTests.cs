@@ -230,7 +230,7 @@ public sealed class MapSessionTests : IAsyncLifetime
     {
         SeedState(StatePath, StateWithToken());
         await _session.OpenAsync(MapNote);
-        var future = MapStateSerializer.Write(StateWithToken()).Replace("\"version\":2", "\"version\":3");
+        var future = MapStateSerializer.Write(StateWithToken()).Replace("\"version\":2", "\"version\":4");
 
         WriteExternallyInPlace(StatePath, future, DateTime.UtcNow.AddMinutes(1));
         await WaitUntilAsync(() => _session.IsReadOnly);
@@ -546,7 +546,7 @@ public sealed class MapSessionTests : IAsyncLifetime
     [Fact]
     public async Task Open_with_future_version_is_read_only()
     {
-        File.WriteAllText(_vault.PathOf(StatePath), "{\"version\":3,\"tokens\":[],\"strokes\":[]}");
+        File.WriteAllText(_vault.PathOf(StatePath), "{\"version\":4,\"tokens\":[],\"strokes\":[]}");
 
         await _session.OpenAsync(MapNote);
 

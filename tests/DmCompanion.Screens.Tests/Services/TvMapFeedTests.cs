@@ -55,6 +55,19 @@ public sealed class TvMapFeedTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Message_carries_fog_and_omits_tokens_under_it()
+    {
+        var lyra = CaveState().Tokens[0];
+        var state = CaveState() with { Fog = [new MapFogZone("z", [lyra.X - 50, lyra.Y - 50, lyra.X + 50, lyra.Y - 50, lyra.X + 50, lyra.Y + 50])] };
+
+        var map = MapOf(_feed.Build(Map(Cave), state, Frame));
+
+        (map.GetProperty("fog").GetArrayLength(), map.GetProperty("fog")[0].GetArrayLength(),
+         string.Join(",", map.GetProperty("tokens").EnumerateArray().Select(t => t.GetProperty("id").GetString())))
+            .Should().Be((1, 6, "t-bandido"));
+    }
+
+    [Fact]
     public void Message_carries_no_vault_path()
     {
         var message = _feed.Build(Map(Cave), CaveState(), Frame);

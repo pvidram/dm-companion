@@ -61,51 +61,11 @@ html, body {
     --surface-sheet-sunken: #C9B48C;
     --text-ink: #2B2118;
     --text-on-wood: #E8DCC2;
+    --tv-fog: #1B1712;
 }
 
 .tv-view--map { display: block; }
 .tv-stage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
-
-/* Tira de iniciativa, arriba, sobre el mapa. */
-.tv-strip {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    display: flex;
-    align-items: center;
-    gap: 1.2vw;
-    padding: 0.6vw 1.5vw;
-    background: rgba(30, 20, 13, 0.88);
-    border-bottom: 2px solid #C9A24A;
-}
-.tv-strip__round {
-    flex: none;
-    font-family: "EB Garamond", serif;
-    font-weight: 600;
-    font-size: 2.2vw;
-    color: #C9A24A;
-}
-.tv-strip__list { position: relative; display: flex; flex: 1; flex-wrap: wrap; gap: 0.8vw; max-height: 22vh; margin: 0; padding: 0; list-style: none; overflow: hidden; }
-.tv-strip__entry {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    padding: 0.4vw 0.9vw;
-    border: 2px solid transparent;
-    border-radius: 0.6vw;
-    background: rgba(232, 220, 194, 0.08);
-    font-size: 1.5vw;
-    line-height: 1.2;
-}
-.tv-strip__entry--current { border-color: #C9A24A; background: rgba(201, 162, 74, 0.28); }
-.tv-strip__entry--dead { opacity: 0.55; }
-.tv-strip__entry--dead .tv-strip__name { text-decoration: line-through; }
-.tv-strip__initiative { font-weight: 600; color: #C9A24A; }
-.tv-strip__name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tv-strip__hp--ileso { color: #8FBF86; }
-.tv-strip__hp--herido { color: #E0B85A; }
-.tv-strip__hp--malherido { color: #E08A80; }
-.tv-strip__hp--exacto { color: #E8DCC2; }
-.tv-strip__conditions { font-size: 1.2vw; color: #C9B48C; }
 
 /* Contenido (ficha de PJ o nota de lugar) a pantalla completa, con letra grande. */
 .tv-view--content { align-items: flex-start; justify-content: center; overflow: hidden; }

@@ -65,15 +65,15 @@ public class MapStateSerializerTests
     [Fact]
     public void Read_flags_future_version_and_keeps_content()
     {
-        var result = MapStateSerializer.Read(Example.Replace("\"version\": 1", "\"version\": 3"));
+        var result = MapStateSerializer.Read(Example.Replace("\"version\": 1", "\"version\": 4"));
 
         result.Status.Should().Be(MapStateReadStatus.FutureVersion);
-        result.State.Version.Should().Be(3);
+        result.State.Version.Should().Be(4);
         result.State.Tokens.Should().HaveCount(2);
     }
 
     private const string FutureShape =
-        "{\"version\": 3, \"tokens\": [{\"id\": \"a\", \"name\": \"A\", \"size\": 1, \"x\": 0, \"y\": 0, "
+        "{\"version\": 4, \"tokens\": [{\"id\": \"a\", \"name\": \"A\", \"size\": 1, \"x\": 0, \"y\": 0, "
         + "\"conditions\": [null, {\"id\": null, \"label\": \"X\"}, {\"id\": \"c\", \"label\": \"Y\"}]}], \"combat\": {\"round\": 1}}";
 
     [Fact]
@@ -113,7 +113,7 @@ public class MapStateSerializerTests
     public void Write_then_Read_round_trips()
     {
         var state = new MapState(
-            2,
+            MapState.CurrentVersion,
             new GridSettings(true, 50, 5, -3),
             [
                 new MapToken("t-1", "Lyra", "Personajes/Lyra.md", TokenSide.Pc, 1, 100.5, 200, null, null),
@@ -233,7 +233,7 @@ public class MapStateSerializerTests
         var result = MapStateSerializer.Read(Example.Replace("\"hp\": 11", "\"hp\": 11, \"hpCurrent\": 4"));
 
         var expected = new MapState(
-            2,
+            MapState.CurrentVersion,
             new GridSettings(false, 70, 0, 0),
             [
                 new MapToken("t-8f3a", "Goblin 2", "Personajes/Goblin.md", TokenSide.Enemy, 1, 455, 280, null, null),
@@ -274,7 +274,7 @@ public class MapStateSerializerTests
         var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 10, 20, null, null, null, 5, [condition], new DeathSaves(1, 2));
         var other = new MapToken("t2", "Elfa", null, TokenSide.Pc, 1, 30, 40, null, null);
         var combat = new CombatState(2, "e2", [new CombatEntry("e1", "t2", 18, CombatPhase.Fast), new CombatEntry("e2", "t1", 15), new CombatEntry("e3", "t2", null)]);
-        var s = new MapState(2, GridSettings.Default, [token, other], [], combat);
+        var s = new MapState(MapState.CurrentVersion, GridSettings.Default, [token, other], [], combat);
 
         var read = MapStateSerializer.Read(MapStateSerializer.Write(s)).State;
 
@@ -290,9 +290,9 @@ public class MapStateSerializerTests
     }
 
     [Fact]
-    public void Version_3_is_future_version()
+    public void Version_4_is_future_version()
     {
-        MapStateSerializer.Read("{\"version\": 3}").Status.Should().Be(MapStateReadStatus.FutureVersion);
+        MapStateSerializer.Read("{\"version\": 4}").Status.Should().Be(MapStateReadStatus.FutureVersion);
     }
 
     private static CombatSnapshot Snapshot(CombatState? combat, params TokenCombatFields[] tokens) => new(combat, tokens);
@@ -321,7 +321,7 @@ public class MapStateSerializerTests
         var after = Snapshot(new CombatState(2, "e1", [new CombatEntry("e1", "t1", 15)]), new TokenCombatFields("t1", 0, null, null, null, true));
         var log = new[] { new CombatLogEntry("l1", 1, "Daño", before, after, true), new CombatLogEntry("l2", 1, "Empieza", null, after, false, false) };
         var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 0, 0, null, null);
-        var s = new MapState(2, GridSettings.Default, [token], [], new CombatState(2, "e1", [new CombatEntry("e1", "t1", 15)], log));
+        var s = new MapState(MapState.CurrentVersion, GridSettings.Default, [token], [], new CombatState(2, "e1", [new CombatEntry("e1", "t1", 15)], log));
 
         MapStateSerializer.Read(MapStateSerializer.Write(s)).State.Should().BeEquivalentTo(s);
     }
@@ -331,7 +331,7 @@ public class MapStateSerializerTests
     {
         var token = new MapToken("t1", "Goblin", null, TokenSide.Enemy, 1, 0, 0, null, null);
         var combat = new CombatState(3, "e1", [new CombatEntry("e1", "t1", 15)], [new CombatLogEntry("l1", 3, "Daño", null, null, false, false)]);
-        var s = new MapState(2, GridSettings.Default, [token], [], null, Snapshot(combat, new TokenCombatFields("t1", 4, null, null, null, null)));
+        var s = new MapState(MapState.CurrentVersion, GridSettings.Default, [token], [], null, Snapshot(combat, new TokenCombatFields("t1", 4, null, null, null, null)));
 
         MapStateSerializer.Read(MapStateSerializer.Write(s)).State.Should().BeEquivalentTo(s);
     }
@@ -355,5 +355,68 @@ public class MapStateSerializerTests
         var json = MapStateSerializer.Write(MapState.Empty with { Tokens = [token] });
 
         json.Should().NotContain("\"hidden\"").And.NotContain("\"alias\"");
+    }
+
+    private static readonly double[] Square = [0, 0, 10, 0, 10, 10, 0, 10];
+
+    [Fact]
+    public void Written_json_without_fog_zones_has_no_fog_and_version_2()
+    {
+        var json = MapStateSerializer.Write(MapState.Empty);
+
+        json.Should().Contain("\"version\":2").And.NotContain("\"fog\"");
+    }
+
+    [Fact]
+    public void Written_json_with_a_covered_zone_has_fog_and_version_3_without_revealed()
+    {
+        var json = MapStateSerializer.Write(MapState.Empty with { Fog = [new MapFogZone("z1", Square)] });
+
+        json.Should().Contain("\"fog\"").And.Contain("\"version\":3").And.NotContain("\"revealed\"");
+    }
+
+    [Fact]
+    public void Written_json_with_a_revealed_zone_has_revealed_true()
+    {
+        var json = MapStateSerializer.Write(MapState.Empty with { Fog = [new MapFogZone("z1", Square, true)] });
+
+        json.Should().Contain("\"revealed\":true");
+    }
+
+    [Fact]
+    public void Fog_zones_round_trip_with_points_rounded_to_one_decimal()
+    {
+        var state = MapState.Empty with { Fog = [new MapFogZone("a", [0.04, 0.06, 10, 0, 10, 10.26]), new MapFogZone("b", Square, true)] };
+
+        var read = MapStateSerializer.Read(MapStateSerializer.Write(state));
+
+        read.Status.Should().Be(MapStateReadStatus.Ok);
+        read.State.FogZones.Should().BeEquivalentTo(
+            [new MapFogZone("a", [0, 0.1, 10, 0, 10, 10.3]), new MapFogZone("b", Square, true)],
+            o => o.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void Version_2_file_without_fog_reads_ok_with_no_zones()
+    {
+        var result = MapStateSerializer.Read("""{"version":2,"tokens":[]}""");
+
+        result.Status.Should().Be(MapStateReadStatus.Ok);
+        result.State.FogZones.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Version_4_file_with_fog_is_future_version()
+    {
+        MapStateSerializer.Read("""{"version":4,"fog":[{"id":"z","points":[0,0,1,0,1,1]}]}""").Status
+            .Should().Be(MapStateReadStatus.FutureVersion);
+    }
+
+    [Theory]
+    [InlineData("""{"version":3,"fog":[{"id":"z","points":[0,0,1,0,1]}]}""")]
+    [InlineData("""{"version":3,"fog":[{"points":[0,0,1,0,1,1]}]}""")]
+    public void Fog_zone_with_odd_points_or_without_id_is_invalid(string json)
+    {
+        MapStateSerializer.Read(json).Status.Should().Be(MapStateReadStatus.Invalid);
     }
 }

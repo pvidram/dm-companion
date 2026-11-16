@@ -28,6 +28,51 @@ public class PlayerViewProjectorTests
     private static string? Hp(MapToken t, int? max = 20) =>
         Project(State([t], Combat(t.Id, t.Id)), max).Combat!.Entries.Single().Hp;
 
+    private static MapFogZone Square(string id, bool? revealed = null) =>
+        new(id, [0, 0, 100, 0, 100, 100, 0, 100], revealed);
+
+    private static MapState Fogged(IReadOnlyList<MapToken> tokens, MapFogZone[] zones, CombatState? combat = null) =>
+        State(tokens, combat) with { Fog = zones };
+
+    [Theory]
+    [InlineData(50, false)]
+    [InlineData(100, false)]
+    [InlineData(150, true)]
+    public void Token_under_covered_fog_is_hidden_including_its_border(double x, bool visible)
+    {
+        var view = Project(Fogged([Tok("a") with { X = x, Y = 50 }], [Square("z")]));
+        view.Tokens.Any().Should().Be(visible);
+    }
+
+    [Fact]
+    public void Revealed_zone_leaves_fog_empty_and_token_visible()
+    {
+        var view = Project(Fogged([Tok("a") with { X = 50, Y = 50 }], [Square("z", true)]));
+        (view.Fog.Count, view.Tokens.Count).Should().Be((0, 1));
+    }
+
+    [Fact]
+    public void Token_under_fog_on_its_turn_leaves_no_strip_entry_nor_current()
+    {
+        var view = Project(Fogged([Tok("a") with { X = 50, Y = 50 }, Tok("b") with { X = 500, Y = 50 }], [Square("z")], Combat("a", "a", "b")));
+        (string.Join(",", view.Combat!.Entries.Select(e => e.TokenId)), view.Combat.Entries.Any(e => e.Current)).Should().Be(("b", false));
+    }
+
+    [Fact]
+    public void Hidden_token_inside_revealed_zone_stays_hidden()
+    {
+        var view = Project(Fogged([Tok("a", hidden: true) with { X = 50, Y = 50 }], [Square("z", true)]));
+        view.Tokens.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Fog_lists_points_of_covered_zones_in_state_order()
+    {
+        var other = new MapFogZone("y", [200, 0, 300, 0, 300, 100]);
+        var view = Project(Fogged([], [Square("z"), Square("r", true), other]));
+        view.Fog.Select(f => string.Join(",", f)).Should().Equal("0,0,100,0,100,100,0,100", "200,0,300,0,300,100");
+    }
+
     [Fact]
     public void Hidden_token_is_absent_from_tokens_and_strip()
     {

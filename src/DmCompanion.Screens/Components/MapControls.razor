@@ -1,12 +1,14 @@
 @inherits DmComponentBase
 @using DmCompanion.Core.Maps
 @using DmCompanion.Screens.Platform
+@using Microsoft.Extensions.DependencyInjection
 @using Microsoft.Extensions.Logging
 @inject MapSession Session
 @inject MapCanvasInterop Canvas
 @inject ILogger<MapControls> Log
 @inject CombatController Combat
 @inject IAppPreferences Prefs
+@inject IServiceProvider Services
 
 @* Durante el ajuste con los dedos la barra entera se oculta (sin tocar la preferencia de plegado): nada de ella puede mutar el mapa y cancelarlo. *@
 @if (Session.Editor is { } editor && !Canvas.GridAdjusting)
@@ -15,16 +17,21 @@
     var readOnly = Session.IsReadOnly;
     var mode = EffectiveMode;
     var tool = Canvas.Tool;
+    var viewing = Preview is { IsActive: true };
     <MapToolbar Label="Herramientas del mapa" Edge="MapToolbarEdge.Bottom" class="@("map-controls" + (_toolbarVisible ? string.Empty : " map-controls--folded"))">
         @if (_toolbarVisible)
         {
         <MapToolbarGroup Label="Modo">
-            <IconButton Icon="IconName.Hand" Label="Navegar" IsPressed="@(mode == MapMode.Navigate)" OnClick="() => SetModeAsync(MapMode.Navigate)" />
+            <IconButton Icon="IconName.Hand" Label="Navegar" Disabled="viewing" IsPressed="@(mode == MapMode.Navigate)" OnClick="() => SetModeAsync(MapMode.Navigate)" />
             @if (!readOnly)
             {
-                <IconButton Icon="IconName.Pencil" Label="Dibujar" IsPressed="@(mode == MapMode.Draw)" OnClick="() => SetModeAsync(MapMode.Draw)" />
+                <IconButton Icon="IconName.Pencil" Label="Dibujar" Disabled="viewing" IsPressed="@(mode == MapMode.Draw)" OnClick="() => SetModeAsync(MapMode.Draw)" />
             }
-            <IconButton Icon="IconName.Ruler" Label="Medir" IsPressed="@(mode == MapMode.Measure)" OnClick="() => SetModeAsync(MapMode.Measure)" />
+            @if (!readOnly)
+            {
+                <IconButton Icon="IconName.CloudFog" Label="Niebla" Disabled="viewing" IsPressed="@(mode == MapMode.Fog)" OnClick="() => SetModeAsync(MapMode.Fog)" />
+            }
+            <IconButton Icon="IconName.Ruler" Label="Medir" Disabled="viewing" IsPressed="@(mode == MapMode.Measure)" OnClick="() => SetModeAsync(MapMode.Measure)" />
         </MapToolbarGroup>
 
         @if (mode == MapMode.Draw)
@@ -34,7 +41,7 @@
                 {
                     var color = Palette[i];
                     <button type="button" class="map-controls__swatch" style="background-color: @color"
-                            aria-label="Color @(i + 1)" title="@ColorNames[i]" aria-pressed="@Pressed(!tool.Eraser && tool.Color == color)"
+                            aria-label="Color @(i + 1)" title="@ColorNames[i]" disabled="@viewing" aria-pressed="@Pressed(!tool.Eraser && tool.Color == color)"
                             @onclick="() => ChooseAsync(tool with { Color = color, Eraser = false })"></button>
                 }
             </MapToolbarGroup>
@@ -42,7 +49,7 @@
                 @foreach (var width in Widths)
                 {
                     var dot = Format(width + 4);
-                    <button type="button" class="map-controls__width" aria-label="Grosor @Format(width)"
+                    <button type="button" class="map-controls__width" aria-label="Grosor @Format(width)" disabled="@viewing"
                             aria-pressed="@Pressed(!tool.Eraser && tool.Width == width)"
                             @onclick="() => ChooseAsync(tool with { Width = width, Eraser = false })">
                         <span class="map-controls__dot" style="width: @(dot)px; height: @(dot)px"></span>
@@ -50,32 +57,41 @@
                 }
             </MapToolbarGroup>
             <MapToolbarGroup Label="Trazos">
-                <IconButton Icon="IconName.Eraser" Label="Goma" IsPressed="@tool.Eraser" OnClick="() => ChooseAsync(tool with { Eraser = !tool.Eraser })" />
-                <IconButton Icon="IconName.Undo2" Label="Deshacer" Disabled="@(!editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
-                <IconButton Icon="IconName.Redo2" Label="Rehacer" Disabled="@(!editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
+                <IconButton Icon="IconName.Eraser" Label="Goma" Disabled="viewing" IsPressed="@tool.Eraser" OnClick="() => ChooseAsync(tool with { Eraser = !tool.Eraser })" />
+                <IconButton Icon="IconName.Undo2" Label="Deshacer" Disabled="@(viewing || !editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
+                <IconButton Icon="IconName.Redo2" Label="Rehacer" Disabled="@(viewing || !editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
             </MapToolbarGroup>
         }
 
+        @if (mode == MapMode.Fog)
+        {
+            <FogControls Disabled="viewing" />
+        }
+
         <MapToolbarGroup Label="Cuadrícula">
-            <Checkbox Label="Cuadrícula" Value="grid.Enabled" Disabled="readOnly"
+            <Checkbox Label="Cuadrícula" Value="grid.Enabled" Disabled="@(readOnly || viewing)"
                       ValueChanged="on => ChangeGrid(g => g with { Enabled = on })" />
-            <IconButton Icon="IconName.Settings" Label="Ajustes de cuadrícula" Disabled="readOnly" IsPressed="@(_gridOpen && !readOnly)"
-                        OnClick="() => _gridOpen = !_gridOpen" aria-expanded="@Pressed(_gridOpen && !readOnly)" />
+            <IconButton Icon="IconName.Settings" Label="Ajustes de cuadrícula" Disabled="@(readOnly || viewing)" IsPressed="@(_gridOpen && !readOnly && !viewing)"
+                        OnClick="() => _gridOpen = !_gridOpen" aria-expanded="@Pressed(_gridOpen && !readOnly && !viewing)" />
         </MapToolbarGroup>
 
         <MapToolbarGroup Label="Mapa">
             @if (!readOnly)
             {
-                <IconButton Icon="IconName.UserPlus" Label="Añadir token" OnClick="OnAddToken" />
+                <IconButton Icon="IconName.UserPlus" Label="Añadir token" Disabled="viewing" OnClick="OnAddToken" />
             }
-            <IconButton Icon="IconName.Maximize" Label="Ajustar a pantalla" OnClick="() => Canvas.FitAsync()" />
-            <TvFrameButton Compact />
+            <IconButton Icon="IconName.Maximize" Label="Ajustar a pantalla" Disabled="viewing" OnClick="() => Canvas.FitAsync()" />
+            <TvFrameButton Compact Disabled="viewing" />
+            @if (Preview is not null)
+            {
+                <IconButton Icon="IconName.Eye" Label="Vista de jugadores" IsPressed="viewing" OnClick="Preview.Toggle" />
+            }
         </MapToolbarGroup>
 
         @if (!readOnly && !Combat.IsActive)
         {
             <MapToolbarGroup Label="Combate">
-                <IconButton Icon="IconName.Swords" Label="Empezar combate" OnClick="Shell.OpenStartCombat" />
+                <IconButton Icon="IconName.Swords" Label="Empezar combate" Disabled="viewing" OnClick="Shell.OpenStartCombat" />
             </MapToolbarGroup>
         }
         }
@@ -88,7 +104,7 @@
         </MapToolbarGroup>
     </MapToolbar>
 
-    @if (_toolbarVisible && _gridOpen && !readOnly)
+    @if (_toolbarVisible && _gridOpen && !readOnly && !viewing)
     {
         <div class="map-controls__panel" role="group" aria-label="Ajustes de la cuadrícula">
             <NumberStepper Label="Tamaño de casilla" Unit="px" Min="MinCell" Max="MaxCell" Value="grid.CellSize"
@@ -117,10 +133,12 @@
     private const string ToolbarVisibleKey = "map.toolbar.visible";
 
     private bool _gridOpen;
+    // Opcional, como TvFrameButton: sin el servicio no hay botón (no hace falta registrarlo donde no se usa).
+    private PlayerPreview? Preview;
     private bool _toolbarVisible = true;
 
-    // En solo lectura no se dibuja: aunque se recordara Dibujar, se muestra y se comporta como Navegar.
-    private MapMode EffectiveMode => Session.IsReadOnly && Canvas.Mode == MapMode.Draw ? MapMode.Navigate : Canvas.Mode;
+    // En solo lectura no se dibuja ni se toca la niebla: aunque se recordara Dibujar, se muestra y se comporta como Navegar.
+    private MapMode EffectiveMode => Session.IsReadOnly && Canvas.Mode is MapMode.Draw or MapMode.Fog ? MapMode.Navigate : Canvas.Mode;
 
     protected override void OnInitialized()
     {
@@ -128,12 +146,15 @@
         _toolbarVisible = Prefs.Get(ToolbarVisibleKey) != "false";
         Session.Changed += OnSessionChanged;
         Canvas.GridAdjustChanged += OnSessionChanged;
+        Preview = Services.GetService<PlayerPreview>();
+        if (Preview is not null) Preview.Changed += OnSessionChanged;
     }
 
     public override void Dispose()
     {
         Session.Changed -= OnSessionChanged;
         Canvas.GridAdjustChanged -= OnSessionChanged;
+        if (Preview is not null) Preview.Changed -= OnSessionChanged;
         base.Dispose();
     }
 

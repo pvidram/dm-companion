@@ -61,10 +61,21 @@
         return { portraitUrl: portrait, stats: stats };
     }
 
+    // Niebla del mensaje `map`: polígonos planos x, y, x, y… con al menos 3 esquinas y número par de coordenadas.
+    function fogPolygons(map) {
+        var list = map && Array.isArray(map.fog) ? map.fog : [];
+        var result = [];
+        for (var i = 0; i < list.length; i++) {
+            var points = list[i];
+            if (Array.isArray(points) && points.length >= 6 && points.length % 2 === 0) result.push(points);
+        }
+        return result;
+    }
+
     var api = {
         stageTransform: stageTransform, visibleStripEntries: visibleStripEntries, hpClass: hpClass,
         availableViewport: availableViewport, pickContentScale: pickContentScale, CONTENT_SCALES: CONTENT_SCALES,
-        sheetView: sheetView
+        sheetView: sheetView, fogPolygons: fogPolygons
     };
     root.tvLayout = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

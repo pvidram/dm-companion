@@ -1,0 +1,62 @@
+@inherits DmComponentBase
+@using DmCompanion.Screens.Services
+@using Microsoft.Extensions.Logging
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject ILogger<FogControls> Log
+
+@if (Session.Editor is { } editor)
+{
+    var tool = Canvas.FogTool;
+    var hasDraft = Canvas.FogDraftCorners > 0;
+    <MapToolbarGroup Label="Niebla">
+        <IconButton Icon="IconName.ScanEye" Label="Destapar" Disabled="Disabled" IsPressed="@(tool == FogTool.Reveal)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Reveal)" />
+        <IconButton Icon="IconName.Pencil" Label="Trazar" Disabled="Disabled" IsPressed="@(tool == FogTool.Trace)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Trace)" />
+        <IconButton Icon="IconName.Eraser" Label="Goma" Disabled="Disabled" IsPressed="@(tool == FogTool.Erase)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Erase)" />
+        @if (tool == FogTool.Trace)
+        {
+            <IconButton Icon="IconName.Delete" Label="Deshacer esquina" Disabled="@(Disabled || !hasDraft)" OnClick="() => Canvas.UndoFogCornerAsync()" />
+            <IconButton Icon="IconName.X" Label="Cancelar" Disabled="@(Disabled || !hasDraft)" OnClick="() => Canvas.CancelFogDraftAsync()" />
+        }
+        <IconButton Icon="IconName.Undo2" Label="Deshacer" Disabled="@(Disabled || !editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
+        <IconButton Icon="IconName.Redo2" Label="Rehacer" Disabled="@(Disabled || !editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
+    </MapToolbarGroup>
+}
+
+@code {
+    /// <summary>Con la vista de jugadores activa las herramientas no se pueden usar.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Session.Changed += OnChanged;
+        Canvas.FogDraftChanged += OnChanged;
+    }
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnChanged;
+        Canvas.FogDraftChanged -= OnChanged;
+        base.Dispose();
+    }
+
+    // Llega desde el interop JS o desde hilos del guardado: hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El grupo ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar los controles de niebla ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+}

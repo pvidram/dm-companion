@@ -16,6 +16,8 @@ public class IconTests : UiTestContext
     [InlineData(IconName.ScrollText, "scroll-text.svg")]
     [InlineData(IconName.Trash2, "trash-2.svg")]
     [InlineData(IconName.Undo2, "undo-2.svg")]
+    [InlineData(IconName.ScanEye, "scan-eye.svg")]
+    [InlineData(IconName.Delete, "delete.svg")]
     [InlineData(IconName.Grid3X3, "grid-3-x-3.svg")]
     public void File_name_is_the_kebab_case_of_the_icon_name(IconName name, string expected) =>
         IconFiles.FileName(name).Should().Be(expected);

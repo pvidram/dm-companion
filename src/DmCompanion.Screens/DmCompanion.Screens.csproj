@@ -20,6 +20,7 @@
     <EmbeddedResource Include="TvPage\**" LogicalName="tv/%(Filename)%(Extension)" />
     <EmbeddedResource Include="wwwroot\lib\konva\konva.min.js" LogicalName="tv/konva.min.js" />
     <EmbeddedResource Include="wwwroot\js\token-opacity.js" LogicalName="tv/token-opacity.js" />
+    <EmbeddedResource Include="wwwroot\js\tv\*.js;wwwroot\css\tv-strip.css" LogicalName="tv/%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\DmCompanion.UI\wwwroot\fonts\eb-garamond-latin-600-normal.woff2;..\DmCompanion.UI\wwwroot\fonts\source-sans-3-latin-400-normal.woff2;..\DmCompanion.UI\wwwroot\fonts\source-sans-3-latin-600-normal.woff2"
                       Link="TvPage\fonts\%(Filename)%(Extension)" LogicalName="tv/%(Filename)%(Extension)" />
   </ItemGroup>

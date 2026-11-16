@@ -58,7 +58,8 @@ public static class MapStateSerializer
     private static bool HasValidItems(MapState state) =>
         IsValidGrid(state.Grid)
         && state.Tokens.All(token => token is { Id: not null, Name: not null, Size: >= 1 and <= 3, Ac: null or >= 0, Hp: null or >= 0, HpCurrent: null or >= 0 })
-        && state.Strokes.All(stroke => stroke is { Id: not null, Color: not null, Points: not null } && stroke.Points.Count % 3 == 0);
+        && state.Strokes.All(stroke => stroke is { Id: not null, Color: not null, Points: not null } && stroke.Points.Count % 3 == 0)
+        && state.FogZones.All(z => z is { Id: not null, Points: not null } && z.Points.Count % 2 == 0 && z.Points.Count >= 6);
 
     /// <summary>Tamaño de celda finito y positivo, desplazamientos finitos: con otra cosa el ajuste a la cuadrícula daría NaN.</summary>
     public static bool IsValidGrid(GridSettings grid) =>
@@ -69,6 +70,8 @@ public static class MapStateSerializer
 
     private static MapState Rounded(MapState state) => state with
     {
+        Version = state.FogZones.Count > 0 ? 3 : 2,
+        Fog = state.Fog is { Count: > 0 } fog ? [.. fog.Select(z => z with { Points = [.. z.Points.Select(v => Round(v, 1))] })] : null,
         Tokens = [.. state.Tokens.Select(t => t with { X = Round(t.X, 1), Y = Round(t.Y, 1) })],
         Strokes = [.. state.Strokes.Select(s => s with { Points = [.. s.Points.Select((v, i) => Round(v, i % 3 == 2 ? 2 : 1))] })],
     };

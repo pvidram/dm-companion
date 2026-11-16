@@ -1,0 +1,111 @@
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject IServiceProvider Services
+@inject MapSession Session
+@inject VaultHost Host
+@inject NoteImageResolver Images
+@inject ILogger<PlayerPreviewOverlay> Log
+
+@* «Vista de jugadores»: capa sobre el lienzo que muestra el mapa como lo ven los jugadores y se queda con todos los toques.
+   El dibujante (JS) pinta dentro de _host, que Blazor deja vacío; el aviso va aparte. *@
+@if (_preview is { IsActive: true })
+{
+    <div class="ds-frame__layer player-preview" role="region" aria-label="Vista de jugadores">
+        <div @ref="_host" class="player-preview__stage"></div>
+        <div class="player-preview__notice">Vista de jugadores</div>
+    </div>
+}
+
+@code {
+    private PlayerPreview? _preview;
+    private PlayerPreviewInterop? _interop;
+    private ElementReference _host;
+    // El dibujante JS está (o se está) creado sobre el elemento actual.
+    private bool _shown;
+    private bool _disposed;
+
+    // Opcional, como TvFrameButton: sin el servicio no hay vista (no hace falta registrarlo donde no se usa).
+    protected override void OnInitialized()
+    {
+        _preview = Services.GetService<PlayerPreview>();
+        _interop = Services.GetService<PlayerPreviewInterop>();
+        if (_preview is null || _interop is null) return;
+        _preview.Changed += OnChanged;
+        Session.Changed += OnChanged;
+        // Como la TV: un cambio del vault o de sus imágenes repinta la vista.
+        Host.Changed += OnChanged;
+        Images.ImagesChanged += OnChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_interop is null) return;
+        var active = _preview is { IsActive: true };
+        if (active == _shown) return;
+        _shown = active;
+        try
+        {
+            if (!active)
+            {
+                await _interop.HideAsync();
+                return;
+            }
+            await Images.EnsureLoadedAsync();
+            var json = _preview!.BuildJson();
+            // Mientras se esperaba la vista pudo desactivarse o el componente retirarse: no se muestra nada.
+            if (_disposed || _preview is not { IsActive: true } || json is null)
+            {
+                _shown = false;
+                return;
+            }
+            await _interop.ShowAsync(_host, json);
+        }
+        catch (ObjectDisposedException)
+        {
+            _shown = false;
+        }
+        catch (Exception ex)
+        {
+            // El siguiente render lo reintenta.
+            _shown = false;
+            Log.LogError("Fallo al mostrar la vista de jugadores ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    // Llega desde otros hilos (watcher, guardado del mapa): hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                StateHasChanged();
+                if (!_shown || _interop is null) return;
+                await Images.EnsureLoadedAsync();
+                if (_shown && _preview!.BuildJson() is { } json) await _interop.UpdateAsync(json);
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al repintar la vista de jugadores ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_preview is null) return;
+        _preview.Changed -= OnChanged;
+        Session.Changed -= OnChanged;
+        Host.Changed -= OnChanged;
+        Images.ImagesChanged -= OnChanged;
+        if (_shown && _interop is not null) _ = _interop.HideAsync();
+    }
+}

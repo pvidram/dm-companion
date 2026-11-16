@@ -24,6 +24,7 @@ internal sealed class CountingStorage(IVaultStorage inner, CountingFactory owner
     public Task<IReadOnlyList<VaultFile>> ListFilesAsync(Func<string, bool> f, CancellationToken ct = default)
     {
         Interlocked.Increment(ref owner.FileListings);
+        if (owner.ListFailure is { } failure) throw failure;
         return inner.ListFilesAsync(f, ct);
     }
     public Task<Stream> OpenReadAsync(string p, CancellationToken ct = default) => inner.OpenReadAsync(p, ct);

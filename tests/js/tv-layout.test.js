@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { stageTransform, visibleStripEntries, hpClass, availableViewport, pickContentScale, sheetView } = require('../../src/DmCompanion.Screens/TvPage/tv-layout.js');
+const { stageTransform, visibleStripEntries, hpClass, availableViewport, pickContentScale, sheetView } = require('../../src/DmCompanion.Screens/wwwroot/js/tv/tv-layout.js');
 
 test('encuadre 16:9 en pantalla 16:9 escala 1.2 sin márgenes', () => {
     const t = stageTransform({ x: 0, y: 0, width: 1600, height: 900 }, { width: 1920, height: 1080 });

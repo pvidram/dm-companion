@@ -10,6 +10,14 @@
     var resizeTimer = null;
     var reconnecting = document.getElementById('tv-reconnecting');
 
+    // El mapa ocupa lo que deja libre la tira de iniciativa (mide su alto real).
+    function viewport() {
+        var strip = window.tvStrip.height(document.getElementById('tv-strip'));
+        return window.tvLayout.availableViewport({ width: window.innerWidth, height: window.innerHeight }, strip);
+    }
+
+    var mapView = window.tvMap.create({ container: document.getElementById('tv-stage'), viewport: viewport });
+
     // Un manejador por «kind». Lo desconocido se ignora.
     var handlers = {
         map: function (message) {
@@ -17,7 +25,7 @@
             show('map');
             // Primero la tira: el mapa se encaja en el alto que ella deja libre.
             window.tvStrip.render(document.getElementById('tv-strip'), message.map.combat || null);
-            window.tvMap.render(message.map);
+            mapView.render(message.map);
         },
         content: function (message) {
             document.getElementById('tv-content-title').textContent = message.title || '';
@@ -124,7 +132,7 @@
     window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(reportSize, RESIZE_DEBOUNCE_MS);
-        window.tvMap.resize();
+        mapView.resize();
         if (!document.querySelector('[data-view="content"]').hidden) fitContent();
     });
     // Las imágenes del contenido (y el retrato de la ficha) cambian el alto al cargar (el evento load no burbujea: se captura).

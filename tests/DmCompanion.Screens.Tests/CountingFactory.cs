@@ -17,6 +17,7 @@ internal sealed class CountingFactory : IVaultServiceFactory
     public volatile bool FailWrites;
     public volatile bool CrashWrites;
     public volatile Exception? ReadFailure;
+    public volatile Exception? ListFailure;
     public volatile string? DeleteAfterNextStateStat;
     // Se ejecuta una vez justo antes de la siguiente escritura del `.state.json`, con el gate de la sesión tomado: el watcher no puede adelantarse.
     public volatile Action? BeforeNextStateWrite;

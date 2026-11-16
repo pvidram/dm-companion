@@ -7,7 +7,10 @@ using Microsoft.JSInterop;
 
 namespace DmCompanion.Screens.Services;
 
-public enum MapMode { Navigate, Draw, Measure }
+public enum MapMode { Navigate, Draw, Measure, Fog }
+
+/// <summary>Herramientas del modo Niebla: «Destapar», «Trazar» y «Goma».</summary>
+public enum FogTool { Reveal, Trace, Erase }
 
 public sealed record DrawTool(string Color, double Width, bool Eraser)
 {
@@ -84,6 +87,7 @@ public sealed partial class MapCanvasInterop(
             (_paintedState, _paintedReadOnly, _paintedSelectedId) = (built.State, built.ReadOnly, built.SelectedId);
             // Un lienzo nuevo nace en Navegar: si la barra ya tenía otro modo, se le vuelve a decir.
             if (Mode != MapMode.Navigate) await TryInvokeAsync("mapCanvas.setMode", Mode.ToString(), Tool);
+            await SendFogToolOnLoadAsync();
             _drawnTvFrame = null; // y nace sin el encuadre de la TV
             await DrawTvFrameLockedAsync();
         }
@@ -119,6 +123,7 @@ public sealed partial class MapCanvasInterop(
     public Task SetModeAsync(MapMode mode, DrawTool tool)
     {
         (Mode, Tool) = (mode, tool);
+        if (mode != MapMode.Fog) SetFogDraftCorners(0);
         return InvokeLoadedAsync("mapCanvas.setMode", mode.ToString(), tool);
     }
 
@@ -410,6 +415,7 @@ public sealed partial class MapCanvasInterop(
             unitLabel = unit.Name,
             tokens,
             strokes = state.Strokes,
+            fog = state.FogZones.Select(z => new { id = z.Id, points = z.Points, revealed = z.IsRevealed }),
             readOnly,
             maxImageSide = MaxImageSide,
         };

@@ -27,40 +27,9 @@ public sealed class TvMapFeed(VaultHost host, TokenHitPoints hitPoints, NoteImag
 
     public TvMapMessage Build(MapDefinition map, MapState state, TvFrame frame)
     {
-        var view = PlayerViewProjector.Project(map, state, frame, hitPoints.Rules, hitPoints.MaxFor, t => new TokenLook(PortraitOf(t)));
+        var view = PlayerViewProjector.Project(map, state, frame, hitPoints.Rules, hitPoints.MaxFor, t => new TokenLook(PortraitOf(host, t)));
         var files = new Dictionary<string, TvFile>(StringComparer.Ordinal);
-        var imageUrl = UrlFor(view.ImagePath, files);
-        var message = new
-        {
-            kind = "map",
-            map = new
-            {
-                imageUrl,
-                // Con imagen, la TV toma el tamaño de la propia imagen, como el lienzo de la tablet.
-                width = view.ImagePath is null ? view.Width : 0,
-                height = view.ImagePath is null ? view.Height : 0,
-                grid = new { enabled = view.Grid.Enabled, cellSize = view.Grid.CellSize, offsetX = view.Grid.OffsetX, offsetY = view.Grid.OffsetY },
-                frame = new { x = view.Frame.X, y = view.Frame.Y, width = view.Frame.Width, height = view.Frame.Height },
-                tokens = view.Tokens.Select(t => new
-                {
-                    id = t.Id, name = t.Name, initial = t.Initial, portraitUrl = UrlFor(t.PortraitPath, files),
-                    faction = TokenSideMapping.ToFaction(t.Side).ToString().ToLowerInvariant(),
-                    size = t.Size, x = t.X, y = t.Y, down = t.Down, current = t.Current, dead = t.Dead, conditions = t.Conditions,
-                }).ToList(),
-                strokes = view.Strokes.Select(s => new { id = s.Id, color = s.Color, width = s.Width, points = s.Points }).ToList(),
-                combat = view.Combat is { } combat
-                    ? new
-                    {
-                        round = combat.Round,
-                        entries = combat.Entries.Select(e => new
-                        {
-                            tokenId = e.TokenId, name = e.Name, initiative = e.Initiative, current = e.Current,
-                            dead = e.Dead, hp = e.Hp, conditions = e.Conditions,
-                        }).ToList(),
-                    }
-                    : null,
-            },
-        };
+        var message = new { kind = "map", map = PlayerMapJson.Map(view, p => UrlFor(p, files), wholeMap: false) };
         return new TvMapMessage(JsonSerializer.Serialize(message, Json), files);
     }
 
@@ -84,7 +53,7 @@ public sealed class TvMapFeed(VaultHost host, TokenHitPoints hitPoints, NoteImag
         _ => null,
     };
 
-    private string? PortraitOf(MapToken token) =>
+    internal static string? PortraitOf(VaultHost host, MapToken token) =>
         token.Source is { } source && host.Current?.Index.Get(source)?.Portrait is { } portrait && !string.IsNullOrWhiteSpace(portrait)
             ? VaultPaths.Normalize(portrait)
             : null;

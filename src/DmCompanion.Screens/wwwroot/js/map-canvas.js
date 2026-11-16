@@ -1,5 +1,5 @@
-// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose}.
-// Capas, de abajo arriba: imagen o lienzo, cuadrícula, trazos, tokens, encuadre de la TV (tv-frame.js) y borrador (trazo en curso o medición).
+// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, setFogTool, fogDraft, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose}.
+// Capas, de abajo arriba: imagen o lienzo, cuadrícula, trazos, tokens, niebla (fog-mode.js), encuadre de la TV (tv-frame.js) y borrador (trazo, medición o zona en curso).
 // El estado manda C#: JS pinta lo que recibe y solo informa de gestos (token movido o tocado, imagen cargada,
 // trazo añadido o borrado). La medición no cruza el puente.
 (function () {
@@ -325,6 +325,7 @@
         drawGrid(inst);
         drawStrokes(inst);
         drawTokens(inst);
+        window.fogMode.draw(inst);
     }
 
     // ---- fondo ----
@@ -398,11 +399,14 @@
 
     function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
-    // En solo lectura no se dibuja, aunque C# recordara Dibujar.
+    // En solo lectura no se dibuja ni se toca la niebla, aunque C# recordara Dibujar o Niebla.
     function effectiveMode(inst) {
         if (inst.adjust) return 'GridAdjust';
-        return inst.dto.readOnly && inst.mode === 'Draw' ? 'Navigate' : inst.mode;
+        return inst.dto.readOnly && pensOnly(inst.mode) ? 'Navigate' : inst.mode;
     }
+
+    // Modos en los que solo actúan el lápiz y el ratón; el dedo mueve y hace zoom.
+    function pensOnly(mode) { return mode === 'Draw' || mode === 'Fog'; }
 
     function isErasing(inst) {
         return effectiveMode(inst) === 'Draw' && !!(inst.tool && inst.tool.eraser);
@@ -415,7 +419,7 @@
 
     // Rechazo de palma: en Dibujar el dedo ni mueve ni hace zoom mientras el lápiz está apoyado o acaba de estarlo.
     function touchBlocked(inst) {
-        return effectiveMode(inst) === 'Draw'
+        return pensOnly(effectiveMode(inst))
             && (inst.gesture !== null || performance.now() - inst.lastPenAt < PALM_GRACE_MS);
     }
 
@@ -431,7 +435,9 @@
         const mode = effectiveMode(inst);
         if (mode === 'GridAdjust') return true; // los dedos mueven la cuadrícula, no el mapa
         if (mode === 'Measure') return inst.gesture !== null;
-        if (mode !== 'Draw') return false;
+        // En Niebla el toque no abre gesto: el lápiz o el ratón no arrastran el mapa.
+        if (mode === 'Fog' && native && (native.pointerType === 'pen' || native.pointerType === 'mouse' || String(native.type).startsWith('mouse'))) return true;
+        if (!pensOnly(mode)) return false;
         if (inst.gesture !== null) return true; // lápiz (o ratón) apoyado
         return !!native && String(native.type).startsWith('touch') && performance.now() - inst.lastPenAt < PALM_GRACE_MS;
     }
@@ -781,6 +787,10 @@
             if (isErasing(inst)) beginGesture(inst, event, 'erase', eraseGesture);
             else if (tokenId !== null) beginGesture(inst, event, 'penToken', penTokenGesture, { tokenId });
             else beginGesture(inst, event, 'stroke', strokeGesture);
+        } else if (mode === 'Fog' && drawsWith(event)) {
+            if (event.pointerType === 'pen') inst.lastPenAt = performance.now();
+            cancelTouchGestures(inst);
+            window.fogMode.onPenDown(inst, worldPoint(inst, containerPoint(inst, event)));
         } else if (mode === 'Measure') {
             // Un segundo dedo no mide: cancela la medición y el pellizco de Konva hace zoom.
             if (inst.touches.size > 1) cancelGesture(inst);
@@ -791,7 +801,7 @@
     function onPointerMove(inst, event) {
         if (inst.adjust) { adjustPointer(inst, 'move', event); return; }
         const gesture = inst.gesture;
-        if (event.pointerType === 'pen' && effectiveMode(inst) === 'Draw') {
+        if (event.pointerType === 'pen' && pensOnly(effectiveMode(inst))) {
             inst.lastPenAt = performance.now();
             if (!gesture) cancelTouchGestures(inst); // el lápiz se acerca (hover) o llega: fuera la palma
         }
@@ -836,6 +846,9 @@
         inst.layers.strokes.listening(isErasing(inst));
         inst.host.style.cursor = mode === 'Navigate' ? '' : mode === 'GridAdjust' ? 'move' : 'crosshair';
         drawStrokes(inst); // dibuja también el grafo de impacto que la goma necesita
+        inst.fogActive = mode === 'Fog';
+        window.fogMode.clearDraft(inst); // cambiar de modo descarta la zona en curso
+        window.fogMode.draw(inst); // las destapadas solo se marcan en Niebla
     }
 
     // ---- API ----
@@ -865,6 +878,7 @@
             grid: new Konva.Layer({ listening: false }),
             strokes: new Konva.Layer({ listening: false }),
             tokens: new Konva.Layer(),
+            fog: new Konva.Layer({ listening: false }),
             tvFrame: new Konva.Layer({ listening: false }),
             draft: new Konva.Layer({ listening: false }),
         };
@@ -881,6 +895,7 @@
             // Dibujo, goma y medición: gesto en curso (o null), dedos apoyados, último evento del lápiz y trazos ya borrados.
             gesture: null, touches: new Set(), lastPenAt: -Infinity, erased: new Set(),
             abort: new AbortController(), appliedKey: 'Navigate|',
+            fogTool: 'Reveal', fogActive: false, fogDraft: null, // modo Niebla (fog-mode.js)
         };
         inst.observer = new ResizeObserver(() => {
             const width = host.clientWidth;
@@ -902,6 +917,7 @@
         const key = backgroundKey(dto);
         if (key !== inst.key) {
             inst.key = key;
+            window.fogMode.clearDraft(inst); // otro mapa: la zona en curso no vale
             loadBackground(inst);
             return;
         }
@@ -918,6 +934,20 @@
         current.mode = mode;
         current.tool = tool;
         applyMode(current);
+    }
+
+    // Herramienta del modo Niebla: 'Reveal', 'Trace' o 'Erase'. Cambiarla descarta la zona en curso.
+    function setFogTool(name) {
+        if (!current) return;
+        current.fogTool = name;
+        window.fogMode.clearDraft(current);
+    }
+
+    // Botones «Deshacer esquina» ('undo') y «Cancelar» ('cancel') de Trazar.
+    function fogDraft(action) {
+        if (!current) return;
+        if (action === 'undo') window.fogMode.undoCorner(current);
+        else if (action === 'cancel') window.fogMode.clearDraft(current);
     }
 
     // Entra en el modo de ajuste con la cuadrícula del último estado de C#. `minCell` y `maxCell` son los límites de los campos numéricos.
@@ -986,5 +1016,5 @@
         return [rect.left, rect.top, rect.width, rect.height];
     }
 
-    window.mapCanvas = { load, render, setMode, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose };
+    window.mapCanvas = { load, render, setMode, setFogTool, fogDraft, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose };
 })();

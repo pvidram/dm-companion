@@ -40,6 +40,17 @@ Si la wifi se corta un momento, la TV conserva la última imagen, muestra «Reco
 
 **TV conectada por HDMI como segunda pantalla:** también vale. Activa la TV, abre una ventana nueva del navegador, arrástrala a la pantalla de la TV y escribe la misma dirección cambiando la IP por `localhost` (por ejemplo `http://localhost:8590/tv/brumavela/`). Pon esa ventana a pantalla completa con F11.
 
+## Niebla y vista de jugadores
+
+Para que los jugadores no vean en la TV lo que aún no han descubierto:
+
+1. Abre un mapa y pulsa **Niebla** en la barra de abajo. Elige **Trazar** y haz clic en las esquinas de la zona (el ratón hace de lápiz). Para cerrarla, haz clic cerca de la primera esquina. **Deshacer esquina** quita la última y **Cancelar** descarta el trazado.
+2. La zona nueva queda **tapada**: la TV no la muestra ni lo que haya dentro (los tokens tampoco). Con **Destapar**, un clic dentro de la zona la destapa o la vuelve a tapar. Con **Goma**, un clic dentro la borra. Si varias zonas se solapan, Destapar y Goma actúan sobre la última que creaste.
+3. **Deshacer** y **Rehacer** valen también para la niebla.
+4. **Vista de jugadores** (el ojo del grupo «Mapa»): cubre el mapa con lo que ve la TV, entero, solo para mirar. Mientras está puesta, el resto de botones de la barra están deshabilitados; vuelve a pulsar el ojo para quitarla. Se quita sola al cerrar el mapa y funciona aunque la TV esté desactivada.
+
+Aviso: un mapa con niebla guarda el `.state.json` en la versión 3; una versión anterior de la app lo abre en solo lectura. Un mapa sin niebla sigue en la versión 2.
+
 ## Cerrarla
 
 Cierra la consola con la X o con Ctrl+C. Los cambios se guardan solos; espera un segundo antes de cerrar. Cerrar la pestaña del navegador no cierra la app.

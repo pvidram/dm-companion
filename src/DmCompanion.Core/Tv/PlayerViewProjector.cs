@@ -4,14 +4,15 @@ using DmCompanion.Core.Maps;
 
 namespace DmCompanion.Core.Tv;
 
-/// <summary>Único punto que decide qué ve la TV del mapa: sin tokens ocultos, con alias y con vida de enemigos solo aproximada.</summary>
+/// <summary>Único punto que decide qué ve la TV del mapa: sin tokens ocultos ni bajo niebla, con alias y con vida de enemigos solo aproximada.</summary>
 public static class PlayerViewProjector
 {
     public static PlayerMapView Project(
         MapDefinition map, MapState state, TvFrame frame, ICombatRules rules,
         Func<MapToken, int?> maxHp, Func<MapToken, TokenLook> look)
     {
-        var visible = state.Tokens.Where(t => !t.IsHidden).ToList();
+        var covered = state.FogZones.Where(z => !z.IsRevealed).ToList();
+        var visible = state.Tokens.Where(t => !t.IsHidden && !FogGeometry.IsUnderFog(covered, t.X, t.Y)).ToList();
         var currentTokenId = state.Combat is { CurrentEntryId: { } entryId } combat
             ? combat.Entries.FirstOrDefault(e => e.Id == entryId)?.TokenId
             : null;
@@ -24,7 +25,8 @@ public static class PlayerViewProjector
         }).ToList();
 
         return new PlayerMapView(map.NotePath, map.ImagePath, map.Width, map.Height, state.Grid, frame,
-            tokens, state.Strokes, ProjectCombat(state, visible, currentTokenId, rules, maxHp));
+            tokens, state.Strokes, ProjectCombat(state, visible, currentTokenId, rules, maxHp),
+            covered.Select(z => z.Points).ToList());
     }
 
     private static PlayerCombat? ProjectCombat(

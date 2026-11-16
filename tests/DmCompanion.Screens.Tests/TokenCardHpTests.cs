@@ -244,7 +244,7 @@ public sealed partial class TokenCardHpTests : TokenTestBase
         await OpenMapAsync(extraNotes: () => WriteNote(MapTestVault.LyraNote, Lyra11));
         await Session.CloseAsync();
         File.WriteAllText(PathOf(MapPaths.StatePathFor(MapTestVault.MapNote)),
-            "{\"version\":3,\"tokens\":[{\"id\":\"t\",\"name\":\"Orco\",\"side\":\"enemy\",\"size\":1,\"x\":35,\"y\":35,\"hp\":11}],\"strokes\":[]}");
+            "{\"version\":4,\"tokens\":[{\"id\":\"t\",\"name\":\"Orco\",\"side\":\"enemy\",\"size\":1,\"x\":35,\"y\":35,\"hp\":11}],\"strokes\":[]}");
         await Session.OpenAsync(MapTestVault.MapNote);
         Shell.OpenTokenCard(new TokenCardRequest("t", 100, 100));
 

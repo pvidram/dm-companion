@@ -13,6 +13,7 @@ public sealed class EmbeddedTvAssetsTests
     [InlineData("tv-layout.js", "text/javascript; charset=utf-8")]
     [InlineData("tv-strip.js", "text/javascript; charset=utf-8")]
     [InlineData("tv-map.js", "text/javascript; charset=utf-8")]
+    [InlineData("tv-strip.css", "text/css; charset=utf-8")]
     [InlineData("token-opacity.js", "text/javascript; charset=utf-8")]
     [InlineData("konva.min.js", "text/javascript; charset=utf-8")]
     [InlineData("eb-garamond-latin-600-normal.woff2", "font/woff2")]

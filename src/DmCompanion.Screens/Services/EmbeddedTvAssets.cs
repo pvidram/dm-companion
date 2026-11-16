@@ -14,6 +14,7 @@ public sealed class EmbeddedTvAssets : ITvAssets
         ["tv.css"] = "text/css; charset=utf-8",
         ["tv-app.js"] = "text/javascript; charset=utf-8",
         ["tv-layout.js"] = "text/javascript; charset=utf-8",
+        ["tv-strip.css"] = "text/css; charset=utf-8",
         ["tv-strip.js"] = "text/javascript; charset=utf-8",
         ["tv-map.js"] = "text/javascript; charset=utf-8",
         ["token-opacity.js"] = "text/javascript; charset=utf-8",
