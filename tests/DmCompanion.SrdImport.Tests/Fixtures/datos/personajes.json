@@ -1,0 +1,131 @@
+[
+ {
+  "id": "alert",
+  "tipo": "dote",
+  "cap": "dotes",
+  "es": {
+   "nombre": "Alerta",
+   "p": 94,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "<i>Dote de origen</i>",
+     "sub": true
+    },
+    {
+     "t": "p",
+     "txt": "Obtienes los siguientes beneficios:"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Competencia en iniciativa.</b> Cuando tires iniciativa, puedes sumar tu bonificador por competencia a la tirada."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Intercambio de iniciativa.</b> Justo después de tirar iniciativa, puedes cambiar tu iniciativa con la de un aliado que esté dispuesto a hacerlo en el mismo combate. No puedes hacer este intercambio si el aliado o tú tenéis el estado de Incapacitado."
+    }
+   ],
+   "categoria": "Dotes de origen",
+   "pies": {}
+  },
+  "en": {
+   "nombre": "Alert",
+   "p": 87,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "<i>Origin Feat</i>",
+     "sub": true
+    },
+    {
+     "t": "p",
+     "txt": "You gain the following benefits."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Initiative Proficiency.</b> When you roll Initiative, you can add your Proficiency Bonus to the roll."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Initiative Swap.</b> Immediately after you roll Initiative, you can swap your Initiative with the Initiative of one willing ally in the same combat. You can’t make this swap if you or the ally has the Incapacitated condition."
+    }
+   ],
+   "categoria": "Origin Feats"
+  },
+  "de": {
+   "nombre": "Wachsam",
+   "p": 98,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "<i>Herkunftstalent</i>",
+     "sub": true
+    },
+    {
+     "t": "p",
+     "txt": "Du erhältst folgende Vorzüge:"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Initiative-Übung:</b> Wenn du die Initiative auswürfelst, kannst du dem Ergebnis deinen Übungsbonus hinzufügen."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Initiativetausch:</b> Sofort nach dem Auswürfeln der Initiative kannst du deine Initiative mit der eines bereitwilligen Verbündeten im selben Kampf tauschen. Der Tausch ist nicht möglich, wenn mindestens einer von euch beiden kampfunfähig ist."
+    }
+   ],
+   "categoria": "Herkunftstalente",
+   "pies": {}
+  },
+  "fr": {
+   "nombre": "Vigilant",
+   "p": 92,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "<i>Don d’origines</i>",
+     "sub": true
+    },
+    {
+     "t": "p",
+     "txt": "Vous recevez les bénéfices suivants."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Maîtrise de l’Initiative.</b> Lorsque vous jouez l’Initiative, ajoutez votre bonus de maîtrise au jet."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Échange d’Initiative.</b> Aussitôt après avoir joué l’Initiative, vous pouvez échanger votre Initiative avec celle d’un allié volontaire pour le combat à venir. Un tel échange est impossible si vous-même ou l’allié désigné subissez l’état Neutralisé."
+    }
+   ],
+   "categoria": "Dons d’origines",
+   "pies": {}
+  },
+  "it": {
+   "nombre": "Allerta",
+   "p": 98,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "<i>Talento Origini</i>",
+     "sub": true
+    },
+    {
+     "t": "p",
+     "txt": "Il personaggio ottiene i seguenti benefici."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Competenza in iniziativa.</b> Quando tiri per l'iniziativa, puoi aggiungere il bonus di competenza del personaggio al risultato del tiro."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Scambio di iniziativa.</b> Subito dopo aver tirato per l'iniziativa, puoi scambiare il risultato ottenuto con quello di un alleato consenziente durante il medesimo combattimento. Se il tuo personaggio o il suo alleato è incapacitato, non è possibile eseguire lo scambio."
+    }
+   ],
+   "categoria": "Talenti Origini",
+   "pies": {}
+  }
+ }
+]

@@ -1,0 +1,159 @@
+[
+ {
+  "id": "alchemists-supplies",
+  "tipo": "herramienta",
+  "cap": "equipo",
+  "es": {
+   "nombre": "Suministros de alquimista (50 po)",
+   "p": 102,
+   "bloques": [
+    {
+     "t": "campos",
+     "filas": [
+      [
+       "Característica",
+       "Inteligencia"
+      ],
+      [
+       "Peso",
+       "4 kg"
+      ],
+      [
+       "Utilizar",
+       "identificar una sustancia (CD 15) o encender un fuego (CD 15)"
+      ],
+      [
+       "Fabricar",
+       "aceite, ácido, fuego de alquimista, papel, perfume, saquito de componentes"
+      ]
+     ]
+    }
+   ],
+   "categoria": "Herramientas de artesano",
+   "pies": {
+    "bloques.0.filas.1.1": "8 libras"
+   }
+  },
+  "en": {
+   "nombre": "Alchemist’s Supplies (50 GP)",
+   "p": 93,
+   "bloques": [
+    {
+     "t": "campos",
+     "filas": [
+      [
+       "Ability",
+       "Intelligence"
+      ],
+      [
+       "Weight",
+       "8 lb."
+      ],
+      [
+       "Utilize",
+       "Identify a substance (DC 15), or start a fire (DC 15)"
+      ],
+      [
+       "Craft",
+       "Acid, Alchemist’s Fire, Component Pouch, Oil, Paper, Perfume"
+      ]
+     ]
+    }
+   ],
+   "categoria": "Artisan’s Tools"
+  },
+  "de": {
+   "nombre": "Alchemistenausrüstung (50 GM)",
+   "p": 105,
+   "bloques": [
+    {
+     "t": "campos",
+     "filas": [
+      [
+       "Attribut",
+       "Intelligenz"
+      ],
+      [
+       "Gewicht",
+       "4 kg"
+      ],
+      [
+       "Verwenden",
+       "Eine Substanz identifizieren (SG 15) oder ein Feuer entfachen (SG 15)"
+      ],
+      [
+       "Herstellen",
+       "Alchemistenfeuer, Materialkomponentenbeutel, Öl, Papier, Parfüm, Säure"
+      ]
+     ]
+    }
+   ],
+   "categoria": "Handwerkszeug",
+   "pies": {
+    "bloques.0.filas.1.1": "8 Pfund"
+   }
+  },
+  "fr": {
+   "nombre": "Matériel d’alchimiste (50 po)",
+   "p": 99,
+   "bloques": [
+    {
+     "t": "campos",
+     "filas": [
+      [
+       "Caractéristique",
+       "Intelligence"
+      ],
+      [
+       "Poids",
+       "4 kg"
+      ],
+      [
+       "Utilisation",
+       "identifier une substance (DD 15), allumer un feu (DD 15)"
+      ],
+      [
+       "Artisanat",
+       "acide, feu grégeois, huile, papier, parfum, sacoche à composantes"
+      ]
+     ]
+    }
+   ],
+   "categoria": "Outils d’artisan",
+   "pies": {
+    "bloques.0.filas.1.1": "8 livres"
+   }
+  },
+  "it": {
+   "nombre": "Scorte da alchimista (50 mo)",
+   "p": 105,
+   "bloques": [
+    {
+     "t": "campos",
+     "filas": [
+      [
+       "Caratteristica",
+       "Intelligenza"
+      ],
+      [
+       "Peso",
+       "4 kg"
+      ],
+      [
+       "Utilizzo",
+       "identificare una sostanza (CD 15) o appiccare il fuoco (CD 15)"
+      ],
+      [
+       "Creazione",
+       "acido, fuoco dell'alchimista, borsa per componenti, olio, carta, profumo"
+      ]
+     ]
+    }
+   ],
+   "categoria": "Strumenti da artigiano",
+   "pies": {
+    "bloques.0.filas.1.1": "8 libbre"
+   }
+  }
+ }
+]

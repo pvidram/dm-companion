@@ -1,0 +1,1572 @@
+[
+ {
+  "id": "aboleth",
+  "comun": {
+   "ca": 17,
+   "iniciativa": 7,
+   "iniciativa_puntuacion": 17,
+   "pg": 150,
+   "dados_golpe": "20d10+40",
+   "car": [
+    21,
+    9,
+    15,
+    18,
+    15,
+    18
+   ],
+   "mod": [
+    5,
+    -1,
+    2,
+    4,
+    2,
+    4
+   ],
+   "salv": [
+    5,
+    3,
+    6,
+    8,
+    6,
+    4
+   ],
+   "vd": "10",
+   "px": 5900,
+   "px_guarida": 7200,
+   "bc": 4,
+   "percepcion_pasiva": 20,
+   "tamano": [
+    "Large"
+   ],
+   "tipo": "Aberration",
+   "enjambre": false,
+   "etiquetas": [],
+   "alineamiento": "Lawful Evil",
+   "capitulo": "monstruos_az"
+  },
+  "es": {
+   "nombre": "Aboleth",
+   "p": 283,
+   "grupo": "Aboleth",
+   "tipo": "Aberración Grande, legal malvada",
+   "campos": {
+    "ca": "17",
+    "ini": "+7 (17)",
+    "pg": "150 (20d10 + 40)",
+    "vel": "3 m, nadar 12 m",
+    "hab": "Historia +12, Percepción +10",
+    "sen": "visión en la oscuridad 36 m; Percepción pasiva 20",
+    "idi": "habla de las profundidades; telepatía 36 m",
+    "vd": "10 (5900 PX o 7200 en la guarida; BC +4)"
+   },
+   "car": [
+    [
+     "Fue",
+     21,
+     "+5",
+     "+5"
+    ],
+    [
+     "Des",
+     9,
+     "−1",
+     "+3"
+    ],
+    [
+     "Con",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Int",
+     18,
+     "+4",
+     "+8"
+    ],
+    [
+     "Sab",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Car",
+     18,
+     "+4",
+     "+4"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "rasgos",
+     "titulo": "Atributos",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Anfibio",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "El aboleth puede respirar tanto dentro como fuera del agua."
+        }
+       ]
+      },
+      {
+       "nombre": "Nube mucosa",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Mientras permanezca bajo el agua, el aboleth estará rodeado por una mucosa. <i>Tirada de salvación de Constitución:</i> CD 14, todas las criaturas en una emanación de 1,5 m que se origina en el aboleth al final de su turno. <i>Fallo:</i> el objetivo estará maldito. Hasta que la maldición termine, la piel del objetivo se volverá viscosa, el objetivo podrá respirar tanto dentro como fuera del agua y no podrá recuperar puntos de golpe excepto si está bajo el agua."
+        },
+        {
+         "t": "p",
+         "txt": "Mientras la criatura maldita esté fuera de una masa de agua, recibirá 6 (1d12) de daño de ácido al final de cada periodo de 10 minutos, a menos que se le aplique humedad a su piel antes de que transcurra este tiempo."
+        }
+       ]
+      },
+      {
+       "nombre": "Recuperación sobrenatural",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Si es destruido, el aboleth obtiene un nuevo cuerpo tras 5d10 días y revive con todos sus puntos de golpe en el Reino Lejano o en otro lugar a elección de cada DM."
+        }
+       ]
+      },
+      {
+       "nombre": "Resistencia legendaria (3/día o 4/día en la guarida)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "El aboleth puede elegir tener éxito en una tirada de salvación que haya fallado."
+        }
+       ]
+      },
+      {
+       "nombre": "Telepatía inquisitiva",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Si una criatura a la que el aboleth pueda ver se comunica telepáticamente con este, el aboleth descubrirá cuáles son los deseos más intensos de la criatura."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "acciones",
+     "titulo": "Acciones",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Ataque múltiple",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "El aboleth realiza dos ataques con sus tentáculos y usa o bien su acción de consumir recuerdos o bien la de dominar la mente si está disponible."
+        }
+       ]
+      },
+      {
+       "nombre": "Tentáculo",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tirada de ataque cuerpo a cuerpo:</i> +9, alcance 4,5 m. <i>Acierto:</i> 12 (2d6 + 5) de daño contundente. Si el objetivo es una criatura Grande o más pequeña, tendrá el estado de Agarrada (CD 14 para escapar) por uno de los cuatro tentáculos."
+        }
+       ]
+      },
+      {
+       "nombre": "Consumir recuerdos",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tirada de salvación de Inteligencia:</i> CD 16, una criatura a 9 m o menos que esté Agarrada o hechizada por el aboleth. <i>Fallo:</i> 10 (3d6) de daño psíquico. <i>Éxito:</i> la mitad del daño. <i>Fallo o éxito:</i> el aboleth obtendrá los recuerdos del objetivo si este es un humanoide y sus puntos de golpe se reducen a 0 por esta acción."
+        }
+       ]
+      },
+      {
+       "nombre": "Dominar la mente (2/día)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tirada de salvación de Sabiduría:</i> CD 16, una criatura que el aboleth pueda ver a 9 m o menos. <i>Fallo:</i> el objetivo tendrá el estado de Hechizado hasta que el aboleth muera o esté en un plano de existencia diferente al del objetivo. Mientras esté Hechizado, el objetivo actuará como aliado del aboleth y estará bajo su control si se encuentra a 18 m o menos de él. Además, el aboleth y el objetivo se podrán comunicar telepáticamente entre sí a cualquier distancia."
+        },
+        {
+         "t": "p",
+         "txt": "El objetivo repetirá la tirada de salvación siempre que reciba daño y tras cada 24 horas que pase a al menos 1,5 km de distancia del aboleth; si la supera, se librará del efecto."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "legendarias",
+     "titulo": "Acciones legendarias",
+     "intro": "<i>Usos de acciones legendarias: 3 (4 en la guarida). Justo después del turno de otra criatura, el aboleth puede emplear un uso para llevar a cabo una de las siguientes acciones. El aboleth recupera todos los usos al principio de cada uno de sus turnos.</i>",
+     "items": [
+      {
+       "nombre": "Drenaje psíquico",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Si el aboleth tiene al menos a una criatura agarrada o hechizada, usa su acción de consumir recuerdos y recupera 5 (1d10) puntos de golpe."
+        }
+       ]
+      },
+      {
+       "nombre": "Latigazo",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "El aboleth realiza un ataque con un tentáculo."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "10 pies, nadar 40 pies",
+    "campos.sen": "visión en la oscuridad 120 pies; Percepción pasiva 20",
+    "campos.idi": "habla de las profundidades; telepatía 120 pies",
+    "secciones.0.items.1.bloques.0.txt": "Mientras permanezca bajo el agua, el aboleth estará rodeado por una mucosa. <i>Tirada de salvación de Constitución:</i> CD 14, todas las criaturas en una emanación de 5 pies que se origina en el aboleth al final de su turno. <i>Fallo:</i> el objetivo estará maldito. Hasta que la maldición termine, la piel del objetivo se volverá viscosa, el objetivo podrá respirar tanto dentro como fuera del agua y no podrá recuperar puntos de golpe excepto si está bajo el agua.",
+    "secciones.1.items.1.bloques.0.txt": "<i>Tirada de ataque cuerpo a cuerpo:</i> +9, alcance 15 pies. <i>Acierto:</i> 12 (2d6 + 5) de daño contundente. Si el objetivo es una criatura Grande o más pequeña, tendrá el estado de Agarrada (CD 14 para escapar) por uno de los cuatro tentáculos.",
+    "secciones.1.items.2.bloques.0.txt": "<i>Tirada de salvación de Inteligencia:</i> CD 16, una criatura a 30 pies o menos que esté Agarrada o hechizada por el aboleth. <i>Fallo:</i> 10 (3d6) de daño psíquico. <i>Éxito:</i> la mitad del daño. <i>Fallo o éxito:</i> el aboleth obtendrá los recuerdos del objetivo si este es un humanoide y sus puntos de golpe se reducen a 0 por esta acción.",
+    "secciones.1.items.3.bloques.0.txt": "<i>Tirada de salvación de Sabiduría:</i> CD 16, una criatura que el aboleth pueda ver a 30 pies o menos. <i>Fallo:</i> el objetivo tendrá el estado de Hechizado hasta que el aboleth muera o esté en un plano de existencia diferente al del objetivo. Mientras esté Hechizado, el objetivo actuará como aliado del aboleth y estará bajo su control si se encuentra a 60 pies o menos de él. Además, el aboleth y el objetivo se podrán comunicar telepáticamente entre sí a cualquier distancia.",
+    "secciones.1.items.3.bloques.1.txt": "El objetivo repetirá la tirada de salvación siempre que reciba daño y tras cada 24 horas que pase a al menos 1 milla de distancia del aboleth; si la supera, se librará del efecto."
+   }
+  },
+  "en": {
+   "nombre": "Aboleth",
+   "p": 258,
+   "grupo": "Aboleth",
+   "tipo": "Large Aberration, Lawful Evil",
+   "campos": {
+    "ca": "17",
+    "ini": "+7 (17)",
+    "pg": "150 (20d10 + 40)",
+    "vel": "10 ft., Swim 40 ft.",
+    "hab": "History +12, Perception +10",
+    "sen": "Darkvision 120 ft.; Passive Perception 20",
+    "idi": "Deep Speech; telepathy 120 ft.",
+    "vd": "10 (XP 5,900, or 7,200 in lair; PB +4)"
+   },
+   "car": [
+    [
+     "Str",
+     21,
+     "+5",
+     "+5"
+    ],
+    [
+     "Dex",
+     9,
+     "−1",
+     "+3"
+    ],
+    [
+     "Con",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Int",
+     18,
+     "+4",
+     "+8"
+    ],
+    [
+     "Wis",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Cha",
+     18,
+     "+4",
+     "+4"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "rasgos",
+     "titulo": "Traits",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Amphibious",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "The aboleth can breathe air and water."
+        }
+       ]
+      },
+      {
+       "nombre": "Eldritch Restoration",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "If destroyed, the aboleth gains a new body in 5d10 days, reviving with all its Hit Points in the Far Realm or another location chosen by the DM."
+        }
+       ]
+      },
+      {
+       "nombre": "Legendary Resistance (3/Day, or 4/Day in Lair)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "If the aboleth fails a saving throw, it can choose to succeed instead."
+        }
+       ]
+      },
+      {
+       "nombre": "Mucus Cloud",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "While underwater, the aboleth is surrounded by mucus. <i>Constitution Saving Throw:</i> DC 14, each creature in a 5-foot Emanation originating from the aboleth at the end of the aboleth’s turn. <i>Failure:</i> The target is cursed. Until the curse ends, the target’s skin becomes slimy, the target can breathe air and water, and it can’t regain Hit Points unless it is underwater."
+        },
+        {
+         "t": "p",
+         "txt": "While the cursed creature is outside a body of water, the creature takes 6 (1d12) Acid damage at the end of every 10 minutes unless moisture is applied to its skin before those minutes have passed."
+        }
+       ]
+      },
+      {
+       "nombre": "Probing Telepathy",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "If a creature the aboleth can see communicates telepathically with the aboleth, the aboleth learns the creature’s greatest desires."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "acciones",
+     "titulo": "Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Multiattack",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "The aboleth makes two Tentacle attacks and uses either Consume Memories or Dominate Mind if available."
+        }
+       ]
+      },
+      {
+       "nombre": "Tentacle",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Melee Attack Roll:</i> +9, reach 15 ft. <i>Hit:</i> 12 (2d6 + 5) Bludgeoning damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 14) from one of four tentacles."
+        }
+       ]
+      },
+      {
+       "nombre": "Consume Memories",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Intelligence Saving Throw:</i> DC 16, one creature within 30 feet that is Charmed or Grappled by the aboleth. <i>Failure:</i> 10 (3d6) Psychic damage. <i>Success:</i> Half damage. <i>Failure or Success:</i> The aboleth gains the target’s memories if the target is a Humanoid and is reduced to 0 Hit Points by this action."
+        }
+       ]
+      },
+      {
+       "nombre": "Dominate Mind (2/Day)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Wisdom Saving Throw:</i> DC 16, one creature the aboleth can see within 30 feet. <i>Failure:</i> The target has the Charmed condition until the aboleth dies or is on a different plane of existence from the target. While Charmed, the target acts as an ally to the aboleth and is under its control while within 60 feet of it. In addition, the aboleth and the target can communicate telepathically with each other over any distance."
+        },
+        {
+         "t": "p",
+         "txt": "The target repeats the save whenever it takes damage as well as after every 24 hours it spends at least 1 mile away from the aboleth, ending the effect on itself on a success."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "legendarias",
+     "titulo": "Legendary Actions",
+     "intro": "<i>Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the aboleth can expend a use to take one of the following actions. The aboleth regains all expended uses at the start of each of its turns.</i>",
+     "items": [
+      {
+       "nombre": "Lash",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "The aboleth makes one Tentacle attack."
+        }
+       ]
+      },
+      {
+       "nombre": "Psychic Drain",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "If the aboleth has at least one creature Charmed or Grappled, it uses Consume Memories and regains 5 (1d10) Hit Points."
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "de": {
+   "nombre": "Aboleth",
+   "p": 300,
+   "grupo": "Aboleth",
+   "tipo": "Große Aberration, rechtschaffen böse",
+   "campos": {
+    "ca": "17",
+    "ini": "+7 (17)",
+    "pg": "150 (20W10+40)",
+    "vel": "3 m, Schwimmen 12 m",
+    "hab": "Geschichte +12, Wahrnehmung +10",
+    "sen": "Dunkelsicht 36 m; Passive Wahrnehmung 20",
+    "idi": "Tiefensprache; Telepathie auf 36 m",
+    "vd": "10 (EP 5.900 oder 7.200 im Hort; ÜB +4)"
+   },
+   "car": [
+    [
+     "Stä",
+     21,
+     "+5",
+     "+5"
+    ],
+    [
+     "Ges",
+     9,
+     "−1",
+     "+3"
+    ],
+    [
+     "Kon",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Int",
+     18,
+     "+4",
+     "+8"
+    ],
+    [
+     "Wei",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Cha",
+     18,
+     "+4",
+     "+4"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "rasgos",
+     "titulo": "Merkmale",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Amphibisch",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Der Aboleth kann Luft und Wasser atmen."
+        }
+       ]
+      },
+      {
+       "nombre": "Legendäre Resistenz (3-mal täglich, im Hort 4-mal täglich)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Wenn der Aboleth bei einem Rettungswurf scheitert, kann er beschließen, ihn stattdessen zu bestehen."
+        }
+       ]
+      },
+      {
+       "nombre": "Schauerliche Genesung",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Wenn der Aboleth zerstört wird, erhält er nach 5W10 Tagen einen neuen Körper, der mit allen Trefferpunkten im Fernen Reich oder an einem anderen Ort nach Wahl des SL aufersteht."
+        }
+       ]
+      },
+      {
+       "nombre": "Schleimwolke",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Unter Wasser ist der Aboleth von Schleim umgeben. <i>Konstitutionsrettungswurf:</i> SG 14; jede Kreatur in einer Ausströmung von 1,5 Metern, die am Ende seines Zugs vom Abolethen ausgeht. <i>Misserfolg:</i> Das Ziel wird verflucht. Bis der Fluch endet, ist die Haut des Ziels schleimig, das Ziel kann Luft und Wasser atmen und nur unter Wasser Trefferpunkte zurückerhalten."
+        },
+        {
+         "t": "p",
+         "txt": "Wenn die verfluchte Kreatur sich nicht im Wasser befindet, erleidet sie nach jeweils zehn Minuten 6 (1W12) Säureschaden, sofern ihre Haut nicht befeuchtet wird, bevor zehn Minuten vergangen sind."
+        }
+       ]
+      },
+      {
+       "nombre": "Sondierende Telepathie",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Wenn eine Kreatur, die der Aboleth sehen kann, telepathisch mit dem Abolethen kommuniziert, erfährt er die tiefsten Wünsche der Kreatur."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "acciones",
+     "titulo": "Aktionen",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Mehrfachangriff",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Der Aboleth führt zwei Tentakelangriffe aus und setzt entweder Erinnerungen verzehren oder Gedanken beherrschen ein, sofern verfügbar."
+        }
+       ]
+      },
+      {
+       "nombre": "Tentakel",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Nahkampfangriffswurf:</i> +9, Reichweite 4,5 m. <i>Treffer:</i> 12 (2W6+5) Wuchtschaden. Wenn das Ziel eine Kreatur von höchstens großer Größe ist, wird es von einem der vier Tentakel gepackt (Flucht-SG 14)."
+        }
+       ]
+      },
+      {
+       "nombre": "Erinnerungen verzehren",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Intelligenzrettungswurf:</i> SG 16; eine Kreatur im Abstand von bis zu neun Metern, die vom Abolethen bezaubert ist oder gepackt wurde. <i>Misserfolg:</i> 10 (3W6) psychischer Schaden. <i>Erfolg:</i> Halber Schaden. <i>Erfolg oder Misserfolg:</i> Wenn das Ziel ein Humanoide ist und seine Trefferpunkte durch diese Aktion auf 0 sinken, erhält der Aboleth die Erinnerungen des Ziels."
+        }
+       ]
+      },
+      {
+       "nombre": "Gedanken beherrschen (2-mal täglich)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Weisheitsrettungswurf:</i> SG 16; eine Kreatur im Abstand von bis zu neun Metern vom Abolethen, die er sehen kann. <i>Misserfolg:</i> Das Ziel ist bezaubert, bis der Aboleth stirbt oder sich auf eine andere Existenzebene als das Ziel begibt. Das bezauberte Ziel handelt als Verbündeter des Abolethen und steht unter seiner Kontrolle, sofern es sich im Abstand von bis zu 18 Metern von ihm befindet. Außerdem können der Aboleth und das Ziel auf beliebige Distanz telepathisch miteinander kommunizieren."
+        },
+        {
+         "t": "p",
+         "txt": "Das Ziel wiederholt den Rettungswurf, wann immer es Schaden erleidet, außerdem nach jeweils 24 Stunden, die es mindestens 1,6 Kilometer weit vom Abolethen entfernt verbracht hat. Bei einem Erfolg endet der Effekt bei ihm."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "legendarias",
+     "titulo": "Legendäre Aktionen",
+     "intro": "<i>Anwendungen legendärer Aktionen: 3 (4 im Hort). Unmittelbar nach dem Zug einer anderen Kreatur kann der Aboleth eine legendäre Aktion ausführen. Zu Beginn jedes seiner Züge stehen dem Aboleth wieder alle ausgeführten legendären Aktionen zur Verfügung.</i>",
+     "items": [
+      {
+       "nombre": "Peitschenhieb",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Der Aboleth führt einen Tentakelangriff aus."
+        }
+       ]
+      },
+      {
+       "nombre": "Psychische Absaugung",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Wenn der Aboleth mindestens eine Kreatur bezaubert hat oder gepackt hält, setzt er Erinnerungen verzehren ein und erhält 5 (1W10) Trefferpunkte zurück."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "10 Fuß, Schwimmen 40 Fuß",
+    "campos.sen": "Dunkelsicht 120 Fuß; Passive Wahrnehmung 20",
+    "campos.idi": "Tiefensprache; Telepathie auf 120 Fuß",
+    "secciones.0.items.3.bloques.0.txt": "Unter Wasser ist der Aboleth von Schleim umgeben. <i>Konstitutionsrettungswurf:</i> SG 14; jede Kreatur in einer Ausströmung von 5 Fuß, die am Ende seines Zugs vom Abolethen ausgeht. <i>Misserfolg:</i> Das Ziel wird verflucht. Bis der Fluch endet, ist die Haut des Ziels schleimig, das Ziel kann Luft und Wasser atmen und nur unter Wasser Trefferpunkte zurückerhalten.",
+    "secciones.1.items.1.bloques.0.txt": "<i>Nahkampfangriffswurf:</i> +9, Reichweite 15 Fuß. <i>Treffer:</i> 12 (2W6+5) Wuchtschaden. Wenn das Ziel eine Kreatur von höchstens großer Größe ist, wird es von einem der vier Tentakel gepackt (Flucht-SG 14).",
+    "secciones.1.items.2.bloques.0.txt": "<i>Intelligenzrettungswurf:</i> SG 16; eine Kreatur im Abstand von bis zu 30 Fuß, die vom Abolethen bezaubert ist oder gepackt wurde. <i>Misserfolg:</i> 10 (3W6) psychischer Schaden. <i>Erfolg:</i> Halber Schaden. <i>Erfolg oder Misserfolg:</i> Wenn das Ziel ein Humanoide ist und seine Trefferpunkte durch diese Aktion auf 0 sinken, erhält der Aboleth die Erinnerungen des Ziels.",
+    "secciones.1.items.3.bloques.0.txt": "<i>Weisheitsrettungswurf:</i> SG 16; eine Kreatur im Abstand von bis zu 30 Fuß vom Abolethen, die er sehen kann. <i>Misserfolg:</i> Das Ziel ist bezaubert, bis der Aboleth stirbt oder sich auf eine andere Existenzebene als das Ziel begibt. Das bezauberte Ziel handelt als Verbündeter des Abolethen und steht unter seiner Kontrolle, sofern es sich im Abstand von bis zu 60 Fuß von ihm befindet. Außerdem können der Aboleth und das Ziel auf beliebige Distanz telepathisch miteinander kommunizieren.",
+    "secciones.1.items.3.bloques.1.txt": "Das Ziel wiederholt den Rettungswurf, wann immer es Schaden erleidet, außerdem nach jeweils 24 Stunden, die es mindestens 1 Meile weit vom Abolethen entfernt verbracht hat. Bei einem Erfolg endet der Effekt bei ihm."
+   }
+  },
+  "fr": {
+   "nombre": "Aboleth",
+   "p": 272,
+   "grupo": "Aboleth",
+   "tipo": "Aberration de taille G, Loyale Mauvaise",
+   "campos": {
+    "ca": "17",
+    "ini": "+7 (17)",
+    "pg": "150 (20d10 + 40)",
+    "vel": "3 m, nage 12 m",
+    "hab": "Histoire +12, Perception +10",
+    "sen": "Vision dans le noir 36 m ; Perception passive 20",
+    "idi": "profond ; télépathie 36 m",
+    "vd": "10 (5 900 PX, ou 7 200 dans son antre ; BM +4)"
+   },
+   "car": [
+    [
+     "For",
+     21,
+     "+5",
+     "+5"
+    ],
+    [
+     "Dex",
+     9,
+     "−1",
+     "+3"
+    ],
+    [
+     "Con",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Int",
+     18,
+     "+4",
+     "+8"
+    ],
+    [
+     "Sag",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Cha",
+     18,
+     "+4",
+     "+4"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "rasgos",
+     "titulo": "Traits",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Amphibie",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "L’aboleth peut respirer sous l’eau comme à l’air libre."
+        }
+       ]
+      },
+      {
+       "nombre": "Nuage de mucus",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Tant qu’il est sous l’eau, l’aboleth est entouré d’un mucus réactif. <i>JS Constitution :</i> DD 14, chaque créature dans une Émanation de 1,50 m centrée sur l’aboleth, à la fin du tour de celui-ci. <i>Échec :</i> la cible est maudite. Jusqu’à la fin de la malédiction, la cible présente une peau visqueuse, elle peut respirer sous l’eau comme à l’air libre et ne peut récupérer de points de vie que si elle est sous l’eau."
+        },
+        {
+         "t": "p",
+         "txt": "Quand la créature maudite n’est pas dans l’eau, elle subit 6 (1d12) dégâts d’acide à la fin de chaque période de 10 minutes, sauf si sa peau est humidifiée dans l’intervalle."
+        }
+       ]
+      },
+      {
+       "nombre": "Résistance légendaire (3/jour, ou 4/jour dans son antre)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Si l’aboleth rate un jet de sauvegarde, il peut décider de le réussir tout de même."
+        }
+       ]
+      },
+      {
+       "nombre": "Restauration occulte",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "S’il est détruit, l’aboleth acquiert un nouveau corps en 5d10 jours et revient à la vie avec tous ses pv dans le Royaume Lointain (ou en un autre lieu choisi par le MJ)."
+        }
+       ]
+      },
+      {
+       "nombre": "Télépathie inquisitrice",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Si une créature communique par télépathie avec l’aboleth, ce dernier a conscience des désirs profonds de la créature."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "acciones",
+     "titulo": "Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Attaques multiples",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "L’aboleth effectue deux attaques de Tentacule et recourt à Assimilation de mémoire ou Domination d’esprit si disponible."
+        }
+       ]
+      },
+      {
+       "nombre": "Tentacule",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Corps à corps :</i> +9, allonge 4,50 m. <i>Touché :</i> 12 (2d6 + 5) dégâts contondants. Si la cible est une créature de taille G ou inférieure, elle subit l’état Agrippé (évasion DD 14) par l’un des quatre tentacules."
+        }
+       ]
+      },
+      {
+       "nombre": "Assimilation de mémoire",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>JS Intelligence :</i> DD 16, une créature dans un rayon de 9 m Charmée ou Agrippée par l’aboleth. <i>Échec :</i> 10 (3d6) dégâts psychiques. <i>Réussite :</i> demi-dégâts. <i>Échec ou réussite :</i> L’aboleth acquiert les souvenirs de la cible si elle est Humanoïde et si cette action la fait tomber à 0 point de vie."
+        }
+       ]
+      },
+      {
+       "nombre": "Domination d’esprit (2/jour)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>JS Sagesse :</i> DD 16, une créature que l’aboleth voit dans un rayon de 9 m. <i>Échec :</i> la cible subit l’état Charmé jusqu’à ce que l’aboleth meure ou soit sur un autre plan d’existence qu’elle. Ainsi Charmée, la cible se comporte en alliée de l’aboleth ; elle est directement sous son contrôle tant qu’elle reste dans un rayon de 18 m de lui. L’aboleth et la cible peuvent en outre communiquer télépathiquement l’un avec l’autre, quelle que soit la distance qui les sépare."
+        },
+        {
+         "t": "p",
+         "txt": "La cible réitère le JS chaque fois qu’elle subit des dégâts, ainsi qu’à la fin de toute période de 24 heures passée à plus de 1,5 km de l’aboleth, et met un terme à l’effet sur elle-même en cas de réussite."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "legendarias",
+     "titulo": "Actions Légendaires",
+     "intro": "<i>Utilisations d’action Légendaire : 3 (4 dans son antre). Aussitôt après le tour d’une autre créature, l’aboleth peut dépenser une utilisation pour entreprendre l’une des actions ci-après. L’aboleth récupère toutes ses utilisations dépensées au début de chacun de ses tours.</i>",
+     "items": [
+      {
+       "nombre": "Coup de tentacule",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "L’aboleth effectue une attaque de Tentacule."
+        }
+       ]
+      },
+      {
+       "nombre": "Succion psychique",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Si l’aboleth maintient au moins une créature Charmée ou Agrippée, il recourt à Assimilation de mémoire et récupère 5 (1d10) points de vie."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "10 pieds, nage 40 pieds",
+    "campos.sen": "Vision dans le noir 120 pieds ; Perception passive 20",
+    "campos.idi": "profond ; télépathie 120 pieds",
+    "secciones.0.items.1.bloques.0.txt": "Tant qu’il est sous l’eau, l’aboleth est entouré d’un mucus réactif. <i>JS Constitution :</i> DD 14, chaque créature dans une Émanation de 5 pieds centrée sur l’aboleth, à la fin du tour de celui-ci. <i>Échec :</i> la cible est maudite. Jusqu’à la fin de la malédiction, la cible présente une peau visqueuse, elle peut respirer sous l’eau comme à l’air libre et ne peut récupérer de points de vie que si elle est sous l’eau.",
+    "secciones.1.items.1.bloques.0.txt": "<i>Corps à corps :</i> +9, allonge 15 pieds. <i>Touché :</i> 12 (2d6 + 5) dégâts contondants. Si la cible est une créature de taille G ou inférieure, elle subit l’état Agrippé (évasion DD 14) par l’un des quatre tentacules.",
+    "secciones.1.items.2.bloques.0.txt": "<i>JS Intelligence :</i> DD 16, une créature dans un rayon de 30 pieds Charmée ou Agrippée par l’aboleth. <i>Échec :</i> 10 (3d6) dégâts psychiques. <i>Réussite :</i> demi-dégâts. <i>Échec ou réussite :</i> L’aboleth acquiert les souvenirs de la cible si elle est Humanoïde et si cette action la fait tomber à 0 point de vie.",
+    "secciones.1.items.3.bloques.0.txt": "<i>JS Sagesse :</i> DD 16, une créature que l’aboleth voit dans un rayon de 30 pieds. <i>Échec :</i> la cible subit l’état Charmé jusqu’à ce que l’aboleth meure ou soit sur un autre plan d’existence qu’elle. Ainsi Charmée, la cible se comporte en alliée de l’aboleth ; elle est directement sous son contrôle tant qu’elle reste dans un rayon de 60 pieds de lui. L’aboleth et la cible peuvent en outre communiquer télépathiquement l’un avec l’autre, quelle que soit la distance qui les sépare.",
+    "secciones.1.items.3.bloques.1.txt": "La cible réitère le JS chaque fois qu’elle subit des dégâts, ainsi qu’à la fin de toute période de 24 heures passée à plus de 1 mile de l’aboleth, et met un terme à l’effet sur elle-même en cas de réussite."
+   }
+  },
+  "it": {
+   "nombre": "Aboleth",
+   "p": 294,
+   "grupo": "Aboleth",
+   "tipo": "Aberrazione Grande, legale malvagio",
+   "campos": {
+    "ca": "17",
+    "ini": "+7 (17)",
+    "pg": "150 (20d10 + 40)",
+    "vel": "3 m, nuoto 12 m",
+    "hab": "Percezione +10, Storia +12",
+    "sen": "Percezione passiva 20; scurovisione 36 m",
+    "idi": "Gergo delle Profondità; telepatia 36 m",
+    "vd": "10 (PE 5.900, o 7.200 nella tana; BC +4)"
+   },
+   "car": [
+    [
+     "For",
+     21,
+     "+5",
+     "+5"
+    ],
+    [
+     "Des",
+     9,
+     "−1",
+     "+3"
+    ],
+    [
+     "Cos",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Int",
+     18,
+     "+4",
+     "+8"
+    ],
+    [
+     "Sag",
+     15,
+     "+2",
+     "+6"
+    ],
+    [
+     "Car",
+     18,
+     "+4",
+     "+4"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "rasgos",
+     "titulo": "Tratti",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Anfibio",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "L'aboleth può respirare in aria e in acqua."
+        }
+       ]
+      },
+      {
+       "nombre": "Nube di muco",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Finché si trova sott'acqua, l'aboleth è circondato da uno strato di muco. <i>Tiro salvezza su Costituzione:</i> CD 14, tutte le creature in un'emanazione di 1,5 metri di cui l'aboleth è il punto di origine, alla fine del turno dell'aboleth. <i>Fallimento:</i> il bersaglio è maledetto. Finché la maledizione perdura, la pelle del bersaglio diventa viscida, il bersaglio può respirare in aria e in acqua e non può recuperare punti ferita finché si trova sott'acqua."
+        },
+        {
+         "t": "p",
+         "txt": "Finché la creatura maledetta si trova fuori da uno specchio d'acqua, subisce 6 (1d12) danni da acido a intervalli di 10 minuti, a meno che la sua pelle non venga inumidita prima che siano trascorsi i 10 minuti."
+        }
+       ]
+      },
+      {
+       "nombre": "Resistenza leggendaria (3/giorno o 4/giorno nella tana)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Se l'aboleth fallisce un tiro salvezza, può scegliere di superarlo comunque."
+        }
+       ]
+      },
+      {
+       "nombre": "Ristoro occulto",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Se viene annientato, l'aboleth ottiene un nuovo corpo dopo 5d10 giorni, tornando in vita con tutti i suoi punti ferita nel Reame Remoto o in un altro luogo a scelta del GM."
+        }
+       ]
+      },
+      {
+       "nombre": "Sonda telepatica",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Se una creatura che l'aboleth è in grado di vedere comunica telepaticamente con l'aboleth, quest'ultimo apprende i più grandi desideri della creatura."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "acciones",
+     "titulo": "Azioni",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Multiattacco",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "L'aboleth effettua due attacchi Tentacolo e usa Consuma ricordi o Domina mente, se disponibili."
+        }
+       ]
+      },
+      {
+       "nombre": "Tentacolo",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tiro per colpire in mischia:</i> +9, portata 4,5 m. <i>Colpito:</i> 12 (2d6 + 5) danni contundenti. Se il bersaglio è una creatura di taglia Grande o inferiore, è afferrato (CD 14 per sfuggire) da uno dei quattro tentacoli."
+        }
+       ]
+      },
+      {
+       "nombre": "Consuma ricordi",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tiro salvezza su Intelligenza:</i> CD 16, una creatura entro 9 metri affascinata o afferrata dall'aboleth. <i>Fallimento:</i> 10 (3d6) danni psichici. <i>Successo:</i> danni dimezzati. <i>Fallimento o successo:</i> l'aboleth acquisisce i ricordi del bersaglio se questo è un umanoide e viene ridotto a 0 punti ferita da questa azione."
+        }
+       ]
+      },
+      {
+       "nombre": "Domina mente (2/giorno)",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tiro salvezza su Saggezza:</i> CD 16, una creatura che l'aboleth è in grado di vedere entro 9 metri. <i>Fallimento:</i> la creatura è affascinata finché l'aboleth muore o si sposta su un piano di esistenza diverso da quello del bersaglio. Finché è affascinato, il bersaglio agisce come un alleato dell'aboleth ed è sotto il suo controllo finché si trova entro 18 metri da esso. Inoltre, l'aboleth e il bersaglio possono comunicare telepaticamente tra loro a qualsiasi distanza."
+        },
+        {
+         "t": "p",
+         "txt": "Il bersaglio ripete il tiro salvezza ogni volta che subisce danni e ogni volta che trascorre 24 ore ad almeno 1,5 chilometri di distanza dall'aboleth e, se lo supera, l'effetto svanisce."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "legendarias",
+     "titulo": "Azioni leggendarie",
+     "intro": "<i>Utilizzi di azioni leggendarie: 3 (4 nella tana). Subito dopo il turno di un'altra creatura, l'aboleth può consumare un utilizzo per effettuare una delle seguenti azioni. L'aboleth recupera tutti gli utilizzi consumati all'inizio di ogni suo turno.</i>",
+     "items": [
+      {
+       "nombre": "Risucchio psichico",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Se l'aboleth ha affascinato o afferrato almeno una creatura, utilizza Consuma ricordi e recupera 5 (1d10) punti ferita."
+        }
+       ]
+      },
+      {
+       "nombre": "Sferzata",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "L'aboleth effettua un attacco Tentacolo."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "10 piedi, nuoto 40 piedi",
+    "campos.sen": "Percezione passiva 20; scurovisione 120 piedi",
+    "campos.idi": "Gergo delle Profondità; telepatia 120 piedi",
+    "secciones.0.items.1.bloques.0.txt": "Finché si trova sott'acqua, l'aboleth è circondato da uno strato di muco. <i>Tiro salvezza su Costituzione:</i> CD 14, tutte le creature in un'emanazione di 5 piedi di cui l'aboleth è il punto di origine, alla fine del turno dell'aboleth. <i>Fallimento:</i> il bersaglio è maledetto. Finché la maledizione perdura, la pelle del bersaglio diventa viscida, il bersaglio può respirare in aria e in acqua e non può recuperare punti ferita finché si trova sott'acqua.",
+    "secciones.1.items.1.bloques.0.txt": "<i>Tiro per colpire in mischia:</i> +9, portata 15 piedi. <i>Colpito:</i> 12 (2d6 + 5) danni contundenti. Se il bersaglio è una creatura di taglia Grande o inferiore, è afferrato (CD 14 per sfuggire) da uno dei quattro tentacoli.",
+    "secciones.1.items.2.bloques.0.txt": "<i>Tiro salvezza su Intelligenza:</i> CD 16, una creatura entro 30 piedi affascinata o afferrata dall'aboleth. <i>Fallimento:</i> 10 (3d6) danni psichici. <i>Successo:</i> danni dimezzati. <i>Fallimento o successo:</i> l'aboleth acquisisce i ricordi del bersaglio se questo è un umanoide e viene ridotto a 0 punti ferita da questa azione.",
+    "secciones.1.items.3.bloques.0.txt": "<i>Tiro salvezza su Saggezza:</i> CD 16, una creatura che l'aboleth è in grado di vedere entro 30 piedi. <i>Fallimento:</i> la creatura è affascinata finché l'aboleth muore o si sposta su un piano di esistenza diverso da quello del bersaglio. Finché è affascinato, il bersaglio agisce come un alleato dell'aboleth ed è sotto il suo controllo finché si trova entro 60 piedi da esso. Inoltre, l'aboleth e il bersaglio possono comunicare telepaticamente tra loro a qualsiasi distanza.",
+    "secciones.1.items.3.bloques.1.txt": "Il bersaglio ripete il tiro salvezza ogni volta che subisce danni e ogni volta che trascorre 24 ore ad almeno 1 miglio di distanza dall'aboleth e, se lo supera, l'effetto svanisce."
+   }
+  }
+ },
+ {
+  "id": "goblin-warrior",
+  "comun": {
+   "ca": 15,
+   "iniciativa": 2,
+   "iniciativa_puntuacion": 12,
+   "pg": 10,
+   "dados_golpe": "3d6",
+   "car": [
+    8,
+    15,
+    10,
+    10,
+    8,
+    8
+   ],
+   "mod": [
+    -1,
+    2,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "salv": [
+    -1,
+    2,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "vd": "1/4",
+   "px": 50,
+   "px_guarida": null,
+   "bc": 2,
+   "percepcion_pasiva": 9,
+   "tamano": [
+    "Small"
+   ],
+   "tipo": "Fey",
+   "enjambre": false,
+   "etiquetas": [
+    "Goblinoid"
+   ],
+   "alineamiento": "Chaotic Neutral",
+   "capitulo": "monstruos_az"
+  },
+  "es": {
+   "nombre": "Guerrero goblin",
+   "p": 331,
+   "grupo": "Goblins",
+   "tipo": "Feérico Pequeño (trasgo), caótico neutral",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "9 m",
+    "hab": "Sigilo +6",
+    "equipo": "arco corto, armadura de cuero, cimitarra, escudo",
+    "sen": "visión en la oscuridad 18 m; Percepción pasiva 9",
+    "idi": "común, goblin",
+    "vd": "1/4 (50 PX; BC +2)"
+   },
+   "car": [
+    [
+     "Fue",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Des",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Con",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Sab",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Car",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Acciones",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Cimitarra",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tirada de ataque cuerpo a cuerpo:</i> +4, alcance 1,5 m. <i>Acierto:</i> 5 (1d6 + 2) de daño cortante más 2 (1d4) de daño cortante si la tirada de ataque tenía ventaja."
+        }
+       ]
+      },
+      {
+       "nombre": "Arco corto",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tirada de ataque a distancia:</i> +4, alcance 24/96 m. <i>Acierto:</i> 5 (1d6 + 2) de daño perforante más 2 (1d4) de daño perforante si la tirada de ataque tenía ventaja."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Acciones adicionales",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Huida veloz",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "El goblin realiza las acciones de destrabarse o esconderse."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "30 pies",
+    "campos.sen": "visión en la oscuridad 60 pies; Percepción pasiva 9",
+    "secciones.0.items.0.bloques.0.txt": "<i>Tirada de ataque cuerpo a cuerpo:</i> +4, alcance 5 pies. <i>Acierto:</i> 5 (1d6 + 2) de daño cortante más 2 (1d4) de daño cortante si la tirada de ataque tenía ventaja.",
+    "secciones.0.items.1.bloques.0.txt": "<i>Tirada de ataque a distancia:</i> +4, alcance 80/320 pies. <i>Acierto:</i> 5 (1d6 + 2) de daño perforante más 2 (1d4) de daño perforante si la tirada de ataque tenía ventaja."
+   }
+  },
+  "en": {
+   "nombre": "Goblin Warrior",
+   "p": 290,
+   "grupo": "Goblins",
+   "tipo": "Small Fey (Goblinoid), Chaotic Neutral",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "30 ft.",
+    "hab": "Stealth +6",
+    "equipo": "Leather Armor, Scimitar, Shield, Shortbow",
+    "sen": "Darkvision 60 ft.; Passive Perception 9",
+    "idi": "Common, Goblin",
+    "vd": "1/4 (XP 50; PB +2)"
+   },
+   "car": [
+    [
+     "Str",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Dex",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Con",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Wis",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Cha",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Scimitar",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Melee Attack Roll:</i> +4, reach 5 ft. <i>Hit:</i> 5 (1d6 + 2) Slashing damage, plus 2 (1d4) Slashing damage if the attack roll had Advantage."
+        }
+       ]
+      },
+      {
+       "nombre": "Shortbow",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Ranged Attack Roll:</i> +4, range 80/320 ft. <i>Hit:</i> 5 (1d6 + 2) Piercing damage, plus 2 (1d4) Piercing damage if the attack roll had Advantage."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Bonus Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Nimble Escape",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "The goblin takes the Disengage or Hide action."
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "de": {
+   "nombre": "Goblinkrieger",
+   "p": 323,
+   "grupo": "Goblins",
+   "tipo": "Kleines Feenwesen (Goblinoide), chaotisch neutral",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3W6)",
+    "vel": "9 m",
+    "hab": "Heimlichkeit +6",
+    "equipo": "Krummsäbel, Kurzbogen, Lederrüstung, Schild",
+    "sen": "Dunkelsicht 18 m; Passive Wahrnehmung 9",
+    "idi": "Gemeinsprache, Goblinisch",
+    "vd": "1/4 (EP 50; ÜB +2)"
+   },
+   "car": [
+    [
+     "Stä",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Ges",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Kon",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Wei",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Cha",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Aktionen",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Krummsäbel",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Nahkampfangriffswurf:</i> +4, Reichweite 1,5 m. <i>Treffer:</i> 5 (1W6+2) Hiebschaden plus 2 (1W4) Hiebschaden, wenn der Angriffswurf im Vorteil war."
+        }
+       ]
+      },
+      {
+       "nombre": "Kurzbogen",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Fernkampfangriffswurf:</i> +4, Reichweite 24/96 m. <i>Treffer:</i> 5 (1W6+2) Stichschaden plus 2 (1W4) Stichschaden, wenn der Angriffswurf im Vorteil war."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Bonusaktionen",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Behändes Entkommen",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Der Goblin führt die Rückzug- oder Verstecken-Aktion aus."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "30 Fuß",
+    "campos.sen": "Dunkelsicht 60 Fuß; Passive Wahrnehmung 9",
+    "secciones.0.items.0.bloques.0.txt": "<i>Nahkampfangriffswurf:</i> +4, Reichweite 5 Fuß. <i>Treffer:</i> 5 (1W6+2) Hiebschaden plus 2 (1W4) Hiebschaden, wenn der Angriffswurf im Vorteil war.",
+    "secciones.0.items.1.bloques.0.txt": "<i>Fernkampfangriffswurf:</i> +4, Reichweite 80/320 Fuß. <i>Treffer:</i> 5 (1W6+2) Stichschaden plus 2 (1W4) Stichschaden, wenn der Angriffswurf im Vorteil war."
+   }
+  },
+  "fr": {
+   "nombre": "Combattant gobelin",
+   "p": 316,
+   "grupo": "Gobelins",
+   "tipo": "Fée (Gobelinoïde) de taille P, Chaotique Neutre",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "9 m",
+    "hab": "Discrétion +6",
+    "equipo": "arc court, armure de cuir, bouclier, cimeterre",
+    "sen": "Vision dans le noir 18 m ; Perception passive 9",
+    "idi": "commun, gobelin",
+    "vd": "1/4 (50 PX ; BM +2)"
+   },
+   "car": [
+    [
+     "For",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Dex",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Con",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Sag",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Cha",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Cimeterre",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Corps à corps :</i> +4, allonge 1,50 m. <i>Touché :</i> 5 (1d6 + 2) dégâts tranchants, plus 2 (1d4) dégâts tranchants si le jet d’attaque avait l’Avantage."
+        }
+       ]
+      },
+      {
+       "nombre": "Arc court",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>À distance :</i> +4, portée 24/96 m. <i>Touché :</i> 5 (1d6 + 2) dégâts perforants, plus 2 (1d4) dégâts perforants si le jet d’attaque avait l’Avantage."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Actions Bonus",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Fuite agile",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Le gobelin entreprend l’action Désengagement ou Furtivité."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "30 pieds",
+    "campos.sen": "Vision dans le noir 60 pieds ; Perception passive 9",
+    "secciones.0.items.0.bloques.0.txt": "<i>Corps à corps :</i> +4, allonge 5 pieds. <i>Touché :</i> 5 (1d6 + 2) dégâts tranchants, plus 2 (1d4) dégâts tranchants si le jet d’attaque avait l’Avantage.",
+    "secciones.0.items.1.bloques.0.txt": "<i>À distance :</i> +4, portée 80/320 pieds. <i>Touché :</i> 5 (1d6 + 2) dégâts perforants, plus 2 (1d4) dégâts perforants si le jet d’attaque avait l’Avantage."
+   }
+  },
+  "it": {
+   "nombre": "Goblin guerriero",
+   "p": 340,
+   "grupo": "Goblin",
+   "tipo": "Folletto Piccolo (goblinoide), caotico neutrale",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "9 m",
+    "hab": "Furtività +6",
+    "equipo": "arco corto, armatura di cuoio, scimitarra, scudo",
+    "sen": "Percezione passiva 9; scurovisione 18 m",
+    "idi": "Comune, Goblin",
+    "vd": "1/4 (PE 50; BC +2)"
+   },
+   "car": [
+    [
+     "For",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Des",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Cos",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Sag",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Car",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Azioni",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Scimitarra",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tiro per colpire in mischia:</i> +4, portata 1,5 m <i>Colpito:</i> 5 (1d6 + 2) danni taglienti, più 2 (1d4) danni taglienti se il tiro per colpire è stato effettuato con vantaggio."
+        }
+       ]
+      },
+      {
+       "nombre": "Arco corto",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tiro per colpire a distanza:</i> +4, gittata 24/96 m. <i>Colpito:</i> 5 (1d6 + 2) danni perforanti, più 2 (1d4) danni perforanti se il tiro per colpire è stato effettuato con vantaggio."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Azioni bonus",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Fuga agile",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Il goblin effettua l'azione di Disimpegno o Nascondersi."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "30 piedi",
+    "campos.sen": "Percezione passiva 9; scurovisione 60 piedi",
+    "secciones.0.items.0.bloques.0.txt": "<i>Tiro per colpire in mischia:</i> +4, portata 5 piedi <i>Colpito:</i> 5 (1d6 + 2) danni taglienti, più 2 (1d4) danni taglienti se il tiro per colpire è stato effettuato con vantaggio.",
+    "secciones.0.items.1.bloques.0.txt": "<i>Tiro per colpire a distanza:</i> +4, gittata 80/320 piedi. <i>Colpito:</i> 5 (1d6 + 2) danni perforanti, più 2 (1d4) danni perforanti se il tiro per colpire è stato effettuato con vantaggio."
+   }
+  }
+ }
+]

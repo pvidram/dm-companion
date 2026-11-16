@@ -3,6 +3,7 @@
 @using Microsoft.Extensions.Logging
 @inject ILogger<NoteEditor> Logger
 @inject NoteImageResolver Images
+@inject GlossaryService Glossary
 
 <div class="note-editor" data-testid="note-editor">
     <h3>@Path</h3>
@@ -160,7 +161,7 @@
         if (!_preview) return;
         await Images.EnsureLoadedAsync();
         var body = FrontmatterParser.Parse(_text).Body;
-        _previewHtml = new MarkupString(NoteHtmlRenderer.Render(body, RenderAudience.Dm, target => Index.Resolve(target) is not null, Images.TabletUrls()));
+        _previewHtml = new MarkupString(NoteHtmlRenderer.Render(body, RenderAudience.Dm, target => WikilinkClassifier.Classify(Index, Glossary, target), Images.TabletUrls()));
     }
 
     private void RequestClose()

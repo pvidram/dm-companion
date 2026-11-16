@@ -1,6 +1,8 @@
+using DmCompanion.Core.Maps;
+
 namespace DmCompanion.Screens.Services;
 
-public enum OverlayPanel { None, Players, Notes, Maps, Sound, Vault, Tv }
+public enum OverlayPanel { None, Players, Notes, Maps, Sound, Vault, Tv, Glossary }
 
 public enum EditorDialog { None, Conflict, ConfirmClose }
 
@@ -27,6 +29,7 @@ public sealed class ShellState
     public string? SelectedNotePath { get; private set; }
     public string? EditingPath { get; private set; }
     public string? SelectedPcPath { get; private set; }
+    public string? SelectedGlossaryKey { get; private set; }
     public NewNoteRequest? NewNote { get; private set; }
     public bool ConflictsOpen { get; private set; }
     public bool AddTokenOpen { get; private set; }
@@ -301,15 +304,40 @@ public sealed class ShellState
         Notify();
     }
 
+    /// <summary>Borrador con el que se abrió el diálogo desde el glosario; null si se abrió sin él.</summary>
+    public TokenDraft? AddTokenPrefill { get; private set; }
+
     public void OpenAddToken()
     {
         AddTokenOpen = true;
+        AddTokenPrefill = null;
+        Notify();
+    }
+
+    public void OpenAddToken(TokenDraft prefill)
+    {
+        AddTokenOpen = true;
+        AddTokenPrefill = prefill;
         Notify();
     }
 
     public void CloseAddToken()
     {
         AddTokenOpen = false;
+        AddTokenPrefill = null;
+        Notify();
+    }
+
+    public void OpenGlossary(string? key = null)
+    {
+        ActivePanel = OverlayPanel.Glossary;
+        SelectedGlossaryKey = key;
+        Notify();
+    }
+
+    public void ShowGlossaryList()
+    {
+        SelectedGlossaryKey = null;
         Notify();
     }
 
@@ -389,9 +417,11 @@ public sealed class ShellState
         SelectedNotePath = null;
         EditingPath = null;
         SelectedPcPath = null;
+        SelectedGlossaryKey = null;
         NewNote = null;
         ConflictsOpen = false;
         AddTokenOpen = false;
+        AddTokenPrefill = null;
         TokenCard = null;
         HistoryOpen = false;
         SoundQuickOpen = false;

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Tv;
 using DmCompanion.Core.Vault;
@@ -54,7 +55,8 @@ public sealed class TvMapFeed(VaultHost host, TokenHitPoints hitPoints, NoteImag
     };
 
     internal static string? PortraitOf(VaultHost host, MapToken token) =>
-        token.Source is { } source && host.Current?.Index.Get(source)?.Portrait is { } portrait && !string.IsNullOrWhiteSpace(portrait)
+        token.Source is { } source && host.Current is { } vault
+        && TokenSourceResolver.Resolve(source, vault.Index, _ => null).Note?.Portrait is { } portrait && !string.IsNullOrWhiteSpace(portrait)
             ? VaultPaths.Normalize(portrait)
             : null;
 

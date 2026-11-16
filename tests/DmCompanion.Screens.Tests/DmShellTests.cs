@@ -27,6 +27,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddGlossaryForTests();
         Services.AddSoundForTests();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
@@ -103,7 +104,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
     {
         var cut = Render<DmShell>();
 
-        cut.FindAll("section.ds-parchment").Should().HaveCount(6);
+        cut.FindAll("section.ds-parchment").Should().HaveCount(7);
     }
 
     [Fact]
@@ -115,7 +116,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
 
         cut.Find("button[aria-label='Notas']").Click();
 
-        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((6, false)), TimeSpan.FromSeconds(10));
+        cut.WaitForAssertion(() => (cut.FindAll("section.ds-parchment").Count, IsOpen(cut, "Notas")).Should().Be((7, false)), TimeSpan.FromSeconds(10));
     }
 
     [Fact]

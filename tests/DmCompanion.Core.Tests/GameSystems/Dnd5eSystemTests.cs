@@ -1,3 +1,4 @@
+using DmCompanion.Core.Glossary;
 using System.Globalization;
 using DmCompanion.Core.GameSystems;
 using DmCompanion.Core.Vault;
@@ -190,4 +191,7 @@ public class Dnd5eSystemTests
 
     [Fact] public void HitPoints_label_is_HP_and_replaces_the_hp_stat() =>
         (System.HitPoints.Label, System.HitPoints.StatId).Should().Be(("HP", "hp"));
+
+    [Fact] public void Dnd5e_uses_every_srd_pack() =>
+        System.GlossaryPacks.Should().Equal(GlossaryPacks.All);
 }

@@ -88,6 +88,14 @@ html, body {
 .tv-sheet__stat dd { margin: 0; font-weight: 700; }
 .tv-content__body img { max-width: 100%; height: auto; }
 .tv-content__body a { color: inherit; text-decoration: none; }
+/* Glosario del SRD: tablas, campos del conjuro (dl) y recuadros (aside) con la misma letra que el cuerpo. */
+.tv-content__body table { width: 100%; margin: 0.6em 0; border-collapse: collapse; font: inherit; }
+.tv-content__body th, .tv-content__body td { padding: 0.2em 0.5em; border: 1px solid rgba(201, 162, 74, 0.45); text-align: left; font: inherit; }
+.tv-content__body th { font-weight: 700; color: #C9B48C; }
+.tv-content__body dl { margin: 0.6em 0; font: inherit; }
+.tv-content__body dt { font-weight: 700; color: #C9B48C; }
+.tv-content__body dd { margin: 0 0 0.4em; }
+.tv-content__body aside { margin: 0.6em 0; padding: 0.4em 0.8em; border-left: 0.2em solid #C9A24A; background: rgba(201, 162, 74, 0.1); font: inherit; }
 
 /* Contenido que no cabe ni a la escala mínima: el borde inferior se difumina para no cortar en seco. */
 .tv-content--fade {

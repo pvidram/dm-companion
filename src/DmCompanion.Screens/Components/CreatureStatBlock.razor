@@ -1,0 +1,53 @@
+@using DmCompanion.Core.Glossary
+
+<div class="ds-note ds-glossary-creature">
+    <p class="ds-glossary-creature__type"><em>@Stats.TypeLine</em></p>
+    @if (Stats.Fields.Count > 0)
+    {
+        <dl class="ds-glossary-fields">
+            @foreach (var field in Stats.Fields)
+            {
+                <dt>@field.Label</dt>
+                <dd>@((MarkupString)GlossaryHtmlRenderer.Render(field.Value))</dd>
+            }
+        </dl>
+    }
+    @if (Stats.AbilityRows.Count > 0)
+    {
+        <div class="ds-glossary-scroll">
+            <table class="ds-glossary-table ds-glossary-abilities">
+                <thead>
+                    <tr><th></th><th>Puntuación</th><th>Mod.</th><th>Salv.</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Stats.AbilityRows)
+                    {
+                        <tr><th scope="row">@row.Label</th><td>@row.Score</td><td>@row.Modifier</td><td>@row.Save</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    @foreach (var section in Stats.Sections)
+    {
+        <h4>@section.Title</h4>
+        @if (section.Intro is { Count: > 0 } intro)
+        {
+            <NoteContent Html="IntroHtml(intro)" />
+        }
+        @foreach (var item in section.Items)
+        {
+            <div class="ds-glossary-feature">
+                <p class="ds-glossary-feature__name"><strong><em>@item.Name</em></strong></p>
+                <NoteContent Html="(MarkupString)GlossaryHtmlRenderer.Render(item.Blocks)" />
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CreatureStats Stats { get; set; } = default!;
+
+    private static MarkupString IntroHtml(IReadOnlyList<GlossarySpan> intro) =>
+        new("<p>" + GlossaryHtmlRenderer.Render(intro) + "</p>");
+}

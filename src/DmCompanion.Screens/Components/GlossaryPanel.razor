@@ -1,0 +1,76 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Glossary
+@inject GlossaryService Glossary
+
+<Parchment Title="Glosario" Size="ParchmentSize.Wide" class="glossary-panel" IsOpen="@IsOpen"
+           OnClose="@(() => Shell.Toggle(OverlayPanel.Glossary))">
+    @if (IsOpen)
+    {
+        @if (Shell.SelectedGlossaryKey is { } key)
+        {
+            <Button Variant="ButtonVariant.Secondary" OnClick="Shell.ShowGlossaryList">Atrás</Button>
+            <GlossaryDetail Key="@key" />
+        }
+        else
+        {
+            <SearchField Label="Buscar en el glosario" Value="@_text" ValueChanged="OnTextChanged" />
+            <div class="glossary-chips">
+                <button type="button" class="glossary-chip" aria-pressed="@(_category is null ? "true" : "false")"
+                        @onclick="() => SelectCategory(null)">Todo</button>
+                @foreach (var category in GlossaryPacks.All)
+                {
+                    var current = category;
+                    <button type="button" class="glossary-chip" aria-pressed="@(_category == current ? "true" : "false")"
+                            @onclick="() => SelectCategory(current)">@GlossaryLabels.CategoryLabel(current)</button>
+                }
+            </div>
+            <GlossaryFilters Category="_category" Filter="_filter" FilterChanged="OnFilterChanged" />
+
+            @if (Glossary.Index.Search(new GlossaryQuery(_text, _category, _filter)) is { Count: > 0 } rows)
+            {
+                <div class="glossary-list">
+                    @foreach (var row in rows)
+                    {
+                        var selected = row;
+                        <ListRow OnSelect="() => Shell.OpenGlossary(selected.Key)">
+                            <span class="glossary-row">
+                                <span class="glossary-row__name">@row.Name</span>
+                                @if (row.IsVault)
+                                {
+                                    <ConditionTag Name="Tuya" />
+                                }
+                                <span class="glossary-row__summary">@row.Summary</span>
+                            </span>
+                        </ListRow>
+                    }
+                </div>
+            }
+            else
+            {
+                <EmptyState Title="Sin resultados" />
+            }
+        }
+        @if (Glossary.AttributionText is { } attribution)
+        {
+            <p class="glossary-attribution">@attribution</p>
+        }
+    }
+</Parchment>
+
+@code {
+    private string? _text;
+    private GlossaryCategory? _category;
+    private GlossaryFilter? _filter;
+
+    private bool IsOpen => Shell.ActivePanel == OverlayPanel.Glossary;
+
+    private void OnTextChanged(string text) => _text = text;
+
+    private void OnFilterChanged(GlossaryFilter? filter) => _filter = filter;
+
+    private void SelectCategory(GlossaryCategory? category)
+    {
+        _category = category;
+        _filter = null;
+    }
+}

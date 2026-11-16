@@ -1,0 +1,35 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Glossary
+@using DmCompanion.Core.Maps
+@using DmCompanion.Core.Vault
+@inject MapSession Session
+@inject GlossaryService Glossary
+
+@if (IsAvailable(Session, Glossary, Index, Key) && DraftFor(Glossary, Index, Key) is { } draft)
+{
+    <Button Icon="IconName.Map" OnClick="@(() => Shell.OpenAddToken(draft))">Añadir al mapa</Button>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Key { get; set; } = string.Empty;
+
+    /// <summary>Hay un mapa editable abierto y la entrada se puede poner en él; es la condición del botón, para la barra del detalle.</summary>
+    public static bool IsAvailable(MapSession session, GlossaryService glossary, VaultIndex index, string key) =>
+        session.Editor is not null && !session.IsReadOnly && DraftFor(glossary, index, key) is not null;
+
+    // Criatura del SRD (con sus stats) o nota monster del vault; cualquier otra entrada no se puede poner en el mapa.
+    private static TokenDraft? DraftFor(GlossaryService glossary, VaultIndex index, string key)
+    {
+        if (TokenSourceResolver.IsSrd(key))
+        {
+            return glossary.GetSrd(key) is { Creature: { } stats } entry
+                ? new TokenDraft(entry.Name, entry.Key, TokenSide.Enemy, CreatureTokenSize.Of(stats.SizeKeys), stats.Ac, stats.Hp)
+                : null;
+        }
+
+        if (!key.StartsWith(GlossaryPacks.VaultPrefix, StringComparison.Ordinal)) return null;
+        return index.Get(key[GlossaryPacks.VaultPrefix.Length..]) is { Type: EntityType.Monster } entity
+            ? new TokenDraft(entity.Title, entity.RelativePath, TokenSide.Enemy, 1, null, null)
+            : null;
+    }
+}

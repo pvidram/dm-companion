@@ -59,6 +59,17 @@ public sealed class ShellStateTests
     }
 
     [Fact]
+    public void Reset_clears_the_add_token_prefill()
+    {
+        var shell = new ShellState();
+        shell.OpenAddToken(new DmCompanion.Core.Maps.TokenDraft("Goblin", "srd:criaturas/goblin-warrior", DmCompanion.Core.Maps.TokenSide.Enemy, 1, 15, 10));
+
+        shell.Reset();
+
+        shell.AddTokenPrefill.Should().BeNull();
+    }
+
+    [Fact]
     public void Opening_a_token_card_replaces_the_previous_one()
     {
         var shell = new ShellState();
@@ -126,5 +137,26 @@ public sealed class ShellStateTests
         shell.Reset();
 
         (shell.MapName, shell.DeletingMapPath, shell.DiscardingMap).Should().Be((null, null, false));
+    }
+
+    [Fact]
+    public void OpenGlossary_sets_panel_and_key()
+    {
+        var shell = new ShellState();
+
+        shell.OpenGlossary("srd:estados/blinded");
+
+        (shell.ActivePanel, shell.SelectedGlossaryKey).Should().Be((OverlayPanel.Glossary, "srd:estados/blinded"));
+    }
+
+    [Fact]
+    public void Reset_clears_the_glossary_selection()
+    {
+        var shell = new ShellState();
+        shell.OpenGlossary("srd:estados/blinded");
+
+        shell.Reset();
+
+        shell.SelectedGlossaryKey.Should().BeNull();
     }
 }

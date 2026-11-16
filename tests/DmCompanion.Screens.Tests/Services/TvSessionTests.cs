@@ -1,5 +1,7 @@
 using System.Text.Json;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Tv;
+using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
 using DmCompanion.Screens.Services;
 using DmCompanion.Screens.Tests.Support;
@@ -20,7 +22,7 @@ public sealed class TvSessionTests : IAsyncLifetime
         _host = new VaultHost(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance), new InMemoryAppPreferences(), NullLogger<VaultHost>.Instance);
         var maps = new MapSession(_host, new InMemoryAppPreferences(), TimeProvider.System, NullLogger<MapSession>.Instance);
         var images = new NoteImageResolver(_host);
-        var feed = new TvMapFeed(_host, new TokenHitPoints(_host), images);
+        var feed = new TvMapFeed(_host, new TokenHitPoints(_host, GlossaryTestServices.CreateGlossary(_host)), images);
         _session = new TvSession(_server, _host, maps, feed, new TvContentFeed(_host, images, feed), new InMemoryAppPreferences(), NullLogger<TvSession>.Instance);
     }
 
@@ -146,6 +148,56 @@ public sealed class TvSessionTests : IAsyncLifetime
 
         _server.Published.Should().HaveCount(published);
     }
+
+    private GlossaryEntry Fireball() => GlossaryTestServices.CreateGlossary(_host).GetSrd("srd:conjuros/fireball")!;
+
+    [Fact]
+    public async Task Show_glossary_switches_to_content_mode()
+    {
+        await _session.EnableAsync();
+
+        await _session.ShowGlossaryAsync(Fireball());
+
+        (_session.Mode, _session.ContentPath, _session.ContentTitle, Parse2(_server.Published[^1])).Should().Be((TvMode.Content, (string?)null, "Bola de fuego", "content"));
+    }
+
+    [Fact]
+    public async Task Vault_change_keeps_glossary_content_on_tv()
+    {
+        await _session.EnableAsync();
+        await _session.ShowGlossaryAsync(Fireball());
+        var published = _server.Published.Count;
+
+        await _host.Current!.SaveAsync("Lugares/Nuevo.md", "---\ntype: location\n---\nNuevo.\n", WritePrecondition.Overwrite);
+        await Task.Delay(400);
+
+        (_session.Mode, _session.ContentTitle, _server.Published.Count).Should().Be((TvMode.Content, "Bola de fuego", published));
+    }
+
+    [Fact]
+    public async Task Switching_vault_returns_tv_to_the_map()
+    {
+        await _session.EnableAsync();
+        await _session.ShowGlossaryAsync(Fireball());
+
+        await _host.OpenAsync(_plain.Root);
+
+        await WaitUntilAsync(() => _session.Mode != TvMode.Content);
+        _session.Mode.Should().Be(TvMode.Waiting);
+    }
+
+    [Fact]
+    public async Task Disable_clears_glossary_content()
+    {
+        await _session.EnableAsync();
+        await _session.ShowGlossaryAsync(Fireball());
+
+        await _session.DisableAsync();
+
+        (_session.Mode, _session.ContentTitle).Should().Be((TvMode.Off, (string?)null));
+    }
+
+    private static string? Parse2(string json) => JsonDocument.Parse(json).RootElement.GetProperty("kind").GetString();
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {

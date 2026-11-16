@@ -2,6 +2,8 @@
 @using DmCompanion.Core.Maps
 @inject CombatController Combat
 @inject TokenHitPoints Hp
+@inject GlossaryService Glossary
+@inject ShellState Shell
 
 @if (Token.TempHp > 0)
 {
@@ -14,7 +16,8 @@
     </div>
 }
 <Button data-testid="token-dead" Disabled="!Combat.CanEdit" OnClick="ToggleDead">@(Token.IsDead ? "Revivir" : "Marcar como muerto")</Button>
-<ConditionChips Conditions="Token.ConditionList" TestId="token-conditions" OnRemove="RemoveCallback" />
+<ConditionChips Conditions="Token.ConditionList" TestId="token-conditions" OnRemove="RemoveCallback"
+                RuleKeys="ConditionRules.Keys(Glossary)" OnOpenRule="@(key => Shell.OpenGlossary(ConditionRules.GlossaryKey(key)))" />
 @if (Combat.CanEdit)
 {
     @if (_adding)

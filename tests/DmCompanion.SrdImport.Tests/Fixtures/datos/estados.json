@@ -1,0 +1,109 @@
+[
+ {
+  "id": "blinded",
+  "en": {
+   "nombre": "Blinded",
+   "p": 177,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "While you have the Blinded condition, you experience the following effects."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Can’t See.</b> You can’t see and automatically fail any ability check that requires sight.",
+     "lead": "Can’t See"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Attacks Affected.</b> Attack rolls against you have Advantage, and your attack rolls have Disadvantage.",
+     "lead": "Attacks Affected"
+    }
+   ]
+  },
+  "es": {
+   "nombre": "Cegado",
+   "p": 197,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Mientras tengas el estado de Cegado, experimentarás los siguientes efectos:"
+    },
+    {
+     "t": "p",
+     "txt": "<b>No puedes ver.</b> No puedes ver y fallas automáticamente todas las pruebas de característica que requieran la vista.",
+     "lead": "No puedes ver"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Ataques afectados.</b> Las tiradas de ataque contra ti tienen ventaja y tus tiradas de ataque tienen desventaja.",
+     "lead": "Ataques afectados"
+    }
+   ],
+   "pies": {}
+  },
+  "de": {
+   "nombre": "Blind",
+   "p": 205,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Wenn du den Zustand Blind hast, wirken folgende Effekte auf dich:"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Nicht sehfähig:</b> Eine blinde Kreatur kann nicht sehen, und jeder Attributswurf, der Sicht erfordert, misslingt automatisch.",
+     "lead": "Nicht sehfähig"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Beeinträchtigte Angriffe:</b> Angriffswürfe gegen dich sind im Vorteil, und deine Angriffswürfe sind im Nachteil.",
+     "lead": "Beeinträchtigte Angriffe"
+    }
+   ],
+   "pies": {}
+  },
+  "fr": {
+   "nombre": "Aveuglé",
+   "p": 189,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Tant que vous avez l’état Aveuglé, vous subissez les effets suivants."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Incapable de voir.</b> Vous ne voyez rien et ratez automatiquement tout test de caractéristique reposant sur la vue.",
+     "lead": "Incapable de voir"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Effet sur les attaques.</b> Les jets d’attaque contre vous ont l’Avantage, et vos jets d’attaque subissent le Désavantage.",
+     "lead": "Effet sur les attaques"
+    }
+   ],
+   "pies": {}
+  },
+  "it": {
+   "nombre": "Accecato",
+   "p": 202,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Quando il tuo personaggio ha la condizione \"accecato\", subisce i seguenti effetti:"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Non è in grado di vedere.</b> Il personaggio non è in grado di vedere e fallisce automaticamente qualsiasi prova di caratteristica che richieda l'uso della vista.",
+     "lead": "Non è in grado di vedere"
+    },
+    {
+     "t": "p",
+     "txt": "<b>Influenza sugli attacchi.</b> I tiri per colpire contro il personaggio dispongono di vantaggio, mentre i suoi tiri per colpire subiscono svantaggio.",
+     "lead": "Influenza sugli attacchi"
+    }
+   ],
+   "pies": {}
+  }
+ }
+]

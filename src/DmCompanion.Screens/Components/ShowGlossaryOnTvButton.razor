@@ -1,0 +1,72 @@
+@using DmCompanion.Core.Glossary
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject IServiceProvider Services
+@inject ILogger<ShowGlossaryOnTvButton> Log
+
+@* «Mostrar en TV» para una entrada del SRD (conjuros, reglas, objetos…); las criaturas no se muestran. *@
+@if (IsVisible(_tv, Entry))
+{
+    <Button Icon="IconName.Tv" Disabled="_busy" OnClick="ShowAsync">Mostrar en TV</Button>
+}
+
+@code {
+    [Parameter, EditorRequired] public GlossaryEntry Entry { get; set; } = default!;
+
+    /// <summary>La condición del botón, para que el detalle sepa si su barra de acciones va a tener algo.</summary>
+    public static bool IsVisible(TvSession? tv, GlossaryEntry? entry) =>
+        tv is { Mode: not TvMode.Off } && entry is not null && TvContentFeed.CanShow(entry);
+
+    private TvSession? _tv;
+    private bool _busy;
+
+    // La TV se resuelve opcionalmente: así las fichas y notas no obligan a registrar el servicio de la TV donde no se usa (tests).
+    protected override void OnInitialized()
+    {
+        _tv = Services.GetService<TvSession>();
+        if (_tv is not null) _tv.Changed += OnChanged;
+    }
+
+    private async Task ShowAsync()
+    {
+        if (_tv is null) return;
+        _busy = true;
+        try
+        {
+            await _tv.ShowGlossaryAsync(Entry);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("No se pudo mostrar la entrada del glosario en la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Llega desde otros hilos (servidor de la TV, cambios del vault): hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El botón ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar el botón «Mostrar en TV» ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_tv is not null) _tv.Changed -= OnChanged;
+    }
+}

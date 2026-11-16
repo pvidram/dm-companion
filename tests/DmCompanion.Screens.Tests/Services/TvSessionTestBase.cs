@@ -25,7 +25,7 @@ public abstract class TvSessionTestBase : IAsyncLifetime
         Maps = new MapSession(Host, _prefs, TimeProvider.System, NullLogger<MapSession>.Instance);
         Library = new MapLibrary(Host, Maps);
         var images = new NoteImageResolver(Host);
-        var mapFeed = new TvMapFeed(Host, new TokenHitPoints(Host), images);
+        var mapFeed = new TvMapFeed(Host, new TokenHitPoints(Host, GlossaryTestServices.CreateGlossary(Host)), images);
         var contentFeed = new TvContentFeed(Host, images, mapFeed);
         Tv = new TvSession(Server, Host, Maps, mapFeed, contentFeed, _prefs, NullLogger<TvSession>.Instance);
     }

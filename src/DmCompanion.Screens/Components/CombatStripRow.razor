@@ -1,6 +1,8 @@
 @using DmCompanion.Core.GameSystems
 @using DmCompanion.Core.Combat
 @using DmCompanion.Core.Maps
+@inject GlossaryService Glossary
+@inject ShellState Shell
 
 <li class="@RowClass" data-entry-id="@Entry.Id" data-testid="strip-row" aria-current="@(IsCurrent ? "true" : null)">
     <span class="@HandleClass" data-testid="strip-handle" aria-hidden="true">⋮⋮</span>
@@ -28,7 +30,8 @@
     }
     @if (Token is { } token)
     {
-        <ConditionChips Conditions="token.ConditionList" OnRemove="@(CanEdit ? OnRemoveCondition : default)" OnEdit="@(CanEdit ? OnEditCondition : default)" />
+        <ConditionChips Conditions="token.ConditionList" OnRemove="@(CanEdit ? OnRemoveCondition : default)" OnEdit="@(CanEdit ? OnEditCondition : default)"
+                       RuleKeys="ConditionRules.Keys(Glossary)" OnOpenRule="@(key => Shell.OpenGlossary(ConditionRules.GlossaryKey(key)))" />
         @Editor
         @if (ShowDeathSaves)
         {

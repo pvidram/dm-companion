@@ -41,4 +41,6 @@ public class GenericSystemTests
 
     [Fact]
     public void HitPoints_label_is_HP() => new GenericSystem("x").HitPoints.Label.Should().Be("HP");
+
+    [Fact] public void Generic_uses_no_srd_pack() => new GenericSystem("x").GlossaryPacks.Should().BeEmpty();
 }

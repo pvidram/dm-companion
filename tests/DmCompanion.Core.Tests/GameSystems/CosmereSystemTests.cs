@@ -124,4 +124,6 @@ public class CosmereSystemTests
         System.HitPoints.Max(Eval("stats:\n  focus: { current: 1, max: 2 }")).Should().BeNull();
 
     [Fact] public void HitPoints_label_is_Salud() => System.HitPoints.Label.Should().Be("Salud");
+
+    [Fact] public void Cosmere_uses_no_srd_pack() => System.GlossaryPacks.Should().BeEmpty();
 }

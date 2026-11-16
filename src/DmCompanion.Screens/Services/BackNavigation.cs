@@ -39,6 +39,11 @@ public sealed class BackNavigation(ShellState shell)
             shell.CloseEditor();
             return Task.FromResult(true);
         }
+        if (shell.ActivePanel == OverlayPanel.Glossary && shell.SelectedGlossaryKey is not null)
+        {
+            shell.ShowGlossaryList();
+            return Task.FromResult(true);
+        }
         if (shell.ActivePanel != OverlayPanel.None)
         {
             shell.Toggle(shell.ActivePanel);

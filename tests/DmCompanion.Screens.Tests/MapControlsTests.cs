@@ -28,6 +28,7 @@ public sealed class MapControlsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
+        Services.AddGlossaryForTests();
         Services.AddSingleton<CombatController>();
         Services.AddSingleton<MapLibrary>();
         Services.AddSingleton<VaultFileUrls>();

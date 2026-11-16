@@ -1,0 +1,4 @@
+{"header":{"source":"compendio-srd","commit":"2d61b5dcabe91ab69d5c4a5a41822eb83c2038cc","srd":"5.2.1","lang":"es"},"category":"Condition","entries":[
+{"key":"srd:estados/blinded","category":"Condition","name":"Cegado","nameEn":"Blinded","blocks":[{"kind":"ListItem","text":[{"text":"No puedes ver y fallas automáticamente cualquier prueba que requiera vista."}]}]},
+{"key":"srd:estados/prone","category":"Condition","name":"Derribado","nameEn":"Prone","blocks":[{"kind":"ListItem","text":[{"text":"Tu única opción de movimiento es arrastrarte."}]}]}
+]}

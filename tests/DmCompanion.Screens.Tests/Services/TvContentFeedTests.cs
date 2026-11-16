@@ -1,5 +1,8 @@
 using System.Text.RegularExpressions;
+using DmCompanion.Core.Glossary;
+using DmCompanion.Core.Vault;
 using DmCompanion.Screens.Services;
+using DmCompanion.Screens.Tests.Support;
 
 namespace DmCompanion.Screens.Tests;
 
@@ -43,6 +46,15 @@ public sealed class TvContentFeedTests : TvSessionTestBase
 
         (Html.Contains("<a"), Html.Contains("data-target"), Html.Contains("<span>Mazmorra del Kraken</span>"))
             .Should().Be((false, false, true));
+    }
+
+    [Fact]
+    public async Task Tv_content_renders_srd_links_as_plain_text()
+    {
+        await SaveNoteAsync(OldLighthouse, "---\ntype: location\n---\nEl farero está [[Derribado]].\n");
+        await Tv.ShowContentAsync(OldLighthouse);
+
+        (Html.Contains("<a"), Html.Contains("srd"), Html.Contains("<span>Derribado</span>")).Should().Be((false, false, true));
     }
 
     [Fact]
@@ -222,5 +234,50 @@ public sealed class TvContentFeedTests : TvSessionTestBase
         await Tv.BackToMapAsync();
 
         (stillContent, Tv.Mode, LastKind).Should().Be(((TvMode.Content, "content"), TvMode.Waiting, "waiting"));
+    }
+
+    [Fact]
+    public async Task Glossary_spell_builds_content_with_encoded_html()
+    {
+        var spell = new SpellInfo(1, "evocation", [], false, false, "Nivel 1 <b>& co</b>", "1 acción", "Personal", "V", "Instantánea");
+        var block = new GlossaryBlock(BlockKind.Paragraph, [new GlossarySpan("Daño <script>x</script>")]);
+        var entry = new GlossaryEntry("srd:conjuros/test", GlossaryCategory.Spell, null, "Prueba", null, null, [block], Spell: spell);
+
+        await Tv.ShowGlossaryAsync(entry);
+
+        (LastKind, LastMessage.GetProperty("title").GetString(), LastMessage.TryGetProperty("sheet", out _), Server.Files.Count,
+                Html.StartsWith("<p><em>Nivel 1 &lt;b&gt;&amp; co&lt;/b&gt;</em></p>"), Html.Contains("<script>"), Html.Contains("&lt;script&gt;x"))
+            .Should().Be(("content", "Prueba", false, 0, true, false, true));
+    }
+
+    [Fact]
+    public async Task Glossary_spell_includes_casting_time_range_components_and_duration()
+    {
+        await Tv.ShowGlossaryAsync(GlossaryTestServices.CreateGlossary(Host).GetSrd("srd:conjuros/fireball")!);
+
+        // HtmlEncode escapa las tildes como &#NNN;; se decodifica para comparar con el texto del paquete.
+        var html = System.Net.WebUtility.HtmlDecode(Html);
+        (html.Contains("<dt>Tiempo de lanzamiento</dt><dd>Acción</dd>"), html.Contains("<dt>Alcance</dt><dd>45 m</dd>"),
+                html.Contains("<dt>Componentes</dt>"), html.Contains("<dt>Duración</dt><dd>Instantáneo</dd>"))
+            .Should().Be((true, true, true, true));
+    }
+
+    [Fact]
+    public void Creatures_cannot_be_shown()
+    {
+        var aboleth = GlossaryTestServices.CreateGlossary(Host).GetSrd("srd:criaturas/aboleth")!;
+        var fireball = GlossaryTestServices.CreateGlossary(Host).GetSrd("srd:conjuros/fireball")!;
+
+        (TvContentFeed.CanShow(aboleth), TvContentFeed.CanShow(fireball)).Should().Be((false, true));
+    }
+
+    [Fact]
+    public async Task Rule_notes_can_be_shown_but_monster_notes_cannot()
+    {
+        await SaveNoteAsync("Reglas/Cobertura.md", "---\ntype: rule\n---\nCobertura.\n");
+        await SaveNoteAsync("Monstruos/Lobo.md", "---\ntype: monster\n---\nLobo.\n");
+
+        (TvContentFeed.CanShow(Host.Current!.Index.Get("Reglas/Cobertura.md")!), TvContentFeed.CanShow(Host.Current.Index.Get("Monstruos/Lobo.md")!))
+            .Should().Be((true, false));
     }
 }

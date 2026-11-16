@@ -1,0 +1,560 @@
+[
+ {
+  "id": "synthetic-span",
+  "comun": {
+   "ca": 15,
+   "iniciativa": 2,
+   "iniciativa_puntuacion": 12,
+   "pg": 10,
+   "dados_golpe": "3d6",
+   "car": [
+    8,
+    15,
+    10,
+    10,
+    8,
+    8
+   ],
+   "mod": [
+    -1,
+    2,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "salv": [
+    -1,
+    2,
+    0,
+    0,
+    -1,
+    -1
+   ],
+   "vd": "1/4",
+   "px": 50,
+   "px_guarida": null,
+   "bc": 2,
+   "percepcion_pasiva": 9,
+   "tamano": [
+    "Small"
+   ],
+   "tipo": "Fey",
+   "enjambre": false,
+   "etiquetas": [
+    "Goblinoid"
+   ],
+   "alineamiento": "Chaotic Neutral",
+   "capitulo": "monstruos_az"
+  },
+  "es": {
+   "nombre": "Sintética",
+   "p": 331,
+   "grupo": "Goblins",
+   "tipo": "Feérico Pequeño (trasgo), caótico neutral",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "9 m",
+    "hab": "Sigilo +6",
+    "equipo": "arco corto, armadura de cuero, cimitarra, escudo",
+    "sen": "visión en la oscuridad 18 m; Percepción pasiva 9",
+    "idi": "común, goblin",
+    "vd": "1/4 (50 PX; BC +2)"
+   },
+   "car": [
+    [
+     "Fue",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Des",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Con",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Sab",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Car",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Acciones",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Cimitarra",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Texto <span class=\"x\">raro</span>."
+        }
+       ]
+      },
+      {
+       "nombre": "Arco corto",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tirada de ataque a distancia:</i> +4, alcance 24/96 m. <i>Acierto:</i> 5 (1d6 + 2) de daño perforante más 2 (1d4) de daño perforante si la tirada de ataque tenía ventaja."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Acciones adicionales",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Huida veloz",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "El goblin realiza las acciones de destrabarse o esconderse."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {}
+  },
+  "en": {
+   "nombre": "Goblin Warrior",
+   "p": 290,
+   "grupo": "Goblins",
+   "tipo": "Small Fey (Goblinoid), Chaotic Neutral",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "30 ft.",
+    "hab": "Stealth +6",
+    "equipo": "Leather Armor, Scimitar, Shield, Shortbow",
+    "sen": "Darkvision 60 ft.; Passive Perception 9",
+    "idi": "Common, Goblin",
+    "vd": "1/4 (XP 50; PB +2)"
+   },
+   "car": [
+    [
+     "Str",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Dex",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Con",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Wis",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Cha",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Scimitar",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Melee Attack Roll:</i> +4, reach 5 ft. <i>Hit:</i> 5 (1d6 + 2) Slashing damage, plus 2 (1d4) Slashing damage if the attack roll had Advantage."
+        }
+       ]
+      },
+      {
+       "nombre": "Shortbow",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Ranged Attack Roll:</i> +4, range 80/320 ft. <i>Hit:</i> 5 (1d6 + 2) Piercing damage, plus 2 (1d4) Piercing damage if the attack roll had Advantage."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Bonus Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Nimble Escape",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "The goblin takes the Disengage or Hide action."
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "de": {
+   "nombre": "Goblinkrieger",
+   "p": 323,
+   "grupo": "Goblins",
+   "tipo": "Kleines Feenwesen (Goblinoide), chaotisch neutral",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3W6)",
+    "vel": "9 m",
+    "hab": "Heimlichkeit +6",
+    "equipo": "Krummsäbel, Kurzbogen, Lederrüstung, Schild",
+    "sen": "Dunkelsicht 18 m; Passive Wahrnehmung 9",
+    "idi": "Gemeinsprache, Goblinisch",
+    "vd": "1/4 (EP 50; ÜB +2)"
+   },
+   "car": [
+    [
+     "Stä",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Ges",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Kon",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Wei",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Cha",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Aktionen",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Krummsäbel",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Nahkampfangriffswurf:</i> +4, Reichweite 1,5 m. <i>Treffer:</i> 5 (1W6+2) Hiebschaden plus 2 (1W4) Hiebschaden, wenn der Angriffswurf im Vorteil war."
+        }
+       ]
+      },
+      {
+       "nombre": "Kurzbogen",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Fernkampfangriffswurf:</i> +4, Reichweite 24/96 m. <i>Treffer:</i> 5 (1W6+2) Stichschaden plus 2 (1W4) Stichschaden, wenn der Angriffswurf im Vorteil war."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Bonusaktionen",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Behändes Entkommen",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Der Goblin führt die Rückzug- oder Verstecken-Aktion aus."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "30 Fuß",
+    "campos.sen": "Dunkelsicht 60 Fuß; Passive Wahrnehmung 9",
+    "secciones.0.items.0.bloques.0.txt": "<i>Nahkampfangriffswurf:</i> +4, Reichweite 5 Fuß. <i>Treffer:</i> 5 (1W6+2) Hiebschaden plus 2 (1W4) Hiebschaden, wenn der Angriffswurf im Vorteil war.",
+    "secciones.0.items.1.bloques.0.txt": "<i>Fernkampfangriffswurf:</i> +4, Reichweite 80/320 Fuß. <i>Treffer:</i> 5 (1W6+2) Stichschaden plus 2 (1W4) Stichschaden, wenn der Angriffswurf im Vorteil war."
+   }
+  },
+  "fr": {
+   "nombre": "Combattant gobelin",
+   "p": 316,
+   "grupo": "Gobelins",
+   "tipo": "Fée (Gobelinoïde) de taille P, Chaotique Neutre",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "9 m",
+    "hab": "Discrétion +6",
+    "equipo": "arc court, armure de cuir, bouclier, cimeterre",
+    "sen": "Vision dans le noir 18 m ; Perception passive 9",
+    "idi": "commun, gobelin",
+    "vd": "1/4 (50 PX ; BM +2)"
+   },
+   "car": [
+    [
+     "For",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Dex",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Con",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Sag",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Cha",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Actions",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Cimeterre",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Corps à corps :</i> +4, allonge 1,50 m. <i>Touché :</i> 5 (1d6 + 2) dégâts tranchants, plus 2 (1d4) dégâts tranchants si le jet d’attaque avait l’Avantage."
+        }
+       ]
+      },
+      {
+       "nombre": "Arc court",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>À distance :</i> +4, portée 24/96 m. <i>Touché :</i> 5 (1d6 + 2) dégâts perforants, plus 2 (1d4) dégâts perforants si le jet d’attaque avait l’Avantage."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Actions Bonus",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Fuite agile",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Le gobelin entreprend l’action Désengagement ou Furtivité."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "30 pieds",
+    "campos.sen": "Vision dans le noir 60 pieds ; Perception passive 9",
+    "secciones.0.items.0.bloques.0.txt": "<i>Corps à corps :</i> +4, allonge 5 pieds. <i>Touché :</i> 5 (1d6 + 2) dégâts tranchants, plus 2 (1d4) dégâts tranchants si le jet d’attaque avait l’Avantage.",
+    "secciones.0.items.1.bloques.0.txt": "<i>À distance :</i> +4, portée 80/320 pieds. <i>Touché :</i> 5 (1d6 + 2) dégâts perforants, plus 2 (1d4) dégâts perforants si le jet d’attaque avait l’Avantage."
+   }
+  },
+  "it": {
+   "nombre": "Goblin guerriero",
+   "p": 340,
+   "grupo": "Goblin",
+   "tipo": "Folletto Piccolo (goblinoide), caotico neutrale",
+   "campos": {
+    "ca": "15",
+    "ini": "+2 (12)",
+    "pg": "10 (3d6)",
+    "vel": "9 m",
+    "hab": "Furtività +6",
+    "equipo": "arco corto, armatura di cuoio, scimitarra, scudo",
+    "sen": "Percezione passiva 9; scurovisione 18 m",
+    "idi": "Comune, Goblin",
+    "vd": "1/4 (PE 50; BC +2)"
+   },
+   "car": [
+    [
+     "For",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Des",
+     15,
+     "+2",
+     "+2"
+    ],
+    [
+     "Cos",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Int",
+     10,
+     "+0",
+     "+0"
+    ],
+    [
+     "Sag",
+     8,
+     "−1",
+     "−1"
+    ],
+    [
+     "Car",
+     8,
+     "−1",
+     "−1"
+    ]
+   ],
+   "secciones": [
+    {
+     "clave": "acciones",
+     "titulo": "Azioni",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Scimitarra",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tiro per colpire in mischia:</i> +4, portata 1,5 m <i>Colpito:</i> 5 (1d6 + 2) danni taglienti, più 2 (1d4) danni taglienti se il tiro per colpire è stato effettuato con vantaggio."
+        }
+       ]
+      },
+      {
+       "nombre": "Arco corto",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "<i>Tiro per colpire a distanza:</i> +4, gittata 24/96 m. <i>Colpito:</i> 5 (1d6 + 2) danni perforanti, più 2 (1d4) danni perforanti se il tiro per colpire è stato effettuato con vantaggio."
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "clave": "adicionales",
+     "titulo": "Azioni bonus",
+     "intro": null,
+     "items": [
+      {
+       "nombre": "Fuga agile",
+       "bloques": [
+        {
+         "t": "p",
+         "txt": "Il goblin effettua l'azione di Disimpegno o Nascondersi."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "campos.vel": "30 piedi",
+    "campos.sen": "Percezione passiva 9; scurovisione 60 piedi",
+    "secciones.0.items.0.bloques.0.txt": "<i>Tiro per colpire in mischia:</i> +4, portata 5 piedi <i>Colpito:</i> 5 (1d6 + 2) danni taglienti, più 2 (1d4) danni taglienti se il tiro per colpire è stato effettuato con vantaggio.",
+    "secciones.0.items.1.bloques.0.txt": "<i>Tiro per colpire a distanza:</i> +4, gittata 80/320 piedi. <i>Colpito:</i> 5 (1d6 + 2) danni perforanti, più 2 (1d4) danni perforanti se il tiro per colpire è stato effettuato con vantaggio."
+   }
+  }
+ }
+]

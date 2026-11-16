@@ -14,6 +14,9 @@
     <Using Include="AwesomeAssertions" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Glossary\Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\DmCompanion.Core\DmCompanion.Core.csproj" />
   </ItemGroup>
 </Project>

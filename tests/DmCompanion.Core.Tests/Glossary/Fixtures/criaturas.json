@@ -1,0 +1,17 @@
+{"header":{"source":"compendio-srd","commit":"2d61b5dcabe91ab69d5c4a5a41822eb83c2038cc","srd":"5.2.1","lang":"es"},"category":"Creature","entries":[
+{"key":"srd:criaturas/aboleth","category":"Creature","name":"Aboleth","nameEn":"Aboleth","page":260,"blocks":[],
+"creature":{"ac":17,"hp":150,"hitDice":"20d10 + 40","initiativeBonus":7,"initiativeScore":17,
+"abilities":[21,9,15,18,15,18],"modifiers":[5,-1,2,4,2,4],"saves":[5,3,6,8,6,4],
+"cr":"10","xp":5900,"xpLair":7200,"proficiencyBonus":4,"passivePerception":20,
+"sizeKeys":["Large"],"typeKey":"Aberration","typeLine":"Aberración Grande, legal malvada","speedFeet":10,
+"fields":[{"label":"CA","value":[{"text":"17"}]},{"label":"PG","value":[{"text":"150 (20d10 + 40)"}]}],
+"abilityRows":[{"label":"Fue","score":"21","modifier":"+5","save":"+5"},{"label":"Des","score":"9","modifier":"-1","save":"+3"},{"label":"Con","score":"15","modifier":"+2","save":"+6"},{"label":"Int","score":"18","modifier":"+4","save":"+8"},{"label":"Sab","score":"15","modifier":"+2","save":"+6"},{"label":"Car","score":"18","modifier":"+4","save":"+4"}],
+"sections":[{"key":"acciones","title":"Acciones","items":[{"name":"Tentáculo","blocks":[{"kind":"Paragraph","text":[{"text":"Tirada de ataque cuerpo a cuerpo: ","style":"Italic"},{"text":"+9","style":"Bold"},{"text":", alcance 10 pies."}]}]}]}]}},
+{"key":"srd:criaturas/goblin","category":"Creature","name":"Goblin","nameEn":"Goblin Warrior","blocks":[],
+"creature":{"ac":15,"hp":10,"hitDice":"3d6","initiativeBonus":2,"initiativeScore":12,
+"abilities":[8,15,10,10,8,8],"modifiers":[-1,2,0,0,-1,-1],"saves":[-1,2,0,0,-1,-1],
+"cr":"1/4","xp":50,"proficiencyBonus":2,"passivePerception":9,
+"sizeKeys":["Small"],"typeKey":"Humanoid","typeLine":"Humanoide Pequeño, caótico neutral","speedFeet":30,
+"fields":[{"label":"CA","value":[{"text":"15"}]},{"label":"PG","value":[{"text":"10 (3d6)"}]}],
+"abilityRows":[],"sections":[]}}
+]}

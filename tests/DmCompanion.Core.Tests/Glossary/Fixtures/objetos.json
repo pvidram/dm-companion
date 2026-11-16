@@ -1,0 +1,4 @@
+{"header":{"source":"compendio-srd","commit":"2d61b5dcabe91ab69d5c4a5a41822eb83c2038cc","srd":"5.2.1","lang":"es"},"category":"MagicItem","entries":[
+{"key":"srd:objetos/adamantine-armor","category":"MagicItem","name":"Armadura adamantina","nameEn":"Adamantine Armor","blocks":[{"kind":"Paragraph","text":[{"text":"Esta armadura está reforzada con adamantina."}]}],
+"item":{"categoryKey":"Armor","rarityKeys":["Uncommon"],"attunement":false,"header":"Armadura, infrecuente"}}
+]}

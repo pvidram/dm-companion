@@ -6,7 +6,7 @@
         @foreach (var condition in Conditions)
         {
             <li class="@ChipClass(condition)" data-testid="condition-chip">
-                <ConditionTag Name="@Text(condition)" OnRemove="@RemoveOf(condition)" />
+                <ConditionTag Name="@Text(condition)" OnRemove="@RemoveOf(condition)" OnClick="@RuleOf(condition)" />
                 @if (OnEdit.HasDelegate)
                 {
                     <IconButton Icon="IconName.Pencil" Label="@($"Editar {condition.Label}")" data-testid="condition-edit"
@@ -23,10 +23,19 @@
     [Parameter] public EventCallback<string> OnRemove { get; set; }
     /// <summary>Con delegado, cada estado lleva su botón de editar; recibe el id del estado.</summary>
     [Parameter] public EventCallback<string> OnEdit { get; set; }
+    /// <summary>Con delegado y <see cref="RuleKeys"/>, el nombre de un estado con regla abre su entrada; recibe la clave del estado.</summary>
+    [Parameter] public EventCallback<string> OnOpenRule { get; set; }
+    /// <summary>Claves de estado que tienen regla en el glosario (sin el prefijo <c>srd:estados/</c>).</summary>
+    [Parameter] public IReadOnlyCollection<string>? RuleKeys { get; set; }
     [Parameter] public string TestId { get; set; } = "conditions";
 
     private EventCallback RemoveOf(TokenCondition condition) =>
         OnRemove.HasDelegate ? EventCallback.Factory.Create(this, () => OnRemove.InvokeAsync(condition.Id)) : default;
+
+    private EventCallback RuleOf(TokenCondition condition) =>
+        OnOpenRule.HasDelegate && condition.Key is { } key && RuleKeys?.Contains(key) == true
+            ? EventCallback.Factory.Create(this, () => OnOpenRule.InvokeAsync(key))
+            : default;
 
     private static string ChipClass(TokenCondition condition) =>
         "combat-condition" + (condition.Expired ? " combat-condition--expired" : string.Empty);

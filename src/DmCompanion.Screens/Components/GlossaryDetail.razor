@@ -1,0 +1,164 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Glossary
+@using DmCompanion.Core.Vault.Storage
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@inject GlossaryService Glossary
+@inject IServiceProvider Services
+@inject MapSession Session
+@inject ILogger<GlossaryDetail> Log
+
+@{
+    var listing = Glossary.Index.Get(Key);
+    var entry = listing is { IsVault: true } ? null : Glossary.GetSrd(Key);
+    var original = listing?.IsVault == true ? listing.Overrides : null;
+    var yours = entry is null ? null : Glossary.Index.OverriddenBy(Key);
+    var canCopy = entry is not null && yours is null && Host.Current is not null;
+    var canAddToMap = AddCreatureToMapButton.IsAvailable(Session, Glossary, Index, Key);
+    var canShowOnTv = ShowGlossaryOnTvButton.IsVisible(_tv, entry);
+}
+<div class="glossary-detail">
+    @if (original is not null || yours is not null || canCopy || canAddToMap || canShowOnTv)
+    {
+        <div class="glossary-detail__actions">
+            @if (original is not null)
+            {
+                var originalKey = original;
+                <Button OnClick="() => Shell.OpenGlossary(originalKey)">Ver original del SRD</Button>
+            }
+            @if (yours is not null)
+            {
+                var yoursKey = yours.Key;
+                <Button OnClick="() => Shell.OpenGlossary(yoursKey)">Abrir mi versión</Button>
+            }
+            @if (canCopy)
+            {
+                <Button OnClick="() => CopyToVaultAsync(entry!)">Copiar al vault</Button>
+            }
+            <AddCreatureToMapButton Key="@Key" />
+            @if (entry is not null)
+            {
+                <ShowGlossaryOnTvButton Entry="entry" />
+            }
+        </div>
+    }
+    @if (_notice is { } notice)
+    {
+        <InlineNotice Kind="notice.Kind">
+            @notice.Text
+            @if (notice.OpenPath is { } path)
+            {
+                <Button OnClick="() => Shell.RequestOpenNote(path)">Abrir</Button>
+            }
+        </InlineNotice>
+    }
+    @if (listing is { IsVault: true })
+    {
+        <NoteReader Entity="Index.Get(listing.VaultPath!)" />
+    }
+    else if (entry is null)
+    {
+        <InlineNotice Kind="NoticeKind.Warning">Esta entrada no está disponible.</InlineNotice>
+    }
+    else
+    {
+        <h3>@entry.Name</h3>
+        @if (yours is not null)
+        {
+            <InlineNotice>Tienes tu propia versión.</InlineNotice>
+        }
+        @if (entry.Creature is { } creature)
+        {
+            <CreatureStatBlock Stats="creature" />
+        }
+        @if (entry.Spell is { } spell)
+        {
+            <div class="ds-note ds-glossary-header">
+                <p><em>@spell.Header</em></p>
+                <dl class="ds-glossary-fields">
+                    <dt>Tiempo de lanzamiento</dt><dd>@spell.CastingTime</dd>
+                    <dt>Alcance</dt><dd>@spell.Range</dd>
+                    <dt>Componentes</dt><dd>@spell.Components</dd>
+                    <dt>Duración</dt><dd>@spell.Duration</dd>
+                </dl>
+            </div>
+        }
+        else if (entry.Item is { } item)
+        {
+            <div class="ds-note ds-glossary-header"><p><em>@item.Header</em></p></div>
+        }
+        <NoteContent Html="(MarkupString)GlossaryHtmlRenderer.Render(entry.Blocks)" />
+        <p class="glossary-detail__source">@(entry.Page is { } page ? $"SRD 5.2.1, p. {page}" : "SRD 5.2.1")</p>
+    }
+</div>
+
+@code {
+    private sealed record Notice(NoticeKind Kind, string Text, string? OpenPath = null);
+
+    private Notice? _notice;
+    private string? _noticeKey;
+
+    [Parameter, EditorRequired] public string Key { get; set; } = default!;
+
+    private TvSession? _tv;
+
+    // El mapa abierto y la TV cambian sin que cambie la entrada: la barra se repinta para mostrar u ocultar sus botones.
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _tv = Services.GetService<TvSession>();
+        Session.Changed += OnToolsChanged;
+        if (_tv is not null) _tv.Changed += OnToolsChanged;
+    }
+
+    private void OnToolsChanged(object? sender, EventArgs e) => _ = RefreshToolsAsync();
+
+    private async Task RefreshToolsAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El detalle ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar las acciones del glosario ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnToolsChanged;
+        if (_tv is not null) _tv.Changed -= OnToolsChanged;
+        base.Dispose();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_noticeKey == Key) return;
+        _noticeKey = Key;
+        _notice = null;
+    }
+
+    private async Task CopyToVaultAsync(GlossaryEntry entry)
+    {
+        if (Host.Current is not { } vault) return;
+        var note = GlossaryNoteBuilder.Build(entry);
+        try
+        {
+            var result = await vault.SaveAsync(note.RelativePath, note.Content, WritePrecondition.MustNotExist);
+            if (result.Status == WriteStatus.Written)
+                Shell.OpenGlossary(GlossaryPacks.VaultKey(note.RelativePath));
+            else
+                _notice = new Notice(NoticeKind.Info, $"Ya existe «{note.Title}» en el vault.", note.RelativePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.LogError("No se pudo copiar {Key} al vault ({ExceptionType}).", entry.Key, ex.GetType().FullName);
+            _notice = new Notice(NoticeKind.Error, "No se pudo copiar al vault.");
+        }
+    }
+}

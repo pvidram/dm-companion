@@ -30,6 +30,7 @@ public sealed class NoteEditorTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddGlossaryForTests();
         Services.AddSoundForTests();
         Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();

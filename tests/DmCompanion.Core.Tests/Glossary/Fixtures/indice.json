@@ -1,0 +1,9 @@
+{"header":{"source":"compendio-srd","commit":"2d61b5dcabe91ab69d5c4a5a41822eb83c2038cc","srd":"5.2.1","lang":"es"},"listings":[
+{"key":"srd:criaturas/aboleth","category":"Creature","name":"Aboleth","nameEn":"Aboleth","summary":"Aberración Grande, legal malvada","facets":{"cr":"10","creatureType":"Aberration"}},
+{"key":"srd:criaturas/goblin","category":"Creature","name":"Goblin","nameEn":"Goblin","summary":"Humanoide Pequeño, caótico neutral","facets":{"cr":"1/4","creatureType":"Humanoid"}},
+{"key":"srd:conjuros/fireball","category":"Spell","name":"Bola de fuego","nameEn":"Fireball","summary":"Evocación de nivel 3","facets":{"spellLevel":3,"classes":["Sorcerer","Wizard"]}},
+{"key":"srd:estados/blinded","category":"Condition","name":"Cegado","nameEn":"Blinded","summary":"No puedes ver.","facets":{}},
+{"key":"srd:estados/prone","category":"Condition","name":"Derribado","nameEn":"Prone","summary":"Estás tumbado en el suelo.","facets":{}},
+{"key":"srd:reglas/advantage","category":"Rule","subtype":"glosario","name":"Ventaja","nameEn":"Advantage","summary":"Tiras dos d20 y usas el más alto.","facets":{}},
+{"key":"srd:objetos/adamantine-armor","category":"MagicItem","name":"Armadura adamantina","nameEn":"Adamantine Armor","summary":"Armadura, infrecuente","facets":{"rarities":["Uncommon"]}}
+]}

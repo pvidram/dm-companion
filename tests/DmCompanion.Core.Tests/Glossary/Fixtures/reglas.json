@@ -1,0 +1,3 @@
+{"header":{"source":"compendio-srd","commit":"2d61b5dcabe91ab69d5c4a5a41822eb83c2038cc","srd":"5.2.1","lang":"es"},"category":"Rule","entries":[
+{"key":"srd:reglas/advantage","category":"Rule","subtype":"glosario","name":"Ventaja","nameEn":"Advantage","blocks":[{"kind":"Paragraph","text":[{"text":"Tira dos d20 y usa el más alto. <script>alert(1)</script>"}]}]}
+]}

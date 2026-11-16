@@ -1,5 +1,12 @@
 <span class="ds-condition">
-    @Name
+    @if (OnClick.HasDelegate)
+    {
+        <button type="button" class="ds-condition__name" aria-label="@($"Ver regla: {Name}")" @onclick="OnClick">@Name</button>
+    }
+    else
+    {
+        @Name
+    }
     @if (OnRemove.HasDelegate)
     {
         <IconButton Icon="IconName.X" Label="@($"Quitar {Name}")" OnClick="OnRemove" />
@@ -10,4 +17,6 @@
     [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
     /// <summary>Si tiene delegado, se muestra el botón de quitar.</summary>
     [Parameter] public EventCallback OnRemove { get; set; }
+    /// <summary>Si tiene delegado, el nombre es un botón («Ver regla: nombre»).</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
 }

@@ -1,0 +1,5 @@
+{"header":{"source":"compendio-srd","commit":"2d61b5dcabe91ab69d5c4a5a41822eb83c2038cc","srd":"5.2.1","lang":"es"},"category":"Spell","entries":[
+{"key":"srd:conjuros/fireball","category":"Spell","name":"Bola de fuego","nameEn":"Fireball","blocks":[{"kind":"Paragraph","text":[{"text":"Una explosión de llamas brillantes."}]}],
+"spell":{"level":3,"schoolKey":"Evocation","classKeys":["Sorcerer","Wizard"],"ritual":false,"concentration":false,
+"header":"Evocación de nivel 3 (hechicero, mago)","castingTime":"Acción","range":"150 pies","components":"V, S, M (una bolita de guano de murciélago y azufre)","duration":"Instantánea"}}
+]}

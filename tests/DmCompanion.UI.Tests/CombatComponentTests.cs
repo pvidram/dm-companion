@@ -52,4 +52,23 @@ public class CombatComponentTests : UiTestContext
         var cut = Render<ConditionTag>(p => p.Add(x => x.Name, "Envenenado").Add(x => x.OnRemove, () => { }));
         cut.Find("button").GetAttribute("aria-label").Should().Be("Quitar Envenenado");
     }
+
+    [Fact]
+    public void ConditionTag_without_OnClick_has_no_button()
+    {
+        var cut = Render<ConditionTag>(p => p.Add(x => x.Name, "Derribado"));
+        cut.FindAll("button").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ConditionTag_with_OnClick_renders_a_labelled_button()
+    {
+        var clicks = 0;
+        var cut = Render<ConditionTag>(p => p.Add(x => x.Name, "Derribado").Add(x => x.OnClick, () => clicks++));
+
+        var button = cut.Find("button.ds-condition__name");
+        button.Click();
+
+        (button.GetAttribute("type"), button.GetAttribute("aria-label"), clicks).Should().Be(("button", "Ver regla: Derribado", 1));
+    }
 }

@@ -28,7 +28,7 @@ public sealed class TvSessionCodeTests : IAsyncLifetime
     private TvSession NewSession(FakeTvServer server)
     {
         var images = new NoteImageResolver(_host);
-        var feed = new TvMapFeed(_host, new TokenHitPoints(_host), images);
+        var feed = new TvMapFeed(_host, new TokenHitPoints(_host, GlossaryTestServices.CreateGlossary(_host)), images);
         return new TvSession(server, _host, _maps, feed, new TvContentFeed(_host, images, feed), _prefs, NullLogger<TvSession>.Instance);
     }
 

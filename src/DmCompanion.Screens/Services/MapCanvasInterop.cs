@@ -1,4 +1,5 @@
 using DmCompanion.Core.GameSystems;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Maps;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
@@ -381,7 +382,8 @@ public sealed partial class MapCanvasInterop(
         var tokens = new List<object>(state.Tokens.Count);
         foreach (var token in state.Tokens)
         {
-            var entity = token.Source is { } source ? vault?.Index.Get(source) : null;
+            // Una criatura del SRD no tiene retrato ni nota: se pinta la inicial del nombre del token.
+            var entity = token.Source is { } source && vault is not null ? TokenSourceResolver.Resolve(source, vault.Index, _ => null).Note : null;
             var portrait = await portraits.GetAsync(entity?.Portrait);
             var marks = TokenCombatMarks.For(state, token, selectedId);
             tokens.Add(new

@@ -33,6 +33,7 @@ public abstract class SoundTestContext : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddGlossaryForTests();
         Services.AddSingleton<TimeProvider>(new FakeTimeProvider());
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();

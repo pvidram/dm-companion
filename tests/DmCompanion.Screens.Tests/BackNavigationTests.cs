@@ -101,4 +101,14 @@ public sealed class BackNavigationTests
 
         handled.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Back_from_glossary_detail_returns_to_the_list()
+    {
+        _shell.OpenGlossary("srd:estados/blinded");
+
+        var handled = await Back.HandleBackAsync();
+
+        (handled, _shell.ActivePanel, _shell.SelectedGlossaryKey).Should().Be((true, OverlayPanel.Glossary, null));
+    }
 }

@@ -1,0 +1,739 @@
+[
+ {
+  "id": "animate-objects",
+  "comun": {
+   "nivel": 5,
+   "escuela": "Transmutation",
+   "clases": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "ritual": false,
+   "concentracion": true,
+   "componentes": [
+    "V",
+    "S"
+   ],
+   "material_po": null,
+   "material_consume": false
+  },
+  "es": {
+   "nombre": "Animar objetos",
+   "p": 121,
+   "cabecera": "Transmutación de nivel 5 (bardo, hechicero, mago)",
+   "tiempo": "Acción",
+   "alcance": "36 m",
+   "comp": "V, S",
+   "dur": "Concentración, hasta 1 minuto",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Tus órdenes hacen que los objetos cobren vida. Elige una cantidad de objetos no mágicos dentro del alcance que no vista ni lleve nadie, que no estén fijos en una superficie y que no sean Gargantuescos. La cantidad máxima de objetos es igual a tu modificador por aptitud mágica. A estos efectos, un objetivo Mediano o más pequeño cuenta como un objeto, un objetivo Grande cuenta como dos y un objetivo Enorme cuenta como tres."
+    },
+    {
+     "t": "p",
+     "txt": "Cada objetivo se animará, le crecerán patas, se convertirá en un autómata que emplea el perfil de un <strong>objeto animado</strong> y permanecerá bajo tu control hasta que el conjuro termine o hasta que sus puntos de golpe se reduzcan a 0. Cada criatura que crees con este conjuro se considera una aliada para tus aliados y para ti. En combate, comparte tu orden de iniciativa y su turno va justo después del tuyo."
+    },
+    {
+     "t": "p",
+     "txt": "Hasta que el conjuro termine, puedes usar una acción adicional para dar órdenes mentalmente a cada criatura que hayas creado con el conjuro que esté a 150 m o menos de ti (si controlas a varias criaturas, puedes dar órdenes a cualesquiera de ellas a la vez transmitiéndole la misma orden a cada una). Si no das ninguna orden, la criatura hace la acción de esquivar y solo se mueve para evitar peligros. Cuando los puntos de golpe de la criatura se reduzcan a 0, recuperará su forma de objeto y cualquier daño sobrante se aplicará a esa forma."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Con un espacio de conjuro de nivel superior.</b> El daño del golpe de la criatura aumenta en 1d4 (Mediana o más pequeña), 1d6 (Grande) o 1d12 (Enorme) por cada nivel por encima de 5 que tenga el espacio.",
+     "lead": "Con un espacio de conjuro de nivel superior",
+     "sup": "nivel"
+    },
+    {
+     "t": "ficha",
+     "nombre": "Objeto animado",
+     "tipo": "Autómata Enorme o más pequeño, sin alineamiento",
+     "ca": "15",
+     "pg": "10 (Mediano o más pequeño), 20 (Grande), 40 (Enorme)",
+     "vel": "9 m",
+     "car": [
+      [
+       "Fue",
+       16,
+       "+3",
+       "+3"
+      ],
+      [
+       "Des",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Con",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Int",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Sab",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Car",
+       1,
+       "−5",
+       "−5"
+      ]
+     ],
+     "rasgos": [
+      [
+       "Inmunidades",
+       "psíquico, veneno; Asustado, Cansancio, Envenenado, Hechizado, Paralizado"
+      ],
+      [
+       "Sentidos",
+       "visión ciega 9 m; Percepción pasiva 6"
+      ],
+      [
+       "Idiomas",
+       "entiende los idiomas que conozcas"
+      ],
+      [
+       "VD",
+       "ninguno (0 PX; BC igual a tu bonificador por competencia)"
+      ]
+     ],
+     "secciones": [
+      {
+       "titulo": "Acciones",
+       "items": [
+        [
+         "Golpe",
+         "<i>Tirada de ataque cuerpo a cuerpo:</i> bonificador igual a tu modificador de ataque de conjuros, alcance 1,5 m. <i>Acierto:</i> daño de fuerza igual a 1d4 + 3 (Mediano o más pequeño), 2d6 + 3 + tu modificador por aptitud mágica (Grande) o 2d12 + 3 + tu modificador por aptitud mágica (Enorme)."
+        ]
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "alcance": "120 pies",
+    "bloques.2.txt": "Hasta que el conjuro termine, puedes usar una acción adicional para dar órdenes mentalmente a cada criatura que hayas creado con el conjuro que esté a 500 pies o menos de ti (si controlas a varias criaturas, puedes dar órdenes a cualesquiera de ellas a la vez transmitiéndole la misma orden a cada una). Si no das ninguna orden, la criatura hace la acción de esquivar y solo se mueve para evitar peligros. Cuando los puntos de golpe de la criatura se reduzcan a 0, recuperará su forma de objeto y cualquier daño sobrante se aplicará a esa forma.",
+    "bloques.4.vel": "30 pies",
+    "bloques.4.rasgos.1.1": "visión ciega 30 pies; Percepción pasiva 6",
+    "bloques.4.secciones.0.items.0.1": "<i>Tirada de ataque cuerpo a cuerpo:</i> bonificador igual a tu modificador de ataque de conjuros, alcance 5 pies. <i>Acierto:</i> daño de fuerza igual a 1d4 + 3 (Mediano o más pequeño), 2d6 + 3 + tu modificador por aptitud mágica (Grande) o 2d12 + 3 + tu modificador por aptitud mágica (Enorme)."
+   }
+  },
+  "en": {
+   "nombre": "Animate Objects",
+   "p": 108,
+   "cabecera": "Level 5 Transmutation (Bard, Sorcerer, Wizard)",
+   "tiempo": "Action",
+   "alcance": "120 feet",
+   "comp": "V, S",
+   "dur": "Concentration, up to 1 minute",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Objects animate at your command. Choose a number of nonmagical objects within range that aren’t being worn or carried, aren’t fixed to a surface, and aren’t Gargantuan. The maximum number of objects is equal to your spellcasting ability modifier; for this number, a Medium or smaller target counts as one object, a Large target counts as two, and a Huge target counts as three."
+    },
+    {
+     "t": "p",
+     "txt": "Each target animates, sprouts legs, and becomes a Construct that uses the <strong>Animated Object</strong> stat block; this creature is under your control until the spell ends or until it is reduced to 0 Hit Points. Each creature you make with this spell is an ally to you and your allies. In combat, it shares your Initiative count and takes its turn immediately after yours."
+    },
+    {
+     "t": "p",
+     "txt": "Until the spell ends, you can take a Bonus Action to mentally command any creature you made with this spell if the creature is within 500 feet of you (if you control multiple creatures, you can command any of them at the same time, issuing the same command to each one). If you issue no commands, the creature takes the Dodge action and moves only to avoid harm. When the creature drops to 0 Hit Points, it reverts to its object form, and any remaining damage carries over to that form."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Using a Higher-Level Spell Slot.</b> The creature’s Slam damage increases by 1d4 (Medium or smaller), 1d6 (Large), or 1d12 (Huge) for each spell slot level above 5.",
+     "lead": "Using a Higher-Level Spell Slot",
+     "sup": "nivel"
+    },
+    {
+     "t": "ficha",
+     "nombre": "Animated Object",
+     "tipo": "Huge or Smaller Construct, Unaligned",
+     "ca": "15",
+     "pg": "10 (Medium or smaller), 20 (Large), 40 (Huge)",
+     "vel": "30 ft.",
+     "car": [
+      [
+       "Str",
+       16,
+       "+3",
+       "+3"
+      ],
+      [
+       "Dex",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Con",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Int",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Wis",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Cha",
+       1,
+       "−5",
+       "−5"
+      ]
+     ],
+     "rasgos": [
+      [
+       "Immunities",
+       "Poison, Psychic; Charmed, Exhaustion, Frightened, Paralyzed, Poisoned"
+      ],
+      [
+       "Senses",
+       "Blindsight 30 ft.; Passive Perception 6"
+      ],
+      [
+       "Languages",
+       "Understands the languages you know"
+      ],
+      [
+       "CR",
+       "None (XP 0; PB equals your Proficiency Bonus)"
+      ]
+     ],
+     "secciones": [
+      {
+       "titulo": "Actions",
+       "items": [
+        [
+         "Slam",
+         "<i>Melee Attack Roll:</i> Bonus equals your spell attack modifier, reach 5 ft. <i>Hit:</i> Force damage equal to 1d4 + 3 (Medium or smaller), 2d6 + 3 + your spellcasting ability modifier (Large), or 2d12 + 3 + your spellcasting ability modifier (Huge)."
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "de": {
+   "nombre": "Gegenstände beleben",
+   "p": 145,
+   "cabecera": "Verwandlungszauber 5. Grades (Barde, Magier, Zauberer)",
+   "tiempo": "Aktion",
+   "alcance": "36 Meter",
+   "comp": "V, G",
+   "dur": "Konzentration, bis zu 1 Minute",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Auf deinen Befehl hin werden Gegenstände belebt. Wähle eine Anzahl nichtmagischer Gegenstände in Reichweite aus, die nicht getragen oder gehalten werden, nicht an einer Oberfläche fixiert und kleiner als gigantisch sind. Die maximale Anzahl von Gegenständen entspricht deinem Zauberwirken-Attributsmodifikator. Dabei zählt ein Ziel von höchstens mittelgroßer Größe als ein Gegenstand, ein großes Ziel zählt als zwei Gegenstände, und ein riesiges Ziel zählt als drei Gegenstände."
+    },
+    {
+     "t": "p",
+     "txt": "Jedes Ziel wird belebt, es erhält Beine und wird zu einem Konstrukt, das den Wertekasten eines <strong>belebten Gegenstands</strong> verwendet. Diese Kreatur steht unter deiner Kontrolle, bis der Zauber endet oder seine Trefferpunkte auf 0 sinken. Jede Kreatur, die du mit diesem Zauber erzeugst, ist mit dir und deinen Verbündeten verbündet. Im Kampf teilt sie deinen Initiativewert und ist unmittelbar nach dir am Zug."
+    },
+    {
+     "t": "p",
+     "txt": "Bis der Zauber endet, kannst du als Bonusaktion jede Kreatur, die du mit diesem Zauber erschaffen hast und die sich im Abstand von bis zu 150 Metern von dir befindet, mental befehligen. Handelt es sich um mehrere Kreaturen, so kannst du beliebig viele von ihnen gleichzeitig befehligen, wobei jeweils der gleiche Befehl erteilt wird. Wenn du keine Befehle erteilst, führt die Kreatur die Ausweichaktion aus und bewegt sich nur, um Schaden zu vermeiden. Wenn die Trefferpunkte der Kreatur auf 0 sinken, nimmt sie wieder ihre Gegenstandsgestalt an. Überschüssiger Schaden wird auf diese Form übertragen."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Verwenden von Zauberplätzen höheren Grades:</b> Für jeden Zauberplatzgrad über dem 5. wird der Hiebschaden der Kreatur um 1W4 (höchstens mittelgroß), 1W6 (groß) oder 1W12 (riesig) erhöht.",
+     "lead": "Verwenden von Zauberplätzen höheren Grades",
+     "sup": "nivel"
+    },
+    {
+     "t": "ficha",
+     "nombre": "Belebter Gegenstand",
+     "tipo": "Konstrukt von höchstens riesiger Größe, gesinnungslos",
+     "ca": "15",
+     "pg": "10 (höchstens mittelgroß), 20 (groß), 40 (riesig)",
+     "vel": "9 m",
+     "car": [
+      [
+       "Stä",
+       16,
+       "+3",
+       "+3"
+      ],
+      [
+       "Ges",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Kon",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Int",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Wei",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Cha",
+       1,
+       "−5",
+       "−5"
+      ]
+     ],
+     "rasgos": [
+      [
+       "Immunitäten",
+       "Gift, Psychisch; Bezaubert, Erschöpft, Gelähmt, Verängstigt, Vergiftet"
+      ],
+      [
+       "Sinne",
+       "Blindsicht 9 m; Passive Wahrnehmung 6"
+      ],
+      [
+       "Sprachen",
+       "Versteht die Sprachen, die du sprichst"
+      ],
+      [
+       "HG",
+       "− (EP 0, ÜB entspricht deinem Übungsbonus)"
+      ]
+     ],
+     "secciones": [
+      {
+       "titulo": "Aktionen",
+       "items": [
+        [
+         "Hieb",
+         "<i>Nahkampfangriffswurf:</i> Bonus in Höhe deines Zauberangriff-Modifikators, Reichweite 1,5 m. <i>Treffer:</i> Energieschaden in Höhe von 1W4+3 (höchstens mittelgroß), 2W6+3 + deinem Zauberwirken-Attributsmodifikator (groß) oder 2W12+3 + deinem Zauberwirken-Attributsmodifikator (riesig)."
+        ]
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "alcance": "120 Fuß",
+    "bloques.2.txt": "Bis der Zauber endet, kannst du als Bonusaktion jede Kreatur, die du mit diesem Zauber erschaffen hast und die sich im Abstand von bis zu 500 Fuß von dir befindet, mental befehligen. Handelt es sich um mehrere Kreaturen, so kannst du beliebig viele von ihnen gleichzeitig befehligen, wobei jeweils der gleiche Befehl erteilt wird. Wenn du keine Befehle erteilst, führt die Kreatur die Ausweichaktion aus und bewegt sich nur, um Schaden zu vermeiden. Wenn die Trefferpunkte der Kreatur auf 0 sinken, nimmt sie wieder ihre Gegenstandsgestalt an. Überschüssiger Schaden wird auf diese Form übertragen.",
+    "bloques.4.vel": "30 Fuß",
+    "bloques.4.rasgos.1.1": "Blindsicht 30 Fuß; Passive Wahrnehmung 6",
+    "bloques.4.secciones.0.items.0.1": "<i>Nahkampfangriffswurf:</i> Bonus in Höhe deines Zauberangriff-Modifikators, Reichweite 5 Fuß. <i>Treffer:</i> Energieschaden in Höhe von 1W4+3 (höchstens mittelgroß), 2W6+3 + deinem Zauberwirken-Attributsmodifikator (groß) oder 2W12+3 + deinem Zauberwirken-Attributsmodifikator (riesig)."
+   }
+  },
+  "fr": {
+   "nombre": "Animation des objets",
+   "p": 116,
+   "cabecera": "Transmutation du 5e niveau (Barde, Ensorceleur, Magicien)",
+   "tiempo": "action",
+   "alcance": "36 m",
+   "comp": "V, S",
+   "dur": "Concentration, jusqu’à 1 minute",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Les objets s’animent selon vos ordres. Choisissez des objets non magiques à portée qui ne sont portés par personne, ne sont fixés à aucune surface et ne sont pas de taille Gig. Le maximum d’objets que vous pouvez animer est égal à votre modificateur de caractéristique d’incantation ; dans ce cadre, une cible de taille M ou inférieure compte pour un objet, une cible de taille G pour deux et une cible de taille TG pour trois."
+    },
+    {
+     "t": "p",
+     "txt": "Chaque cible s’anime, se dote de pattes et devient un Artificiel reprenant le profil de l’<strong>objet animé</strong> ; la créature reste sous votre contrôle jusqu’à la fin du sort ou qu’elle tombe à 0 point de vie. Chaque créature ainsi créée constitue un allié pour vous et vos alliés. Au combat, elle partage votre rang d’Initiative, mais elle joue son tour juste après vous."
+    },
+    {
+     "t": "p",
+     "txt": "Jusqu’à la fin du sort, vous pouvez par une action Bonus donner des ordres mentaux à toute créature que vous avez créée par ce sort et qui se trouve dans un rayon de 150 m. Vous pouvez ainsi contrôler plusieurs créatures, en les choisissant, à condition de leur intimer le même ordre. Sans instruction de votre part, la créature entreprend l’action Esquive et ne se déplace que pour éviter les dangers. Quand la créature tombe à 0 point de vie, elle retrouve sa forme de départ, tous les dégâts excédentaires étant répercutés sur celle-ci."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Emplacement de niveau supérieur.</b> Les dégâts de Coup de la créature augmentent de 1d4 (taille M ou inférieure), 1d6 (taille G) ou 1d12 (taille TG) par niveau d’emplacement au-delà du 5e.",
+     "lead": "Emplacement de niveau supérieur",
+     "sup": "nivel"
+    },
+    {
+     "t": "ficha",
+     "nombre": "Objet animé",
+     "tipo": "Artificiel de taille TG ou inférieure, non aligné",
+     "ca": "15",
+     "pg": "10 (taille M ou inférieure), 20 (G), 40 (TG)",
+     "vel": "9 m",
+     "car": [
+      [
+       "For",
+       16,
+       "+3",
+       "+3"
+      ],
+      [
+       "Dex",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Con",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Int",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Sag",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Cha",
+       1,
+       "−5",
+       "−5"
+      ]
+     ],
+     "rasgos": [
+      [
+       "Immunités",
+       "poison, psychiques ; Charmé, Effrayé, Empoisonné, Épuisement, Paralysé"
+      ],
+      [
+       "Sens",
+       "Vision aveugle 9 m ; Perception passive 6"
+      ],
+      [
+       "Langues",
+       "comprend les langues que vous parlez"
+      ],
+      [
+       "FP",
+       "aucun (PX 0 ; BM égal à votre bonus de maîtrise)"
+      ]
+     ],
+     "secciones": [
+      {
+       "titulo": "Actions",
+       "items": [
+        [
+         "Coup",
+         "<i>Corps à corps :</i> bonus égal à votre modificateur d’attaque des sorts, allonge 1,50 m. <i>Touché :</i> dégâts de force égaux à 1d4 + 3 (taille M ou inférieure), 2d6 + 3 + votre modificateur de caractéristique d’incantation (G), ou 2d12 + 3 + votre modificateur de caractéristique d’incantation (TG)."
+        ]
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "alcance": "120 pieds",
+    "bloques.2.txt": "Jusqu’à la fin du sort, vous pouvez par une action Bonus donner des ordres mentaux à toute créature que vous avez créée par ce sort et qui se trouve dans un rayon de 500 pieds. Vous pouvez ainsi contrôler plusieurs créatures, en les choisissant, à condition de leur intimer le même ordre. Sans instruction de votre part, la créature entreprend l’action Esquive et ne se déplace que pour éviter les dangers. Quand la créature tombe à 0 point de vie, elle retrouve sa forme de départ, tous les dégâts excédentaires étant répercutés sur celle-ci.",
+    "bloques.4.vel": "30 pieds",
+    "bloques.4.rasgos.1.1": "Vision aveugle 30 pieds ; Perception passive 6",
+    "bloques.4.secciones.0.items.0.1": "<i>Corps à corps :</i> bonus égal à votre modificateur d’attaque des sorts, allonge 5 pieds. <i>Touché :</i> dégâts de force égaux à 1d4 + 3 (taille M ou inférieure), 2d6 + 3 + votre modificateur de caractéristique d’incantation (G), ou 2d12 + 3 + votre modificateur de caractéristique d’incantation (TG)."
+   }
+  },
+  "it": {
+   "nombre": "Animare oggetti",
+   "p": 124,
+   "cabecera": "Trasmutazione di 5º livello (bardo, mago, stregone)",
+   "tiempo": "azione",
+   "alcance": "36 metri",
+   "comp": "V, S",
+   "dur": "concentrazione, fino a 1 minuto",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Gli oggetti si animano su ordine dell'incantatore. L'incantatore sceglie un numero di oggetti non magici entro gittata che non siano indossati o trasportati, fissati su una superficie o di dimensioni Mastodontiche. Il numero massimo di oggetti è uguale al suo modificatore di caratteristica da incantatore; per questo numero, un bersaglio di taglia Media o inferiore conta come un oggetto, un bersaglio di taglia Grande conta come due e un bersaglio Enorme conta come tre."
+    },
+    {
+     "t": "p",
+     "txt": "Ogni bersaglio si anima e diventa un costrutto provvisto di gambe che utilizza la scheda delle statistiche dell'<strong>oggetto animato</strong>; questa creatura è sotto il controllo dell'incantatore fino al termine dell'incantesimo o finché non viene ridotta a 0 punti ferita. Ogni creatura creata con questo incantesimo diventa un alleato per l'incantatore e i suoi alleati. In combattimento, la creatura ha lo stesso punteggio di iniziativa dell'incantatore, ma inizia il turno immediatamente dopo il suo."
+    },
+    {
+     "t": "p",
+     "txt": "Fino al termine dell'incantesimo, come azione bonus, l'incantatore può comandare mentalmente qualsiasi creatura creata con questo incantesimo, a patto che si trovi entro 150 metri da sé (se controlla varie creature, l'incantatore può comandarne più di una allo stesso momento, impartendo lo stesso comando a ciascuna di loro). Se invece non impartisce alcun comando, la creatura effettua l'azione Schivata e si sposta solo per evitare di subire danni. Quando la creatura scende a 0 punti ferita, riassume la sua forma di oggetto, a cui vengono trasferiti eventuali danni rimanenti."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Utilizzo di uno slot incantesimo di livello superiore.</b> I danni da Schianto della creatura aumentano di 1d4 (taglia Media o inferiore), 1d6 (taglia Grande) o 1d12 (taglia Enorme) per ogni slot di livello superiore al 5º.",
+     "lead": "Utilizzo di uno slot incantesimo di livello superiore",
+     "sup": "nivel"
+    },
+    {
+     "t": "ficha",
+     "nombre": "Oggetto animato",
+     "tipo": "Costrutto Enorme o inferiore, senza allineamento",
+     "ca": "15",
+     "pg": "10 (taglia Media o inferiore), 20 (taglia Grande), 40 (taglia Enorme)",
+     "vel": "9 m",
+     "car": [
+      [
+       "For",
+       16,
+       "+3",
+       "+3"
+      ],
+      [
+       "Des",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Cos",
+       10,
+       "+0",
+       "+0"
+      ],
+      [
+       "Int",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Sag",
+       3,
+       "−4",
+       "−4"
+      ],
+      [
+       "Car",
+       1,
+       "−5",
+       "−5"
+      ]
+     ],
+     "rasgos": [
+      [
+       "Immunità",
+       "affascinato, avvelenato, indebolimento, paralizzato, psichico, spaventato, veleno"
+      ],
+      [
+       "Sensi",
+       "Percezione passiva 6; vista cieca 9 m"
+      ],
+      [
+       "Lingue",
+       "comprende le lingue parlate dal personaggio"
+      ],
+      [
+       "GS",
+       "nessuno (PE 0; BC pari al bonus di competenza del personaggio)"
+      ]
+     ],
+     "secciones": [
+      {
+       "titulo": "Azioni",
+       "items": [
+        [
+         "Schianto",
+         "<i>Tiro per colpire in mischia:</i> il bonus equivale al modificatore di attacco dell'incantesimo del personaggio, portata di 1,5 m <i>Colpito:</i> danni da forza pari a 1d4 + 3 (taglia Media o inferiore), 2d6 + 3 + il modificatore di caratteristica da incantatore dell'incantatore (taglia Grande) o 2d12 + 3 + il modificatore di caratteristica da incantatore dell'incantatore (taglia Enorme)."
+        ]
+       ]
+      }
+     ]
+    }
+   ],
+   "pies": {
+    "alcance": "120 piedi",
+    "bloques.2.txt": "Fino al termine dell'incantesimo, come azione bonus, l'incantatore può comandare mentalmente qualsiasi creatura creata con questo incantesimo, a patto che si trovi entro 500 piedi da sé (se controlla varie creature, l'incantatore può comandarne più di una allo stesso momento, impartendo lo stesso comando a ciascuna di loro). Se invece non impartisce alcun comando, la creatura effettua l'azione Schivata e si sposta solo per evitare di subire danni. Quando la creatura scende a 0 punti ferita, riassume la sua forma di oggetto, a cui vengono trasferiti eventuali danni rimanenti.",
+    "bloques.4.vel": "30 piedi",
+    "bloques.4.rasgos.1.1": "Percezione passiva 6; vista cieca 30 piedi",
+    "bloques.4.secciones.0.items.0.1": "<i>Tiro per colpire in mischia:</i> il bonus equivale al modificatore di attacco dell'incantesimo del personaggio, portata di 5 piedi <i>Colpito:</i> danni da forza pari a 1d4 + 3 (taglia Media o inferiore), 2d6 + 3 + il modificatore di caratteristica da incantatore dell'incantatore (taglia Grande) o 2d12 + 3 + il modificatore di caratteristica da incantatore dell'incantatore (taglia Enorme)."
+   }
+  },
+  "correcciones": [
+   {
+    "idioma": "de",
+    "antes": "ihre Gegenstandgestalt an",
+    "despues": "ihre Gegenstandsgestalt an",
+    "por_que": "Los compuestos con Gegenstand llevan s de union: el propio SRD aleman escribe \"Gegenstandskategorie\" y \"Gegenstandspaare\", y el Duden registra Gegenstandsbereich, gegenstandslos. \"Gegenstandgestalt\" sin s esta asi en el SRD (pag. 145 y en la ficha del Mimik), pero es forma no estandar y se lee como errata."
+   }
+  ]
+ },
+ {
+  "id": "fireball",
+  "comun": {
+   "nivel": 3,
+   "escuela": "Evocation",
+   "clases": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "ritual": false,
+   "concentracion": false,
+   "componentes": [
+    "V",
+    "S",
+    "M"
+   ],
+   "material_po": null,
+   "material_consume": false
+  },
+  "es": {
+   "nombre": "Bola de fuego",
+   "p": 125,
+   "cabecera": "Evocación de nivel 3 (hechicero, mago)",
+   "tiempo": "Acción",
+   "alcance": "45 m",
+   "comp": "V, S, M (una pelota de guano de murciélago y azufre)",
+   "dur": "Instantáneo",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Una ráfaga brillante surge de ti hacia un punto de tu elección dentro del alcance y luego estalla con un rugido sordo en una explosión ardiente. Todas las criaturas situadas en una esfera de 6 m de radio centrada en ese punto harán una tirada de salvación de Destreza; sufrirán 8d6 de daño de fuego si la fallan o la mitad del daño si la superan."
+    },
+    {
+     "t": "p",
+     "txt": "Los objetos inflamables dentro del área que no lleve o vista nadie empezarán a arder."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Con un espacio de conjuro de nivel superior.</b> El daño aumenta en 1d6 por cada nivel por encima de 3 que tenga el espacio.",
+     "lead": "Con un espacio de conjuro de nivel superior",
+     "sup": "nivel"
+    }
+   ],
+   "pies": {
+    "alcance": "150 pies",
+    "bloques.0.txt": "Una ráfaga brillante surge de ti hacia un punto de tu elección dentro del alcance y luego estalla con un rugido sordo en una explosión ardiente. Todas las criaturas situadas en una esfera de 20 pies de radio centrada en ese punto harán una tirada de salvación de Destreza; sufrirán 8d6 de daño de fuego si la fallan o la mitad del daño si la superan."
+   }
+  },
+  "en": {
+   "nombre": "Fireball",
+   "p": 131,
+   "cabecera": "Level 3 Evocation (Sorcerer, Wizard)",
+   "tiempo": "Action",
+   "alcance": "150 feet",
+   "comp": "V, S, M (a ball of bat guano and sulfur)",
+   "dur": "Instantaneous",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "A bright streak flashes from you to a point you choose within range and then blossoms with a low roar into a fiery explosion. Each creature in a 20-foot-radius Sphere centered on that point makes a Dexterity saving throw, taking 8d6 Fire damage on a failed save or half as much damage on a successful one."
+    },
+    {
+     "t": "p",
+     "txt": "Flammable objects in the area that aren’t being worn or carried start burning."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Using a Higher-Level Spell Slot.</b> The damage increases by 1d6 for each spell slot level above 3.",
+     "lead": "Using a Higher-Level Spell Slot",
+     "sup": "nivel"
+    }
+   ]
+  },
+  "de": {
+   "nombre": "Feuerball",
+   "p": 139,
+   "cabecera": "Hervorrufungszauber 3. Grades (Magier, Zauberer)",
+   "tiempo": "Aktion",
+   "alcance": "45 Meter",
+   "comp": "V, G, M (eine Kugel aus Fledermaus-Guano und Schwefel)",
+   "dur": "Unmittelbar",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Du verschießt einen hellen Lichtstrahl auf einen Punkt deiner Wahl in Reichweite, wo er unter dumpfem Grollen zu einer Flammenexplosion detoniert. Jede Kreatur in einer Kugel mit einem Radius von sechs Metern um diesen Punkt führt einen Geschicklichkeitsrettungswurf aus. Misslingt der Wurf, so erleidet sie 8W6 Feuerschaden, anderenfalls die Hälfte."
+    },
+    {
+     "t": "p",
+     "txt": "Brennbare Gegenstände im Bereich, die nicht getragen oder gehalten werden, beginnen zu brennen."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Verwenden von Zauberplätzen höheren Grades:</b> Für jeden Zauberplatzgrad über dem 3. wird der Schaden um 1W6 erhöht.",
+     "lead": "Verwenden von Zauberplätzen höheren Grades",
+     "sup": "nivel"
+    }
+   ],
+   "pies": {
+    "alcance": "150 Fuß",
+    "bloques.0.txt": "Du verschießt einen hellen Lichtstrahl auf einen Punkt deiner Wahl in Reichweite, wo er unter dumpfem Grollen zu einer Flammenexplosion detoniert. Jede Kreatur in einer Kugel mit einem Radius von 20 Fuß um diesen Punkt führt einen Geschicklichkeitsrettungswurf aus. Misslingt der Wurf, so erleidet sie 8W6 Feuerschaden, anderenfalls die Hälfte."
+   }
+  },
+  "fr": {
+   "nombre": "Boule de feu",
+   "p": 122,
+   "cabecera": "Évocation du 3e niveau (Ensorceleur, Magicien)",
+   "tiempo": "action",
+   "alcance": "45 m",
+   "comp": "V, S, M (une boulette de guano de chauve-souris et de soufre)",
+   "dur": "instantanée",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Une zébrure éblouissante jaillit de vous jusqu’au point que vous choisissez à portée, produisant une déflagration au grondement sourd. Chaque créature prise dans la Sphère de 6 m de rayon centrée sur ce point d’origine effectue un jet de sauvegarde de Dextérité et subit 8d6 dégâts de feu en cas d’échec, la moitié en cas de réussite."
+    },
+    {
+     "t": "p",
+     "txt": "L’explosion embrase les objets inflammables de la zone qui ne sont portés par personne."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Emplacement de niveau supérieur.</b> Les dégâts augmentent de 1d6 par niveau d’emplacement au-delà du 3e.",
+     "lead": "Emplacement de niveau supérieur",
+     "sup": "nivel"
+    }
+   ],
+   "pies": {
+    "alcance": "150 pieds",
+    "bloques.0.txt": "Une zébrure éblouissante jaillit de vous jusqu’au point que vous choisissez à portée, produisant une déflagration au grondement sourd. Chaque créature prise dans la Sphère de 20 pieds de rayon centrée sur ce point d’origine effectue un jet de sauvegarde de Dextérité et subit 8d6 dégâts de feu en cas d’échec, la moitié en cas de réussite."
+   }
+  },
+  "it": {
+   "nombre": "Palla di fuoco",
+   "p": 171,
+   "cabecera": "Invocazione di 3º livello (mago, stregone)",
+   "tiempo": "azione",
+   "alcance": "45 metri",
+   "comp": "V, S, M (una pallina di guano di pipistrello e zolfo)",
+   "dur": "istantanea",
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Una scia di luce brillante parte dall'incantatore e sfreccia fino a un punto a sua scelta entro gittata, provocando un'esplosione infuocata con un profondo boato. Ogni creatura presente in una sfera dal raggio di 6 metri e centrata su quel punto deve effettuare un tiro salvezza su Destrezza, subendo 8d6 danni da fuoco in caso di fallimento, o la metà dei danni in caso di successo."
+    },
+    {
+     "t": "p",
+     "txt": "Gli oggetti infiammabili nell'area che non sono indossati o trasportati iniziano a bruciare."
+    },
+    {
+     "t": "p",
+     "txt": "<b>Utilizzo di uno slot incantesimo di livello superiore.</b> I danni aumentano di 1d6 per ogni slot di livello superiore al 3º.",
+     "lead": "Utilizzo di uno slot incantesimo di livello superiore",
+     "sup": "nivel"
+    }
+   ],
+   "pies": {
+    "alcance": "150 piedi",
+    "bloques.0.txt": "Una scia di luce brillante parte dall'incantatore e sfreccia fino a un punto a sua scelta entro gittata, provocando un'esplosione infuocata con un profondo boato. Ogni creatura presente in una sfera dal raggio di 20 piedi e centrata su quel punto deve effettuare un tiro salvezza su Destrezza, subendo 8d6 danni da fuoco in caso di fallimento, o la metà dei danni in caso di successo."
+   }
+  }
+ }
+]

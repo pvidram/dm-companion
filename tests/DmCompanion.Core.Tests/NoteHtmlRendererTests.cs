@@ -106,4 +106,19 @@ public class NoteHtmlRendererTests
     [Fact]
     public void Render_for_players_keeps_public_text_before_mirrored_secret() =>
         Players("Público %% s1 `%%` LEAKPAIR %% público2").Should().Contain("Público");
+
+    [Fact]
+    public void Glossary_link_gets_the_srd_class() =>
+        NoteHtmlRenderer.Render("[[Derribado]]", RenderAudience.Dm, _ => WikilinkKind.Glossary)
+            .Should().Contain("<a href=\"#\" class=\"wikilink srd\" data-target=\"Derribado\">Derribado</a>");
+
+    [Fact]
+    public void Old_overload_still_marks_broken_links() =>
+        Dm("[[Nada]] y [[Algo]]", t => t == "Algo").Should().Contain("class=\"wikilink broken\" data-target=\"Nada\"")
+            .And.Contain("class=\"wikilink\" data-target=\"Algo\"");
+
+    [Fact]
+    public void Glossary_link_target_attribute_is_encoded() =>
+        NoteHtmlRenderer.Render("[[a&b \"c\"]]", RenderAudience.Dm, _ => WikilinkKind.Glossary)
+            .Should().Contain("data-target=\"a&amp;b &quot;c&quot;\"");
 }

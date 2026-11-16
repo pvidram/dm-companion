@@ -219,6 +219,34 @@ public sealed class TokenCardTests : TokenTestBase
         Shell.TokenCard.Should().BeNull();
     }
 
+    // --- Criaturas del SRD ---
+
+    [Fact]
+    public async Task Srd_token_shows_quick_stats_from_the_srd()
+    {
+        var cut = await CardAsync(NoteToken("t", "Aboleto", "srd:criaturas/aboleth", TokenSide.Enemy));
+
+        Stat(cut, "AC").Should().Be("17");
+    }
+
+    [Fact]
+    public async Task Srd_token_see_more_opens_the_glossary_entry()
+    {
+        var cut = await CardAsync(NoteToken("t", "Aboleto", "srd:criaturas/aboleth", TokenSide.Enemy));
+
+        ButtonText(cut, "Ver más").Click();
+
+        (Shell.ActivePanel, Shell.SelectedGlossaryKey).Should().Be((OverlayPanel.Glossary, "srd:criaturas/aboleth"));
+    }
+
+    [Fact]
+    public async Task Unknown_srd_key_shows_not_found()
+    {
+        var cut = await CardAsync(NoteToken("t", "Nada", "srd:criaturas/no-existe", TokenSide.Enemy));
+
+        cut.Markup.Should().Contain("Nota no encontrada");
+    }
+
     // --- Edición ---
 
     private static IEnumerable<string> FieldLabels(IRenderedComponent<TokenCard> cut) =>

@@ -1,6 +1,7 @@
 // PROVISIONAL: pendiente de contrastar con el manual del autor (spec §9.5).
 using System.Globalization;
 using System.Text;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Vault;
 
 namespace DmCompanion.Core.GameSystems;
@@ -41,6 +42,7 @@ public sealed class CosmereSystem : IGameSystem
     public SystemDefinition Definition { get; } = BuildDefinition();
     public HitPointsRule HitPoints { get; } = HitPointsRule.FromStat("Salud", "health");
     public GridRules Grid => GridRules.Feet5;
+    public IReadOnlyList<GlossaryCategory> GlossaryPacks => [];
     public ICombatRules Combat => BasicCombatRules.Instance;
 
     public StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter)

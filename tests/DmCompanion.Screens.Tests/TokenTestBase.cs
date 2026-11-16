@@ -34,6 +34,7 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddGlossaryForTests();
         Services.AddSoundForTests();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();

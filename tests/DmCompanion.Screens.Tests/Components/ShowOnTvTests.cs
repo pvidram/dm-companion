@@ -32,6 +32,7 @@ public sealed class ShowOnTvTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddGlossaryForTests();
         Services.AddSoundForTests();
         Services.AddScoped<WikilinkInterop>();
         Services.AddSingleton(TimeProvider.System);

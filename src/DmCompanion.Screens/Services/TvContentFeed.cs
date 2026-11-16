@@ -1,6 +1,8 @@
+using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using DmCompanion.Core.GameSystems;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Rendering;
 using DmCompanion.Core.Tv;
 using DmCompanion.Core.Vault;
@@ -20,8 +22,11 @@ public sealed partial class TvContentFeed(VaultHost host, NoteImageResolver imag
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Solo fichas de PJ y notas de lugar que no sean secretas.</summary>
-    public static bool CanShow(VaultEntity entity) => entity.Type is EntityType.Pc or EntityType.Location && !entity.IsSecret;
+    /// <summary>Fichas de PJ, notas de lugar y notas de regla que no sean secretas. Las de monstruo no: llevan datos del DM.</summary>
+    public static bool CanShow(VaultEntity entity) => entity.Type is EntityType.Pc or EntityType.Location or EntityType.Rule && !entity.IsSecret;
+
+    /// <summary>Toda entrada del SRD menos las criaturas, que son material del DM.</summary>
+    public static bool CanShow(GlossaryEntry entry) => entry.Category != GlossaryCategory.Creature;
 
     /// <summary>Carga la lista de imágenes del vault; hay que esperarla antes de <see cref="Build"/>.</summary>
     public Task PrepareAsync() => images.EnsureLoadedAsync();
@@ -47,6 +52,25 @@ public sealed partial class TvContentFeed(VaultHost host, NoteImageResolver imag
             : JsonSerializer.Serialize(new { kind = "content", title = entity.Title, html }, Json);
         return new TvContentMessage(json, whitelist, entity.Title);
     }
+
+    /// <summary>Mensaje de una entrada del SRD: su cabecera (conjuro u objeto) y sus bloques, con todo el texto codificado.</summary>
+    public TvContentMessage BuildGlossary(GlossaryEntry entry)
+    {
+        var header = entry.Spell?.Header ?? entry.Item?.Header;
+        var html = (header is null ? "" : $"<p><em>{WebUtility.HtmlEncode(header)}</em></p>") + SpellFields(entry.Spell)
+            + GlossaryHtmlRenderer.Render(entry.Blocks);
+        var json = JsonSerializer.Serialize(new { kind = "content", title = entry.Name, html }, Json);
+        return new TvContentMessage(json, new Dictionary<string, TvFile>(), entry.Name);
+    }
+
+    private static string SpellFields(SpellInfo? spell) => spell is null
+        ? ""
+        : "<dl>"
+            + $"<dt>Tiempo de lanzamiento</dt><dd>{WebUtility.HtmlEncode(spell.CastingTime)}</dd>"
+            + $"<dt>Alcance</dt><dd>{WebUtility.HtmlEncode(spell.Range)}</dd>"
+            + $"<dt>Componentes</dt><dd>{WebUtility.HtmlEncode(spell.Components)}</dd>"
+            + $"<dt>Duración</dt><dd>{WebUtility.HtmlEncode(spell.Duration)}</dd>"
+            + "</dl>";
 
     private object SheetOf(VaultEntity entity, Dictionary<string, TvFile> whitelist)
     {

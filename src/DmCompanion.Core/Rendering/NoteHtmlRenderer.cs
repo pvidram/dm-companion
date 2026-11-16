@@ -9,6 +9,9 @@ namespace DmCompanion.Core.Rendering;
 
 public enum RenderAudience { Dm, Players }
 
+/// <summary>A dónde apunta un wikilink: una nota del vault, una entrada del glosario o a nada.</summary>
+public enum WikilinkKind { Note, Glossary, Broken }
+
 public static class NoteHtmlRenderer
 {
     // Caracteres de uso privado: Markdig los deja intactos y nunca aparecen en notas reales.
@@ -35,7 +38,11 @@ public static class NoteHtmlRenderer
         entity.IsSecret ? string.Empty : Render(entity.Body, RenderAudience.Players, linkExists, imageUrl);
 
     /// <param name="imageUrl">Recibe el destino de un <c>![[imagen]]</c> (sin el ancho) y devuelve su URL, o null si no se resuelve.</param>
-    public static string Render(string body, RenderAudience audience, Func<string, bool> linkExists, Func<string, string?>? imageUrl = null)
+    public static string Render(string body, RenderAudience audience, Func<string, bool> linkExists, Func<string, string?>? imageUrl = null) =>
+        Render(body, audience, target => linkExists(target) ? WikilinkKind.Note : WikilinkKind.Broken, imageUrl);
+
+    /// <param name="classify">Clasifica el destino de cada wikilink: nota, glosario o roto.</param>
+    public static string Render(string body, RenderAudience audience, Func<string, WikilinkKind> classify, Func<string, string?>? imageUrl = null)
     {
         body = StripPrivateMarkers(body);
         var prepared = audience == RenderAudience.Players ? SecretFilter.RemoveSecretBlocksForPlayers(body) : MarkSecrets(body);
@@ -43,7 +50,7 @@ public static class NoteHtmlRenderer
         var html = Markdown.ToHtml(ReplaceWikilinks(prepared, embeds), Pipeline);
         html = Href.Replace(html, SanitizeHref);
         html = Src.Replace(html, SanitizeSrc);
-        html = WikilinkAnchor.Replace(html, match => BuildAnchor(match, linkExists));
+        html = WikilinkAnchor.Replace(html, match => BuildAnchor(match, classify));
         html = RestoreEmbeds(html, embeds, imageUrl);
         return html
             .Replace(SecretOpen.ToString(), "<span class=\"dm-secret\">")
@@ -167,10 +174,15 @@ public static class NoteHtmlRenderer
             ? match.Value
             : "src=\"\"";
 
-    private static string BuildAnchor(Match match, Func<string, bool> linkExists)
+    private static string BuildAnchor(Match match, Func<string, WikilinkKind> classify)
     {
         var target = Uri.UnescapeDataString(match.Groups["target"].Value);
-        var css = linkExists(target) ? "wikilink" : "wikilink broken";
+        var css = classify(target) switch
+        {
+            WikilinkKind.Note => "wikilink",
+            WikilinkKind.Glossary => "wikilink srd",
+            _ => "wikilink broken",
+        };
         return $"<a href=\"#\" class=\"{css}\" data-target=\"{EncodeAttribute(target)}\">";
     }
 

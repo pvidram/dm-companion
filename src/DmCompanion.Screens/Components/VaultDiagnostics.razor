@@ -3,6 +3,7 @@
 @using DmCompanion.Screens.Platform
 @using Microsoft.Extensions.DependencyInjection
 @inject IServiceProvider Services
+@inject GlossaryService Glossary
 
 <TableFrame>
     <Map>
@@ -15,7 +16,6 @@
                 <InlineNotice Kind="NoticeKind.Error">@error</InlineNotice>
             }
 
-            <p>Versión: @Version</p>
             @if (Services.GetService<ILogFolder>() is { IsAvailable: true } logs)
             {
                 <Button Variant="ButtonVariant.Secondary" OnClick="() => OpenLogs(logs)">Abrir carpeta de registros</Button>
@@ -88,6 +88,23 @@
             {
                 <p>Sin vault abierto</p>
             }
+
+            @if (Glossary.Warnings is { Count: > 0 } glossaryWarnings)
+            {
+                <h3>Glosario</h3>
+                <ul>
+                    @foreach (var warning in glossaryWarnings)
+                    {
+                        <li>@warning</li>
+                    }
+                </ul>
+            }
+
+            <h3>Acerca de</h3>
+            <p>DM Companion</p>
+            <p>Versión: @Version</p>
+            <p>@Glossary.AttributionText</p>
+            <p>@GlossaryService.SrdUrl</p>
         </Parchment>
     </Overlays>
 </TableFrame>

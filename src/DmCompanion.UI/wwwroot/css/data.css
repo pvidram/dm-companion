@@ -19,6 +19,10 @@
     min-height: var(--touch-min); padding-left: var(--space-3); border-radius: 999px;
     background-color: var(--surface-sheet-sunken); color: var(--text-ink); font-size: var(--font-size-small); font-weight: 600;
 }
+.ds-condition__name {
+    min-height: var(--touch-min); padding: 0; border: 0; background: none; color: inherit; font: inherit;
+    text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer;
+}
 
 /* Contenedor parchment: dos columnas de stats en pergaminos de 600 px o más. */
 .ds-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--space-2); }

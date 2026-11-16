@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using System.Text.Json;
 using DmCompanion.Core.Maps;
 using DmCompanion.Core.Tv;
@@ -22,7 +23,7 @@ public sealed class TvMapFeedTests : IAsyncLifetime
     {
         _host = new VaultHost(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance), new InMemoryAppPreferences(), NullLogger<VaultHost>.Instance);
         _images = new NoteImageResolver(_host);
-        _feed = new TvMapFeed(_host, new TokenHitPoints(_host), _images);
+        _feed = new TvMapFeed(_host, new TokenHitPoints(_host, GlossaryTestServices.CreateGlossary(_host)), _images);
     }
 
     Task IAsyncLifetime.InitializeAsync() => _host.OpenAsync(_vault.Root);

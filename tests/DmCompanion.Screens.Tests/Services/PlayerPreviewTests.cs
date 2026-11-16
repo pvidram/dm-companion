@@ -1,3 +1,4 @@
+using DmCompanion.Screens.Tests.Support;
 using System.Text.Json;
 using DmCompanion.Core.Maps;
 using DmCompanion.Infrastructure;
@@ -22,7 +23,7 @@ public sealed class PlayerPreviewTests : IAsyncLifetime
         _host = new VaultHost(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance), _prefs, NullLogger<VaultHost>.Instance);
         _session = new MapSession(_host, _prefs, TimeProvider.System, NullLogger<MapSession>.Instance);
         _images = new NoteImageResolver(_host);
-        _preview = new PlayerPreview(_session, _host, new TokenHitPoints(_host), _images);
+        _preview = new PlayerPreview(_session, _host, new TokenHitPoints(_host, GlossaryTestServices.CreateGlossary(_host)), _images);
     }
 
     async Task IAsyncLifetime.InitializeAsync() => await _host.OpenAsync(_vault.Root);

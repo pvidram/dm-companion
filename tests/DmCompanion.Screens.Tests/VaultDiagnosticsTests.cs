@@ -1,9 +1,11 @@
 using Bunit;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
 using DmCompanion.Screens.Components;
 using DmCompanion.Screens.Platform;
 using DmCompanion.Screens.Services;
+using DmCompanion.Screens.Tests.Support;
 using DmCompanion.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -23,6 +25,7 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddGlossaryForTests();
         Services.AddScoped<WikilinkInterop>();
     }
 
@@ -143,6 +146,39 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         var cut = await RenderAsync();
 
         cut.Markup.Should().Contain("Versión:");
+    }
+
+    [Fact]
+    public async Task About_section_shows_the_attribution()
+    {
+        var cut = await RenderAsync();
+
+        cut.Markup.Should().Contain("Acerca de").And.Contain("Creative Commons").And.Contain("https://www.dndbeyond.com/srd");
+    }
+
+    [Fact]
+    public async Task Glossary_warnings_are_listed()
+    {
+        Services.AddSingleton<IGlossaryPackSource>(new NoSpellsSource());
+        await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+        // Diagnóstico solo informa de los paquetes ya intentados: se provoca la carga de conjuros antes.
+        Services.GetRequiredService<GlossaryService>().GetSrd("srd:conjuros/fireball");
+        var cut = await RenderAsync();
+
+        cut.Markup.Should().Contain("<h3>Glosario</h3>").And.Contain("conjuros");
+    }
+
+    [Fact]
+    public async Task Without_glossary_warnings_there_is_no_Glosario_section()
+    {
+        var cut = await RenderAsync();
+
+        cut.Markup.Should().NotContain("<h3>Glosario</h3>");
+    }
+
+    private sealed class NoSpellsSource : IGlossaryPackSource
+    {
+        public Stream? Open(string packName) => packName == "conjuros" ? null : new EmbeddedGlossaryPackSource().Open(packName);
     }
 
     private sealed class FakeLogFolder : ILogFolder

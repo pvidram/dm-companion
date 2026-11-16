@@ -1,0 +1,1198 @@
+[
+ {
+  "id": "the-six-abilities",
+  "tipo": "regla",
+  "cap": "juego",
+  "es": {
+   "nombre": "Las seis características",
+   "p": 5,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Todas las criaturas (personajes y monstruos) tienen seis características que definen sus capacidades físicas y mentales, tal y como se muestra en la tabla “Descripciones de las características”."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Descripciones de las características",
+     "filas": [
+      [
+       "Característica",
+       "La puntuación mide..."
+      ],
+      [
+       "Fuerza",
+       "Poderío físico"
+      ],
+      [
+       "Destreza",
+       "Agilidad, reflejos y equilibrio"
+      ],
+      [
+       "Constitución",
+       "Salud y aguante"
+      ],
+      [
+       "Inteligencia",
+       "Raciocinio y memoria"
+      ],
+      [
+       "Sabiduría",
+       "Perspicacia y fortaleza mental"
+      ],
+      [
+       "Carisma",
+       "Confianza, aplomo y encanto"
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Puntuaciones de característica",
+     "p": 5
+    },
+    {
+     "t": "p",
+     "txt": "Cada característica tiene una puntuación de 1 a 20, aunque las de algunos monstruos llegan a 30. La puntuación representa la magnitud de una característica. La tabla “Puntuaciones de característica” resume el significado de las puntuaciones."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Puntuaciones de característica",
+     "filas": [
+      [
+       "Puntuación",
+       "Significado"
+      ],
+      [
+       "1",
+       "Este es, por lo general, el mínimo que puede tener una puntuación. Si un efecto la reduce a 0, explica lo que ocurre."
+      ],
+      [
+       "2–9",
+       "Representa una capacidad débil."
+      ],
+      [
+       "10–11",
+       "Representa la media humana."
+      ],
+      [
+       "12–19",
+       "Representa una capacidad fuerte."
+      ],
+      [
+       "20",
+       "Este es el máximo que pueden tener las puntuaciones de los aventureros salvo que un rasgo indique lo contrario."
+      ],
+      [
+       "21–29",
+       "Representa una capacidad extraordinaria."
+      ],
+      [
+       "30",
+       "Este es el máximo que pueden tener las puntuaciones."
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "recuadro",
+     "titulo": "Redondear hacia abajo",
+     "bloques": [
+      {
+       "t": "p",
+       "txt": "Siempre que tengas que dividir o multiplicar un número en la partida, redondéalo hacia abajo si no es entero, incluso cuando la parte decimal sea 5 o más. Algunas reglas plantean excepciones e indican que redondees hacia arriba."
+      }
+     ]
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Modificadores por característica",
+     "p": 6
+    },
+    {
+     "t": "p",
+     "txt": "Cada característica posee un modificador que aplicas al realizar una prueba con d20 de esa característica (se explica en el apartado “Las pruebas con d20”). El modificador por característica se deriva de su puntuación, tal y como se muestra en la tabla “Modificadores por característica”."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Modificadores por característica",
+     "filas": [
+      [
+       "Puntuación",
+       "Modificador"
+      ],
+      [
+       "1",
+       "−5"
+      ],
+      [
+       "2–3",
+       "−4"
+      ],
+      [
+       "4–5",
+       "−3"
+      ],
+      [
+       "6–7",
+       "−2"
+      ],
+      [
+       "8–9",
+       "−1"
+      ],
+      [
+       "10–11",
+       "+0"
+      ],
+      [
+       "12–13",
+       "+1"
+      ],
+      [
+       "14–15",
+       "+2"
+      ],
+      [
+       "16–17",
+       "+3"
+      ],
+      [
+       "18–19",
+       "+4"
+      ],
+      [
+       "20–21",
+       "+5"
+      ],
+      [
+       "22–23",
+       "+6"
+      ],
+      [
+       "24–25",
+       "+7"
+      ],
+      [
+       "26–27",
+       "+8"
+      ],
+      [
+       "28–29",
+       "+9"
+      ],
+      [
+       "30",
+       "+10"
+      ]
+     ],
+     "p": 6
+    }
+   ],
+   "pies": {}
+  },
+  "en": {
+   "nombre": "The Six Abilities",
+   "p": 5,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "All creatures (characters and monsters) have six abilities that measure physical and mental characteristics, as shown on the Ability Descriptions table."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Ability Descriptions",
+     "filas": [
+      [
+       "Ability",
+       "Score Measures …"
+      ],
+      [
+       "Strength",
+       "Physical might"
+      ],
+      [
+       "Dexterity",
+       "Agility, reflexes, and balance"
+      ],
+      [
+       "Constitution",
+       "Health and stamina"
+      ],
+      [
+       "Intelligence",
+       "Reasoning and memory"
+      ],
+      [
+       "Wisdom",
+       "Perceptiveness and mental fortitude"
+      ],
+      [
+       "Charisma",
+       "Confidence, poise, and charm"
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Ability Scores",
+     "p": 5
+    },
+    {
+     "t": "p",
+     "txt": "Each ability has a score from 1 to 20, although some monsters have a score as high as 30. The score represents the magnitude of an ability. The Ability Scores table summarizes what the scores mean."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Ability Scores",
+     "filas": [
+      [
+       "Score",
+       "Meaning"
+      ],
+      [
+       "1",
+       "This is the lowest a score can normally go. If an effect reduces a score to 0, that effect explains what happens."
+      ],
+      [
+       "2–9",
+       "This represents a weak capability."
+      ],
+      [
+       "10–11",
+       "This represents the human average."
+      ],
+      [
+       "12–19",
+       "This represents a strong capability."
+      ],
+      [
+       "20",
+       "This is the highest an adventurer’s score can go unless a feature says otherwise."
+      ],
+      [
+       "21–29",
+       "This represents an extraordinary capability."
+      ],
+      [
+       "30",
+       "This is the highest a score can go."
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Ability Modifiers",
+     "p": 5
+    },
+    {
+     "t": "p",
+     "txt": "Each ability has a modifier that you apply whenever you make a D20 Test with that ability (explained in “D20 Tests”). An ability modifier is derived from its score, as shown in the Ability Modifiers table."
+    },
+    {
+     "t": "recuadro",
+     "titulo": "Round Down",
+     "bloques": [
+      {
+       "t": "p",
+       "txt": "Whenever you divide or multiply a number in the game, round down if you end up with a fraction, even if the fraction is one-half or greater. Some rules make an exception and tell you to round up."
+      }
+     ]
+    },
+    {
+     "t": "tabla",
+     "titulo": "Ability Modifiers",
+     "filas": [
+      [
+       "Score",
+       "Modifier"
+      ],
+      [
+       "1",
+       "−5"
+      ],
+      [
+       "2–3",
+       "−4"
+      ],
+      [
+       "4–5",
+       "−3"
+      ],
+      [
+       "6–7",
+       "−2"
+      ],
+      [
+       "8–9",
+       "−1"
+      ],
+      [
+       "10–11",
+       "+0"
+      ],
+      [
+       "12–13",
+       "+1"
+      ],
+      [
+       "14–15",
+       "+2"
+      ],
+      [
+       "16–17",
+       "+3"
+      ],
+      [
+       "18–19",
+       "+4"
+      ],
+      [
+       "20–21",
+       "+5"
+      ],
+      [
+       "22–23",
+       "+6"
+      ],
+      [
+       "24–25",
+       "+7"
+      ],
+      [
+       "26–27",
+       "+8"
+      ],
+      [
+       "28–29",
+       "+9"
+      ],
+      [
+       "30",
+       "+10"
+      ]
+     ],
+     "p": 6
+    }
+   ]
+  },
+  "de": {
+   "nombre": "Die sechs Attribute",
+   "p": 5,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Alle Kreaturen – Charaktere und Monster – haben sechs Attribute, die ihre physischen und mentalen Eigenschaften messen, wie in der Tabelle „Attributsbeschreibungen“ dargestellt."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Attributsbeschreibungen",
+     "filas": [
+      [
+       "Attribut",
+       "Der Wert misst ..."
+      ],
+      [
+       "Stärke",
+       "Körperliche Kraft"
+      ],
+      [
+       "Geschicklichkeit",
+       "Beweglichkeit, Reflexe und Gleichgewichtssinn"
+      ],
+      [
+       "Konstitution",
+       "Gesundheit und Ausdauer"
+      ],
+      [
+       "Intelligenz",
+       "Logisches Denken und Erinnerungsvermögen"
+      ],
+      [
+       "Weisheit",
+       "Wahrnehmungsvermögen und Geisteskraft"
+      ],
+      [
+       "Charisma",
+       "Selbstvertrauen, Selbstsicherheit, Charme"
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Attributswerte",
+     "p": 5
+    },
+    {
+     "t": "p",
+     "txt": "Jedes Attribut hat einen Wert von 1 bis 20, wobei bei manchen Monstern sogar Werte bis zu 30 möglich sind. Der Wert gibt das Ausmaß eines Attributs an. In der Tabelle „Attributswerte“ ist zusammengefasst, was die Werte bedeuten."
+    },
+    {
+     "t": "recuadro",
+     "titulo": "Abrunden",
+     "bloques": [
+      {
+       "t": "p",
+       "txt": "Wenn eine Zahl im Spiel multipliziert oder geteilt wird, rundest du das Ergebnis gegebenenfalls ab. Selbst bei Dezimalstellen größer als fünf wird abgerundet. Manche Regeln machen eine Ausnahme und besagen, dass du aufrunden sollst."
+      }
+     ]
+    },
+    {
+     "t": "tabla",
+     "titulo": "Attributswerte",
+     "filas": [
+      [
+       "Wert",
+       "Bedeutung"
+      ],
+      [
+       "1",
+       "Dies ist normalerweise der niedrigstmögliche Wert. Wenn ein Effekt einen Wert auf 0 verringert, erläutert dieser Effekt, was geschieht."
+      ],
+      [
+       "2–9",
+       "Dies entspricht einer schwachen Fähigkeit."
+      ],
+      [
+       "10–11",
+       "Dies entspricht dem menschlichen Durchschnitt."
+      ],
+      [
+       "12–19",
+       "Dies entspricht einer starken Fähigkeit."
+      ],
+      [
+       "20",
+       "Dies ist der höchste Wert, den ein Abenteurer erreichen kann, es sei denn, ein Merkmal besagt etwas anderes."
+      ],
+      [
+       "21–29",
+       "Dies stellt eine außergewöhnlich starke Fähigkeit dar."
+      ],
+      [
+       "30",
+       "Dies ist der höchstmögliche Wert."
+      ]
+     ],
+     "p": 6
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Attributsmodifikatoren",
+     "p": 6
+    },
+    {
+     "t": "p",
+     "txt": "Jedes Attribut hat einen Modifikator, der zum Einsatz kommt, wann immer eine W20-Prüfung mit diesem Attribut ausgeführt wird (erläutert unter „W20-Prüfungen“). Ein Attributsmodifikator leitet sich vom Wert des Attributs ab wie in der Tabelle „Attributsmodifikatoren“ dargestellt."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Attributsmodifikatoren",
+     "filas": [
+      [
+       "Wert",
+       "Modifikator"
+      ],
+      [
+       "1",
+       "−5"
+      ],
+      [
+       "2–3",
+       "−4"
+      ],
+      [
+       "4–5",
+       "−3"
+      ],
+      [
+       "6–7",
+       "−2"
+      ],
+      [
+       "8–9",
+       "−1"
+      ],
+      [
+       "10–11",
+       "+0"
+      ],
+      [
+       "12–13",
+       "+1"
+      ],
+      [
+       "14–15",
+       "+2"
+      ],
+      [
+       "16–17",
+       "+3"
+      ],
+      [
+       "18–19",
+       "+4"
+      ],
+      [
+       "20–21",
+       "+5"
+      ],
+      [
+       "22–23",
+       "+6"
+      ],
+      [
+       "24–25",
+       "+7"
+      ],
+      [
+       "26–27",
+       "+8"
+      ],
+      [
+       "28–29",
+       "+9"
+      ],
+      [
+       "30",
+       "+10"
+      ]
+     ],
+     "p": 6
+    }
+   ],
+   "pies": {}
+  },
+  "fr": {
+   "nombre": "Les six caractéristiques",
+   "p": 5,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Toutes les créatures, personnages comme monstres, sont dotées de six caractéristiques représentant leurs attributs physiques et mentaux, comme indiqué sur la table Description des caractéristiques."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Description des caractéristiques",
+     "filas": [
+      [
+       "Caractéristique",
+       "Valeur représentant…"
+      ],
+      [
+       "Force",
+       "La puissance physique"
+      ],
+      [
+       "Dextérité",
+       "L’agilité, les réflexes et l’équilibre"
+      ],
+      [
+       "Constitution",
+       "La santé et l’endurance"
+      ],
+      [
+       "Intelligence",
+       "Les capacités de raisonnement et la mémoire"
+      ],
+      [
+       "Sagesse",
+       "Le discernement et la fermeté mentale"
+      ],
+      [
+       "Charisme",
+       "La confiance en soi, l’aplomb et le charme naturel"
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Valeurs de caractéristique",
+     "p": 5
+    },
+    {
+     "t": "p",
+     "txt": "Chaque caractéristique est représentée par une valeur allant de 1 à 20 (ce maximum peut monter jusqu’à 30 dans le cas de certains monstres). Cette valeur est un ordre de grandeur relatif. La table Valeurs de caractéristique résume la signification de ces valeurs."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Valeurs de caractéristique",
+     "filas": [
+      [
+       "Valeur",
+       "Signification"
+      ],
+      [
+       "1",
+       "Il s’agit de la valeur minimale en conditions normales. Quand un effet réduit une valeur à 0, la description de l’effet explique ce qui se passe."
+      ],
+      [
+       "2–9",
+       "Capacités faibles."
+      ],
+      [
+       "10–11",
+       "Moyenne humaine."
+      ],
+      [
+       "12–19",
+       "Capacités remarquables."
+      ],
+      [
+       "20",
+       "Valeur maximale pour un aventurier, sauf mention contraire d’une aptitude."
+      ],
+      [
+       "21–29",
+       "Capacités extraordinaires."
+      ],
+      [
+       "30",
+       "Valeur théorique maximale."
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Modificateurs de caractéristique",
+     "p": 5
+    },
+    {
+     "t": "p",
+     "txt": "Chaque caractéristique s’accompagne d’un modificateur qui s’applique chaque fois que vous effectuez un Test d20 associé à cette caractéristique (voir « Tests d20 »). Le modificateur d’une caractéristique dérive de sa valeur, comme le montre la table Modificateurs de caractéristique."
+    },
+    {
+     "t": "recuadro",
+     "titulo": "Arrondis à l’inférieur",
+     "bloques": [
+      {
+       "t": "p",
+       "txt": "Chaque fois que vous divisez ou multipliez un nombre dans le jeu et que vous obtenez une fraction, arrondissez à l’entier inférieur même si cette fraction est d’un demi ou plus. Certaines règles constituent une exception en vous indiquant d’arrondir à l’entier supérieur."
+      }
+     ]
+    },
+    {
+     "t": "tabla",
+     "titulo": "Modificateurs de caractéristique",
+     "filas": [
+      [
+       "Valeur",
+       "Modificateur"
+      ],
+      [
+       "1",
+       "−5"
+      ],
+      [
+       "2–3",
+       "−4"
+      ],
+      [
+       "4–5",
+       "−3"
+      ],
+      [
+       "6–7",
+       "−2"
+      ],
+      [
+       "8–9",
+       "−1"
+      ],
+      [
+       "10–11",
+       "+0"
+      ],
+      [
+       "12–13",
+       "+1"
+      ],
+      [
+       "14–15",
+       "+2"
+      ],
+      [
+       "16–17",
+       "+3"
+      ],
+      [
+       "18–19",
+       "+4"
+      ],
+      [
+       "20–21",
+       "+5"
+      ],
+      [
+       "22–23",
+       "+6"
+      ],
+      [
+       "24–25",
+       "+7"
+      ],
+      [
+       "26–27",
+       "+8"
+      ],
+      [
+       "28–29",
+       "+9"
+      ],
+      [
+       "30",
+       "+10"
+      ]
+     ],
+     "p": 6
+    }
+   ],
+   "pies": {}
+  },
+  "it": {
+   "nombre": "Le sei caratteristiche",
+   "p": 5,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Tutte le creature, personaggi e mostri, hanno sei caratteristiche che ne misurano le facoltà fisiche e mentali, come indicato nella tabella Descrizioni delle caratteristiche."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Descrizioni delle caratteristiche",
+     "filas": [
+      [
+       "Caratteristica",
+       "Il punteggio misura..."
+      ],
+      [
+       "Forza",
+       "Potenza fisica"
+      ],
+      [
+       "Destrezza",
+       "Agilità, riflessi ed equilibrio"
+      ],
+      [
+       "Costituzione",
+       "Salute e resistenza fisica"
+      ],
+      [
+       "Intelligenza",
+       "Ragionamento e memoria"
+      ],
+      [
+       "Saggezza",
+       "Percezione e fortezza mentale"
+      ],
+      [
+       "Carisma",
+       "Disinvoltura, padronanza di sé e fascino"
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Punteggi di caratteristica",
+     "p": 5
+    },
+    {
+     "t": "p",
+     "txt": "Ogni caratteristica ha un punteggio che va da 1 a 20, anche se alcuni mostri hanno un punteggio che arriva fino a un massimo di 30. Il punteggio rappresenta la scala di una caratteristica. La tabella Punteggi di caratteristica riassume il significato dei punteggi."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Punteggi di caratteristica",
+     "filas": [
+      [
+       "Punteggio",
+       "Significato"
+      ],
+      [
+       "1",
+       "È il punteggio più basso che di norma può essere raggiunto. Se un effetto riduce un punteggio a 0, quell'effetto spiega cosa accade."
+      ],
+      [
+       "2–9",
+       "Rappresenta delle capacità deboli."
+      ],
+      [
+       "10–11",
+       "Rappresenta un valore medio per un umano normale."
+      ],
+      [
+       "12–19",
+       "Rappresenta delle capacità forti."
+      ],
+      [
+       "20",
+       "È il punteggio massimo che un avventuriero può raggiungere, a meno che un privilegio non indichi diversamente."
+      ],
+      [
+       "21–29",
+       "Rappresenta delle capacità straordinarie."
+      ],
+      [
+       "30",
+       "È il punteggio massimo che può essere raggiunto."
+      ]
+     ],
+     "p": 5
+    },
+    {
+     "t": "recuadro",
+     "titulo": "Arrotondare per difetto",
+     "bloques": [
+      {
+       "t": "p",
+       "txt": "Ogni volta che è necessario dividere o moltiplicare un numero nel gioco, si deve arrotondare per difetto se il risultato è una frazione, anche nel caso in cui la frazione raggiunga o superi la metà. Alcune regole fanno eccezione e specificano di arrotondare per eccesso."
+      }
+     ]
+    },
+    {
+     "t": "h",
+     "n": 1,
+     "txt": "Modificatori di caratteristica",
+     "p": 6
+    },
+    {
+     "t": "p",
+     "txt": "A ogni caratteristica è abbinato un modificatore che si applica ogni volta che si effettua una prova con d20 con quella caratteristica (come spiegato nel capitolo \"Prove con d20\"). Un modificatore di caratteristica deriva dal suo punteggio, come indicato nella tabella \"Modificatori di caratteristica\"."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Modificatori di caratteristica",
+     "filas": [
+      [
+       "Punteggio",
+       "Modificatore"
+      ],
+      [
+       "1",
+       "−5"
+      ],
+      [
+       "2–3",
+       "−4"
+      ],
+      [
+       "4–5",
+       "−3"
+      ],
+      [
+       "6–7",
+       "−2"
+      ],
+      [
+       "8–9",
+       "−1"
+      ],
+      [
+       "10–11",
+       "+0"
+      ],
+      [
+       "12–13",
+       "+1"
+      ],
+      [
+       "14–15",
+       "+2"
+      ],
+      [
+       "16–17",
+       "+3"
+      ],
+      [
+       "18–19",
+       "+4"
+      ],
+      [
+       "20–21",
+       "+5"
+      ],
+      [
+       "22–23",
+       "+6"
+      ],
+      [
+       "24–25",
+       "+7"
+      ],
+      [
+       "26–27",
+       "+8"
+      ],
+      [
+       "28–29",
+       "+9"
+      ],
+      [
+       "30",
+       "+10"
+      ]
+     ],
+     "p": 6
+    }
+   ],
+   "pies": {}
+  }
+ },
+ {
+  "id": "coins",
+  "tipo": "regla",
+  "cap": "equipo",
+  "es": {
+   "nombre": "Monedas",
+   "p": 97,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Los personajes suelen encontrar monedas durante sus aventuras y pueden gastarlas en tiendas, tabernas y otros negocios. Las monedas tienen distintas denominaciones, que se basan en el valor relativo de sus materiales. La tabla “Valores de monedas” recoge las monedas y lo que valen en relación con la pieza de oro, que es la moneda principal del juego. Por ejemplo, 100 piezas de cobre equivalen a 1 pieza de oro."
+    },
+    {
+     "t": "p",
+     "txt": "Una moneda pesa aproximadamente 10 g, por lo que 50 monedas pesan 0,5 kg."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Valores de monedas",
+     "filas": [
+      [
+       "Moneda",
+       "Valor en po"
+      ],
+      [
+       "Pieza de cobre (pc)",
+       "1/100"
+      ],
+      [
+       "Pieza de plaza (pp)",
+       "1/10"
+      ],
+      [
+       "Pieza de electro (pe)",
+       "1/2"
+      ],
+      [
+       "Pieza de oro (po)",
+       "1"
+      ],
+      [
+       "Pieza de platino (ppt)",
+       "10"
+      ]
+     ],
+     "p": 97
+    }
+   ],
+   "pies": {
+    "bloques.1.txt": "Una moneda pesa aproximadamente un tercio de onza, por lo que 50 monedas pesan 1 libra."
+   }
+  },
+  "en": {
+   "nombre": "Coins",
+   "p": 89,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Characters often find coins on their adventures and can spend those coins in shops, inns, and other businesses. Coins come in different denominations based on the relative worth of their material. The Coin Values table lists coins and how much they’re worth relative to the Gold Piece, which is the game’s main coin. For example, 100 Copper Pieces are worth 1 Gold Piece."
+    },
+    {
+     "t": "p",
+     "txt": "A coin weighs about a third of an ounce, so fifty coins weigh a pound."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Coin Values",
+     "filas": [
+      [
+       "Coin",
+       "Value in GP"
+      ],
+      [
+       "Copper Piece (CP)",
+       "1/100"
+      ],
+      [
+       "Silver Piece (SP)",
+       "1/10"
+      ],
+      [
+       "Electrum Piece (EP)",
+       "1/2"
+      ],
+      [
+       "Gold Piece (GP)",
+       "1"
+      ],
+      [
+       "Platinum Piece (PP)",
+       "10"
+      ]
+     ],
+     "p": 89
+    }
+   ]
+  },
+  "de": {
+   "nombre": "Münzen",
+   "p": 101,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Charaktere finden bei ihren Abenteuern oft Münzen, die sie in Läden, Gasthäusern und anderen Geschäften ausgeben können. Münzen gibt es in unterschiedlichen Nennwerten, die auf dem Wert ihres Materials beruhen. In der Tabelle „Münzwerte“ sind die Münzen und ihr jeweiliger Wert im Verhältnis zur Goldmünze aufgeführt, der wichtigsten Münze des Spiels. Beispiel: 100 Kupfermünzen haben den Wert von 1 Goldmünze."
+    },
+    {
+     "t": "p",
+     "txt": "Eine Münze wiegt acht bis zehn Gramm. Fünfzig Münzen wiegen daher etwa ein halbes Kilo."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Münzwerte",
+     "filas": [
+      [
+       "Münze",
+       "Wert in GM"
+      ],
+      [
+       "Kupfermünze (KM)",
+       "1/100"
+      ],
+      [
+       "Silbermünze (SM)",
+       "1/10"
+      ],
+      [
+       "Elektrummünze (EM)",
+       "1/2"
+      ],
+      [
+       "Goldmünze (GM)",
+       "1"
+      ],
+      [
+       "Platinmünze (PM)",
+       "10"
+      ]
+     ],
+     "p": 101
+    }
+   ],
+   "pies": {
+    "bloques.1.txt": "Eine Münze wiegt etwa eine Drittelunze. Fünfzig Münzen wiegen daher etwa ein Pfund."
+   }
+  },
+  "fr": {
+   "nombre": "Pièces de monnaie",
+   "p": 95,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Les personnages accumulent de la monnaie au fil de leurs aventures, qu’ils pourront dépenser dans les boutiques, auberges et autres commerces. Ces pièces portent des noms différents, selon la valeur relative des métaux qui les composent. La table « Monnaie et valeurs » dresse la liste des pièces et de leur valeur relative par rapport à la pièce d’or, base monétaire du jeu. 100 pièces de cuivre, par exemple, valent 1 pièce d’or."
+    },
+    {
+     "t": "p",
+     "txt": "Une pièce pèse environ 10 grammes, si bien que cent pièces font un kilogramme."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Monnaie et valeurs",
+     "filas": [
+      [
+       "Pièce",
+       "Valeur en po"
+      ],
+      [
+       "Pièce de cuivre (pc)",
+       "1/100"
+      ],
+      [
+       "Pièce d’argent (pa)",
+       "1/10"
+      ],
+      [
+       "Pièce d’électrum (pe)",
+       "1/2"
+      ],
+      [
+       "Pièce d’or (po)",
+       "1"
+      ],
+      [
+       "Pièce de platine (pp)",
+       "10"
+      ]
+     ],
+     "p": 95
+    }
+   ],
+   "pies": {
+    "bloques.1.txt": "Une pièce pèse environ un tiers d’once, si bien que cinquante pièces font une livre."
+   }
+  },
+  "it": {
+   "nombre": "Monete",
+   "p": 101,
+   "bloques": [
+    {
+     "t": "p",
+     "txt": "Spesso i personaggi trovano monete durante le loro avventure e possono spenderle in negozi, locande e altre attività commerciali. Le monete hanno diverse denominazioni in base al valore del materiale di cui sono composte. Nella tabella Valore della moneta sono elencati i tipi di monete e il relativo valore in monete d'oro, ovvero la valuta principale del gioco. Per esempio, 100 monete di rame equivalgono a 1 moneta d'oro."
+    },
+    {
+     "t": "p",
+     "txt": "Una moneta pesa circa dieci grammi, quindi cinquanta monete pesano circa mezzo chilogrammo."
+    },
+    {
+     "t": "tabla",
+     "titulo": "Valore della moneta",
+     "filas": [
+      [
+       "Moneta",
+       "Valore in mo"
+      ],
+      [
+       "Moneta di rame (mr)",
+       "1/100"
+      ],
+      [
+       "Moneta d'argento (ma)",
+       "1/10"
+      ],
+      [
+       "Moneta di electrum (me)",
+       "1/2"
+      ],
+      [
+       "Moneta d'oro (mo)",
+       "1"
+      ],
+      [
+       "Moneta di platino (mp)",
+       "10"
+      ]
+     ],
+     "p": 101
+    }
+   ],
+   "pies": {
+    "bloques.1.txt": "Una moneta pesa circa un terzo di oncia, quindi cinquanta monete pesano circa una libbra."
+   }
+  }
+ }
+]

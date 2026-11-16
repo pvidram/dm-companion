@@ -1,10 +1,12 @@
 @inherits DmComponentBase
 @using DmCompanion.Core.GameSystems
+@using DmCompanion.Core.Glossary
 @using DmCompanion.Core.Maps
 @using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
 @inject MapSession Session
 @inject TokenHitPoints Hp
+@inject GlossaryService Glossary
 @inject CombatController Combat
 @inject MapCanvasInterop Canvas
 @inject DragPanelInterop DragPanel
@@ -39,9 +41,10 @@
         {
             @if (token.Source is { } source)
             {
-                @if (Index.Get(source) is { } entity)
+                // Frontmatter reconstruye el diccionario en cada lectura: una sola vez.
+                @if (Resolve(source).Frontmatter is { } frontmatter)
                 {
-                    var values = ActiveSystem.Evaluate(entity.Frontmatter);
+                    var values = ActiveSystem.Evaluate(frontmatter);
                     @HpRow(token, ActiveSystem.HitPoints.Label, Hp.MaxFor(token))
                     <div class="ds-stats" data-testid="token-stats">
                         @foreach (var stat in QuickStats(values))
@@ -66,9 +69,9 @@
                 </div>
             }
             <div class="token-card__actions">
-                @if (token.Source is { } note && Index.Get(note) is { } target)
+                @if (token.Source is { } note && Resolve(note) is { Kind: TokenSourceKind.VaultNote or TokenSourceKind.Srd } resolved)
                 {
-                    <Button Icon="IconName.ScrollText" OnClick="@(() => SeeMore(target))">Ver más</Button>
+                    <Button Icon="IconName.ScrollText" OnClick="@(() => SeeMore(resolved, note))">Ver más</Button>
                 }
                 @if (!Session.IsReadOnly)
                 {
@@ -330,9 +333,18 @@
         Shell.CloseTokenCard();
     }
 
-    private void SeeMore(VaultEntity entity)
+    private TokenSource Resolve(string source) => TokenSourceResolver.Resolve(source, Index, Glossary.GetSrd);
+
+    private void SeeMore(TokenSource resolved, string source)
     {
         Shell.CloseTokenCard();
+        if (resolved.Kind == TokenSourceKind.Srd)
+        {
+            Shell.OpenGlossary(source);
+            return;
+        }
+
+        var entity = resolved.Note!;
         if (entity.Type == EntityType.Pc)
         {
             Shell.SelectPc(entity.RelativePath);

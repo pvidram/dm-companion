@@ -11,34 +11,45 @@
         }
         else
         {
-            <div class="token-dialog__tabs" role="group" aria-label="Origen del token">
-                <Button Variant="@TabVariant(Tab.Note)" aria-pressed="@PressedOf(Tab.Note)" OnClick="@(() => _tab = Tab.Note)">Desde nota</Button>
-                <Button Variant="@TabVariant(Tab.Generic)" aria-pressed="@PressedOf(Tab.Generic)" OnClick="@(() => _tab = Tab.Generic)">Genérico</Button>
-            </div>
-            @if (_tab == Tab.Note)
+            @if (Shell.AddTokenPrefill is { } prefill)
             {
-                <SearchField Label="Buscar personaje o PNJ" Value="@_query" ValueChanged="OnQueryChanged" />
-                <div class="token-dialog__results">
-                    @foreach (var entity in Results())
-                    {
-                        <div @key="entity.RelativePath" class="token-dialog__result" data-testid="token-result" data-name="@entity.Title">
-                            <span class="token-dialog__name">@entity.Title</span>
-                            <Select TValue="TokenSide" Label="Bando" Value="@SideOf(entity)" Options="Sides" LabelOf="SideLabel"
-                                    ValueChanged="@(side => _sides[entity.RelativePath] = side)" />
-                            <Button Variant="ButtonVariant.Primary" OnClick="@(() => AddNoteAsync(entity))">Añadir</Button>
-                        </div>
-                    }
-                </div>
-                <Button Icon="IconName.Users" Disabled="@(MissingPcs().Count == 0)" OnClick="AddMissingPcsAsync">Añadir todos los PJ</Button>
+                <h3 class="token-dialog__heading">Desde el glosario</h3>
+                <p class="token-dialog__name" data-testid="token-prefill-name">@prefill.Name</p>
+                <Select TValue="TokenSide" Label="Bando" @bind-Value="_side" Options="Sides" LabelOf="SideLabel" />
+                <Select TValue="int" Label="Tamaño" @bind-Value="_size" Options="Sizes" LabelOf="SizeLabel" />
+                <Button Variant="ButtonVariant.Primary" OnClick="@(() => AddPrefillAsync(prefill))">Añadir</Button>
             }
             else
             {
-                <TextField Label="Nombre" @bind-Value="_name" />
-                <Select TValue="TokenSide" Label="Bando" @bind-Value="_side" Options="Sides" LabelOf="SideLabel" />
-                <Select TValue="int" Label="Tamaño" @bind-Value="_size" Options="Sizes" LabelOf="SizeLabel" />
-                <TextField Label="AC (opcional)" @bind-Value="_ac" />
-                <TextField Label="HP (opcional)" @bind-Value="_hp" />
-                <Button Variant="ButtonVariant.Primary" Disabled="@(!CanAddGeneric)" OnClick="AddGenericAsync">Añadir</Button>
+                <div class="token-dialog__tabs" role="group" aria-label="Origen del token">
+                    <Button Variant="@TabVariant(Tab.Note)" aria-pressed="@PressedOf(Tab.Note)" OnClick="@(() => _tab = Tab.Note)">Desde nota</Button>
+                    <Button Variant="@TabVariant(Tab.Generic)" aria-pressed="@PressedOf(Tab.Generic)" OnClick="@(() => _tab = Tab.Generic)">Genérico</Button>
+                </div>
+                @if (_tab == Tab.Note)
+                {
+                    <SearchField Label="Buscar personaje o PNJ" Value="@_query" ValueChanged="OnQueryChanged" />
+                    <div class="token-dialog__results">
+                        @foreach (var entity in Results())
+                        {
+                            <div @key="entity.RelativePath" class="token-dialog__result" data-testid="token-result" data-name="@entity.Title">
+                                <span class="token-dialog__name">@entity.Title</span>
+                                <Select TValue="TokenSide" Label="Bando" Value="@SideOf(entity)" Options="Sides" LabelOf="SideLabel"
+                                        ValueChanged="@(side => _sides[entity.RelativePath] = side)" />
+                                <Button Variant="ButtonVariant.Primary" OnClick="@(() => AddNoteAsync(entity))">Añadir</Button>
+                            </div>
+                        }
+                    </div>
+                    <Button Icon="IconName.Users" Disabled="@(MissingPcs().Count == 0)" OnClick="AddMissingPcsAsync">Añadir todos los PJ</Button>
+                }
+                else
+                {
+                    <TextField Label="Nombre" @bind-Value="_name" />
+                    <Select TValue="TokenSide" Label="Bando" @bind-Value="_side" Options="Sides" LabelOf="SideLabel" />
+                    <Select TValue="int" Label="Tamaño" @bind-Value="_size" Options="Sizes" LabelOf="SizeLabel" />
+                    <TextField Label="AC (opcional)" @bind-Value="_ac" />
+                    <TextField Label="HP (opcional)" @bind-Value="_hp" />
+                    <Button Variant="ButtonVariant.Primary" Disabled="@(!CanAddGeneric)" OnClick="AddGenericAsync">Añadir</Button>
+                }
             }
             @if (_added is { } added)
             {
@@ -76,12 +87,21 @@
     private ButtonVariant TabVariant(Tab tab) => _tab == tab ? ButtonVariant.Primary : ButtonVariant.Secondary;
 
     // Cada vez que se abre el diálogo se vuelve a la búsqueda vacía y sin el aviso de lo añadido.
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        OnVaultChanged();
+    }
+
     protected override void OnVaultChanged()
     {
         if (Shell.AddTokenOpen && !_wasOpen)
         {
             _query = string.Empty;
             _added = null;
+            // Desde el glosario el borrador manda el bando y el tamaño iniciales.
+            // Sin borrador se vuelve a los valores por defecto, no a los del último.
+            (_side, _size) = Shell.AddTokenPrefill is { } prefill ? (prefill.Side, prefill.Size) : (TokenSide.Enemy, 1);
         }
         _wasOpen = Shell.AddTokenOpen;
     }
@@ -95,9 +115,9 @@
     private IReadOnlyList<VaultEntity> Results()
     {
         IEnumerable<VaultEntity> found = string.IsNullOrWhiteSpace(_query)
-            ? [.. Index.OfType(EntityType.Pc), .. Index.OfType(EntityType.Npc)]
+            ? [.. Index.OfType(EntityType.Pc), .. Index.OfType(EntityType.Npc), .. Index.OfType(EntityType.Monster)]
             : Index.Search(_query);
-        return [.. found.Where(e => e.Type is EntityType.Pc or EntityType.Npc)];
+        return [.. found.Where(e => e.Type is EntityType.Pc or EntityType.Npc or EntityType.Monster)];
     }
 
     private static TokenSide DefaultSide(VaultEntity entity) => entity.Type == EntityType.Pc ? TokenSide.Pc : TokenSide.Enemy;
@@ -144,6 +164,18 @@
             return names.Count > 0;
         });
         _added = string.Join(", ", names);
+    }
+
+    private async Task AddPrefillAsync(TokenDraft prefill)
+    {
+        if (Session.IsReadOnly) return;
+        var (cx, cy) = await CenterAsync();
+        Session.Mutate(editor =>
+        {
+            Place(editor, prefill with { Side = _side, Size = _size }, cx, cy);
+            return true;
+        });
+        Shell.CloseAddToken();
     }
 
     private async Task AddGenericAsync()

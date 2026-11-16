@@ -1,3 +1,4 @@
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Vault;
 
 namespace DmCompanion.Core.GameSystems;
@@ -15,6 +16,9 @@ public interface IGameSystem
 
     /// <summary>Reglas de combate del sistema (condiciones, vida temporal, concentración).</summary>
     ICombatRules Combat { get; }
+
+    /// <summary>Paquetes del SRD que usa el glosario con este sistema.</summary>
+    IReadOnlyList<GlossaryCategory> GlossaryPacks { get; }
 
     StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter);
 

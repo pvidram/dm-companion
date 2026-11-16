@@ -1,4 +1,5 @@
 using System.Globalization;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Vault;
 
 namespace DmCompanion.Core.GameSystems;
@@ -11,6 +12,7 @@ public sealed class GenericSystem(string id) : IGameSystem
     public SystemDefinition Definition => SystemDefinition.Empty;
     public HitPointsRule HitPoints { get; } = HitPointsRule.FromStat("HP", "stats.hp");
     public GridRules Grid => GridRules.Feet5;
+    public IReadOnlyList<GlossaryCategory> GlossaryPacks => [];
     public ICombatRules Combat => BasicCombatRules.Instance;
 
     public StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter)

@@ -8,11 +8,15 @@
     <Project Path="src/DmCompanion.Screens/DmCompanion.Screens.csproj" />
     <Project Path="src/DmCompanion.UI/DmCompanion.UI.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/DmCompanion.SrdImport/DmCompanion.SrdImport.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DmCompanion.Core.Tests/DmCompanion.Core.Tests.csproj" />
     <Project Path="tests/DmCompanion.Desktop.Tests/DmCompanion.Desktop.Tests.csproj" />
     <Project Path="tests/DmCompanion.DevHost.Tests/DmCompanion.DevHost.Tests.csproj" />
     <Project Path="tests/DmCompanion.Infrastructure.Tests/DmCompanion.Infrastructure.Tests.csproj" />
+    <Project Path="tests/DmCompanion.SrdImport.Tests/DmCompanion.SrdImport.Tests.csproj" />
     <Project Path="tests/DmCompanion.Screens.Tests/DmCompanion.Screens.Tests.csproj" />
     <Project Path="tests/DmCompanion.UI.Tests/DmCompanion.UI.Tests.csproj" />
   </Folder>

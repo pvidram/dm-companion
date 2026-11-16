@@ -1,4 +1,5 @@
-﻿using DmCompanion.Core.Vault.Storage;
+﻿using DmCompanion.Core.Glossary;
+using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Core.Tv;
 using DmCompanion.Infrastructure;
 using DmCompanion.Infrastructure.Tv;
@@ -28,6 +29,9 @@ public static class MauiProgram
 		builder.Services.AddSingleton<TokenHitPoints>();
 		builder.Services.AddSingleton<CombatController>();
 		builder.Services.AddSingleton<MapLibrary>();
+		builder.Services.AddSingleton<IGlossaryPackSource, EmbeddedGlossaryPackSource>();
+		builder.Services.AddSingleton<GlossaryPackLoader>();
+		builder.Services.AddSingleton<GlossaryService>();
 		builder.Services.AddSingleton<AudioLibraryService>();
 		builder.Services.AddScoped<AudioMixer>();
 		builder.Services.AddSingleton<AudioStore>();

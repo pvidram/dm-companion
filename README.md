@@ -5,7 +5,7 @@ App Android para tablet que ayuda a dirigir partidas de D&D 5e (2024). Funcional
 - Notas de campaña tomadas de un vault de Obsidian.
 - Mapa con tokens.
 - Combate e iniciativa.
-- Glosario (SRD 5.2).
+- Glosario (SRD 5.2.1 en español, sin conexión).
 - Ambiente sonoro.
 - Vista de jugadores en una TV.
 
@@ -77,11 +77,20 @@ dotnet test tests/DmCompanion.Screens.Tests
 dotnet test tests/DmCompanion.DevHost.Tests
 dotnet test tests/DmCompanion.UI.Tests
 dotnet test tests/DmCompanion.Desktop.Tests
+dotnet test tests/DmCompanion.SrdImport.Tests
 node --test tests/js/*.test.js   # tests de JS (medición del mapa)
 
 # Pantallas en el navegador: http://localhost:5180
 dotnet watch --project src/DmCompanion.DevHost
 ```
+
+## Glosario
+
+El glosario (botón «Glosario» del menú) trae el SRD 5.2.1 en español dentro de la app, de solo lectura y sin conexión: reglas, estados, criaturas, conjuros, objetos mágicos, equipo y opciones de personaje. Permite buscar en español o en inglés, filtrar, copiar una entrada al vault para editarla, añadir una criatura al mapa como token y mostrar una entrada (menos las criaturas) en la TV. Las notas `rule` y `monster` del vault conviven con el SRD y mandan sobre él.
+
+- **Origen:** texto de [compendio-srd](https://github.com/Ismaelbase/compendio-srd) (MIT), commit `2d61b5dcabe91ab69d5c4a5a41822eb83c2038cc`, carpeta `datos/`, idioma `es`. El contenido del SRD 5.2.1 es de Wizards of the Coast y va bajo licencia CC BY 4.0; la atribución está en [NOTICE.md](NOTICE.md) y en «Acerca de» del Diagnóstico.
+- **Paquetes:** JSON embebidos en `src/DmCompanion.Core/Glossary/Packs/`. No llevan HTML: el texto va en spans y solo `GlossaryHtmlRenderer` genera HTML.
+- **Regenerarlos:** clonar compendio-srd en ese commit y ejecutar `dotnet run --project tools/DmCompanion.SrdImport -- <carpeta datos> src/DmCompanion.Core/Glossary/Packs`. Los `datos/*.json` de ese commit ya llevan aplicadas las correcciones; el importador no las aplica.
 
 ## Tablet
 
@@ -127,4 +136,5 @@ scripts/publish-desktop.sh   # genera dist/dm_companion_pc.zip (win-x64, autocon
 - Diseño: [docs/design/2026-11-03-dm-companion-design.md](docs/design/2026-11-03-dm-companion-design.md)
 - Fase 2 (mapa): [spec](docs/design/2026-11-12-fase-2-mapa-design.md)
 - Fase 3 (combate): [spec](docs/design/2026-11-13-fase-3-combate-design.md)
+- Fase 5 (glosario): [spec](docs/design/2026-11-16-fase-5-glosario-design.md)
 - Design system: [docs/design/2026-11-03-design-system-design.md](docs/design/2026-11-03-design-system-design.md)

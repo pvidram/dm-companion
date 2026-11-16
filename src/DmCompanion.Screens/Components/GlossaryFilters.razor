@@ -1,0 +1,67 @@
+@using DmCompanion.Core.Glossary
+
+@if (Category == GlossaryCategory.Creature)
+{
+    <div class="glossary-filters">
+        <Select TValue="decimal?" Label="VD desde" aria-label="VD desde" Options="CrOptions" LabelOf="CrLabel"
+                Value="Filter?.CrMin" ValueChanged="value => Emit(Current with { CrMin = value })" />
+        <Select TValue="decimal?" Label="VD hasta" aria-label="VD hasta" Options="CrOptions" LabelOf="CrLabel"
+                Value="Filter?.CrMax" ValueChanged="value => Emit(Current with { CrMax = value })" />
+        <Select TValue="string" Label="Tipo" aria-label="Tipo" Options="TypeOptions" LabelOf="TypeLabel"
+                Value="Filter?.CreatureType" ValueChanged="value => Emit(Current with { CreatureType = value })" />
+    </div>
+}
+else if (Category == GlossaryCategory.Spell)
+{
+    <div class="glossary-filters">
+        <Select TValue="int?" Label="Nivel" aria-label="Nivel" Options="LevelOptions" LabelOf="LevelLabel"
+                Value="Filter?.SpellLevel" ValueChanged="value => Emit(Current with { SpellLevel = value })" />
+        <Select TValue="string" Label="Clase" aria-label="Clase" Options="ClassOptions" LabelOf="ClassLabel"
+                Value="Filter?.SpellClass" ValueChanged="value => Emit(Current with { SpellClass = value })" />
+        <Checkbox Label="Ritual" Value="Filter?.Ritual == true"
+                  ValueChanged="value => Emit(Current with { Ritual = value ? true : null })" />
+        <Checkbox Label="Concentración" Value="Filter?.Concentration == true"
+                  ValueChanged="value => Emit(Current with { Concentration = value ? true : null })" />
+    </div>
+}
+else if (Category == GlossaryCategory.MagicItem)
+{
+    <div class="glossary-filters">
+        <Select TValue="string" Label="Rareza" aria-label="Rareza" Options="RarityOptions" LabelOf="RarityLabel"
+                Value="Filter?.Rarity" ValueChanged="value => Emit(Current with { Rarity = value })" />
+    </div>
+}
+
+@code {
+    private const string Any = "Cualquiera";
+
+    private static readonly IReadOnlyList<decimal?> CrOptions =
+        [null, 0m, 0.125m, 0.25m, 0.5m, .. Enumerable.Range(1, 30).Select(n => (decimal?)n)];
+
+    private static readonly IReadOnlyList<string?> TypeOptions = [null, .. GlossaryLabels.CreatureTypeKeys];
+    private static readonly IReadOnlyList<string?> ClassOptions = [null, .. GlossaryLabels.SpellClassKeys];
+    private static readonly IReadOnlyList<string?> RarityOptions = [null, .. GlossaryLabels.RarityKeys];
+    private static readonly IReadOnlyList<int?> LevelOptions = [null, .. Enumerable.Range(0, 10).Select(n => (int?)n)];
+
+    [Parameter] public GlossaryCategory? Category { get; set; }
+    [Parameter] public GlossaryFilter? Filter { get; set; }
+    [Parameter] public EventCallback<GlossaryFilter?> FilterChanged { get; set; }
+
+    private GlossaryFilter Current => Filter ?? new GlossaryFilter();
+
+    private Task Emit(GlossaryFilter filter) => FilterChanged.InvokeAsync(filter == new GlossaryFilter() ? null : filter);
+
+    private static string CrLabel(decimal? cr) => cr switch
+    {
+        null => Any,
+        0.125m => "1/8",
+        0.25m => "1/4",
+        0.5m => "1/2",
+        { } value => value.ToString("0", System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    private static string TypeLabel(string? key) => key is null ? Any : GlossaryLabels.CreatureType(key);
+    private static string ClassLabel(string? key) => key is null ? Any : GlossaryLabels.SpellClass(key);
+    private static string RarityLabel(string? key) => key is null ? Any : GlossaryLabels.Rarity(key);
+    private static string LevelLabel(int? level) => level switch { null => Any, 0 => "Truco", { } value => value.ToString() };
+}

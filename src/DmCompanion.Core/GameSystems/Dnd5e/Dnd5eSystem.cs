@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Vault;
 
 namespace DmCompanion.Core.GameSystems;
@@ -15,6 +16,7 @@ public sealed class Dnd5eSystem : IGameSystem
     public SystemDefinition Definition { get; } = BuildDefinition();
     public HitPointsRule HitPoints { get; } = HitPointsRule.FromStat("HP", "hp");
     public GridRules Grid => GridRules.Feet5;
+    public IReadOnlyList<GlossaryCategory> GlossaryPacks => Core.Glossary.GlossaryPacks.All;
     public ICombatRules Combat => Dnd5eCombatRules.Instance;
 
     public StatValues Evaluate(IReadOnlyDictionary<string, object?> frontmatter)

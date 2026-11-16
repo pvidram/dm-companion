@@ -4,6 +4,7 @@
 @inject WikilinkInterop Wikilinks
 @inject MapSession Maps
 @inject NoteImageResolver Images
+@inject GlossaryService Glossary
 
 @if (Entity is { } entity)
 {
@@ -19,7 +20,10 @@
     private DotNetObjectReference<NoteBody>? _self;
 
     private MarkupString Html(VaultEntity entity) =>
-        new(NoteHtmlRenderer.Render(entity.Body, RenderAudience.Dm, target => Index.Resolve(target) is not null, Images.TabletUrls()));
+        new(NoteHtmlRenderer.Render(entity.Body, RenderAudience.Dm, Classify, Images.TabletUrls()));
+
+    private WikilinkKind Classify(string target) =>
+        WikilinkClassifier.Classify(Index, Glossary, target);
 
     protected override Task OnParametersSetAsync() => Images.EnsureLoadedAsync();
 
@@ -44,6 +48,13 @@
                     return;
                 }
                 _ = Shell.RequestOpenNote(existing.RelativePath);
+                return;
+            }
+
+            // El JS solo manda `broken` según la clase: un enlace del glosario no la lleva, así que se resuelve de nuevo aquí.
+            if (Index.Resolve(target) is null && Glossary.Index.TryResolve(target) is { } entry)
+            {
+                Shell.OpenGlossary(entry.Key);
                 return;
             }
 

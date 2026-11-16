@@ -34,6 +34,7 @@ public abstract class SoundUiTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddGlossaryForTests();
         Services.AddSingleton<TimeProvider>(Time);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
