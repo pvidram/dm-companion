@@ -5,7 +5,7 @@ Host de desarrollo en el navegador (Blazor Web App, Interactive Server) para pro
 ## Ejecutar
 
 ```bash
-source ~/.dotnet-dm/env-dm-companion.sh && dotnet watch --project src/DmCompanion.DevHost
+dotnet watch --project src/DmCompanion.DevHost
 ```
 
 Abre http://localhost:5180 desde Windows (WSL2 reenvía el puerto de loopback).

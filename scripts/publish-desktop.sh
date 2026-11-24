@@ -2,9 +2,6 @@
 # Publica DM Companion para Windows (x64) y genera dist/dm_companion_pc.zip.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-source ~/.dotnet-dm/env-dm-companion.sh
-export TMPDIR="$HOME/.dotnet-dm/tmp"
-mkdir -p "$TMPDIR"
 out=dist/dm-companion-pc
 rm -rf "$out" dist/dm_companion_pc.zip
 dotnet publish src/DmCompanion.Desktop -c Release -r win-x64 --self-contained \

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The MAUI app (src/DmCompanion.App) is excluded: it needs the Android workload.
+      - name: Build
+        run: |
+          set -e
+          for p in \
+            src/DmCompanion.Core \
+            src/DmCompanion.Infrastructure \
+            src/DmCompanion.UI \
+            src/DmCompanion.Screens \
+            src/DmCompanion.DevHost \
+            src/DmCompanion.Desktop \
+            tools/DmCompanion.SrdImport
+          do
+            dotnet build "$p" -c Release
+          done
+
+      - name: Test
+        run: |
+          set -e
+          for p in \
+            tests/DmCompanion.Core.Tests \
+            tests/DmCompanion.Infrastructure.Tests \
+            tests/DmCompanion.UI.Tests \
+            tests/DmCompanion.Screens.Tests \
+            tests/DmCompanion.DevHost.Tests \
+            tests/DmCompanion.Desktop.Tests \
+            tests/DmCompanion.SrdImport.Tests
+          do
+            dotnet test "$p" -c Release --blame-hang-timeout 5m
+          done
+
+      - name: JS tests
+        run: node --test tests/js/*.test.js
