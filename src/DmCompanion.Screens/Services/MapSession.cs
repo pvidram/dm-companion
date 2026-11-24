@@ -233,9 +233,8 @@ public sealed class MapSession : IAsyncDisposable
         if (!closed) throw new MapSaveFailedException(Notice ?? "No se pudo guardar el mapa abierto.");
     }
 
-    // Change se llama fuera del lock: es código ajeno (ITimer) y nunca debe correr con el lock tomado. Si alguien lo bloquea
-    // esperando el gate mientras una recarga con el gate tomado necesita el lock, ambos se esperan para siempre. Un dispose
-    // concurrente puede desechar el temporizador antes del Change: lo absorben TryCloseAsync y FlushAsync (ObjectDisposedException).
+    // No se llama a ITimer.Change con el lock tomado: un ITimer reentrante (como el del hook de las pruebas) bloqueaba Close con una
+    // recarga en vuelo. Un dispose concurrente que desecha el temporizador antes del Change lo absorben TryCloseAsync y FlushAsync.
     private void StopTimer()
     {
         ITimer? timer;

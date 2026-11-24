@@ -13,6 +13,8 @@ internal sealed class CountingFactory : IVaultServiceFactory
     public int WritesStarted;
     public TimeSpan WriteDelay;
     public TimeSpan ReadDelay;
+    // Si se asigna, la siguiente lectura del `.state.json` espera a que esta tarea termine (retención determinista, sin tiempos).
+    public volatile Task? ReadGate;
     public int ReadsStarted;
     public volatile bool FailWrites;
     public volatile bool CrashWrites;

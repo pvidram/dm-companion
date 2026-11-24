@@ -16,6 +16,7 @@ internal sealed class CountingStorage(IVaultStorage inner, CountingFactory owner
         {
             Interlocked.Increment(ref owner.ReadsStarted);
             if (owner.ReadFailure is { } failure) throw failure;
+            if (owner.ReadGate is { } gate) await gate.WaitAsync(ct);
             if (owner.ReadDelay > TimeSpan.Zero) await Task.Delay(owner.ReadDelay, ct);
         }
         return await inner.ReadAsync(p, ct);

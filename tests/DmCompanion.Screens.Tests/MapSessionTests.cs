@@ -467,9 +467,9 @@ public sealed class MapSessionTests : IAsyncLifetime
         await close.Should().NotThrowAsync();
     }
 
-    // Una recarga por cambio externo en vuelo (con el gate tomado) cuando el dispose se cuela dentro de StopTimer del cierre:
-    // el dispose espera el gate y la recarga necesita el lock del temporizador. Antes, StopTimer llamaba a Change con el lock
-    // tomado y el cierre quedaba bloqueado para siempre (cuelgue intermitente de la suite con el watcher real).
+    // Una recarga por cambio externo en vuelo (con el gate tomado) cuando un temporizador reentrante, como el de este hook, desecha
+    // la sesión dentro de Change: el dispose espera el gate y la recarga necesita el lock. Antes, StopTimer llamaba a Change con
+    // el lock tomado y el cierre quedaba bloqueado para siempre (cuelgue intermitente de la suite con el watcher real).
     [Fact]
     public async Task Close_whose_timer_is_disposed_while_a_reload_holds_the_gate_does_not_deadlock()
     {
@@ -480,14 +480,28 @@ public sealed class MapSessionTests : IAsyncLifetime
         session.Mutate(e => e.MoveToken("t1", 66, 66));
         await session.FlushAsync();
         var reads = Volatile.Read(ref _factory.ReadsStarted);
-        _factory.ReadDelay = TimeSpan.FromMilliseconds(500);
+        var readGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _factory.ReadGate = readGate.Task;
         SeedState(StatePath, StateWithToken(x: 1, y: 1));
         await WaitUntilAsync(() => Volatile.Read(ref _factory.ReadsStarted) > reads);
-        time.BeforeNextChange = () => session.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        // La recarga tiene el gate tomado y está parada en la lectura. El hook la suelta y desecha la sesión en el mismo paso:
+        // la recarga reanuda y pide el lock mientras el dispose espera el gate.
+        time.BeforeNextChange = () =>
+        {
+            readGate.SetResult();
+            session.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        };
 
         var close = Task.Run(async () => await session.CloseAsync());
 
-        (await Task.WhenAny(close, Task.Delay(Timeout)) == close).Should().BeTrue("el cierre no debe bloquearse con una recarga en vuelo");
+        try
+        {
+            (await Task.WhenAny(close, Task.Delay(Timeout)) == close).Should().BeTrue("el cierre no debe bloquearse con una recarga en vuelo");
+        }
+        finally
+        {
+            readGate.TrySetResult();
+        }
         await close;
     }
 
