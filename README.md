@@ -4,7 +4,15 @@
 
 An offline Android tablet app (plus a Windows desktop host) that helps a Dungeon Master run **D&D 5e (2024)** sessions: campaign notes, a map with tokens, combat and initiative, an offline rules glossary, ambient sound and a players' view on a TV.
 
-<!-- screenshots: TODO -->
+<!-- SCREENSHOT docs/screenshots/hero-map-combat.png
+     Show: full-screen map on a tablet in landscape, mid-combat: PC and enemy tokens, the turn strip at the top, one token with reduced HP.
+     Then replace this comment with: ![DM Companion mid-combat on a tablet: map with tokens, turn strip and a wounded enemy](docs/screenshots/hero-map-combat.png) -->
+
+<!-- SCREENSHOT docs/screenshots/demo.gif (optional)
+     Show: a 10-15 second GIF of moving a token with the stylus and passing the turn.
+     Then replace this comment with: ![Moving a token with the stylus and passing the turn](docs/screenshots/demo.gif) -->
+
+<!-- Screenshots: PNG, 1600 px wide, taken with `samples/vault-demo` only (never a real campaign vault) -->
 
 ## Why
 
@@ -18,14 +26,44 @@ I run my games from a tablet at the table and keep my campaign in an [Obsidian](
 ## Features
 
 - **Vault of notes:** Obsidian-style Markdown with YAML frontmatter, wiki links, character sheets, creature notes, broken-link and sync-conflict handling.
+
+<!-- SCREENSHOT docs/screenshots/vault-note.png
+     Show: the note of a character from the demo vault (for example Captain Ysolde) with the frontmatter rendered and wiki links.
+     Then replace this comment with: ![A character note from the demo vault with rendered frontmatter and wiki links](docs/screenshots/vault-note.png) -->
+
 - **Map with tokens:** Konva-based canvas, grid, drawing and measuring, undo/redo, tokens for PCs, allies and enemies, current HP on tokens.
 - **Game systems:** pluggable systems (D&D 5e, a generic one and a Cosmere preview) that define stats, HP rules and combat rules.
 - **Combat and initiative:** turn strip, rounds, damage and healing, conditions with durations, death saves, combat log.
+
+<!-- SCREENSHOT docs/screenshots/combat.png
+     Show: the combat panel with initiative order, conditions with durations and the log.
+     Then replace this comment with: ![Combat panel with initiative, conditions with durations and the combat log](docs/screenshots/combat.png) -->
+
 - **Fog of war and players' view:** fog zones (reveal, trace, erase), opaque on the TV and translucent for the DM.
 - **Second screen on a TV:** a small local HTTP/SSE server with a user-chosen code; the TV shows a players-safe view (hidden tokens, aliases, enemy health by state, fixed framing), character sheets, images, glossary entries and manual pages.
+
+<!-- SCREENSHOT docs/screenshots/tv-players-view.png
+     Show: the players' view on the TV with fog of war; better still, next to the DM view of the same map.
+     Then replace this comment with: ![Players' view on a TV with fog of war, next to the DM view of the same map](docs/screenshots/tv-players-view.png) -->
+
 - **Glossary (SRD 5.2.1 in Spanish):** rules, conditions, creatures, spells, magic items, equipment and character options, searchable in Spanish or English, copy an entry to the vault, add a creature to the map.
+
+<!-- SCREENSHOT docs/screenshots/glossary.png
+     Show: glossary search with a creature entry open.
+     Then replace this comment with: ![Glossary search with a creature entry open](docs/screenshots/glossary.png) -->
+
 - **PDF manuals:** pdf.js viewer with range loading, zoom, outline, text search, bookmarks stored next to the PDF, "show on TV" for a page or a cropped area.
+
+<!-- SCREENSHOT docs/screenshots/pdf-manual.png
+     Show: the viewer with the outline and a page.
+     Then replace this comment with: ![PDF manual viewer with the outline and a page](docs/screenshots/pdf-manual.png) -->
+
 - **Ambient sound:** background tracks and sound effects with per-effect volume and repeat mode, fades, scenes, a field in note frontmatter to start a scene.
+
+<!-- SCREENSHOT docs/screenshots/ambient-sound.png
+     Show: the scenes and effects panel.
+     Then replace this comment with: ![Ambient sound panel with scenes and effects](docs/screenshots/ambient-sound.png) -->
+
 - **Desktop version:** the same screens as a self-contained Windows executable.
 
 The UI language of the app and the bundled rules content is Spanish.
