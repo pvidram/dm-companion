@@ -24,8 +24,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task History_shows_newest_first()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.NextTurn();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.NextTurn());
         OpenHistory(cut);
 
         Entries(cut).Should().Equal(Combat.Log.Select(e => e.Text).Reverse());
@@ -35,8 +35,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task History_shows_undone_entries_struck_through()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.Undo();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.Undo());
         OpenHistory(cut);
 
         cut.Find("[data-testid=history-entry]").ClassList.Should().Contain("combat-history__entry--undone");
@@ -46,7 +46,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task History_does_not_strike_live_entries()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
         OpenHistory(cut);
 
         cut.Find("[data-testid=history-entry]").ClassList.Should().NotContain("combat-history__entry--undone");
@@ -57,7 +57,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     {
         var cut = await RenderAsync();
         var initial = (cut.Find("[data-testid=undo]").HasAttribute("disabled"), cut.Find("[data-testid=redo]").HasAttribute("disabled"));
-        Combat.Damage("a", 3);
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
         cut.Render();
         var afterAction = (cut.Find("[data-testid=undo]").HasAttribute("disabled"), cut.Find("[data-testid=redo]").HasAttribute("disabled"));
         cut.Find("[data-testid=undo]").Click();
@@ -70,8 +70,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Redo_button_reapplies()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.Undo();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.Undo());
         cut.Render();
 
         cut.Find("[data-testid=redo]").Click();
@@ -83,8 +83,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Undo_and_redo_are_disabled_in_read_only()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.Undo();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.Undo());
         MakeReadOnly();
         cut.Find("[data-testid=strip-toggle]").Click();
         cut.Find("[data-testid=strip-toggle]").Click();
@@ -96,7 +96,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Collapsed_strip_has_undo()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
         cut.Find("[data-testid=strip-toggle]").Click();
 
         cut.Find("[data-testid=undo]").Click();
@@ -108,7 +108,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Combat_ended_notice_offers_undo()
     {
         var cut = await RenderAsync();
-        Combat.End();
+        await OnDispatcherAsync(() => Combat.End());
         cut.Render();
         var text = cut.Find("[data-testid=notice-ended]").TextContent;
 
@@ -121,7 +121,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Combat_ended_notice_survives_the_first_render()
     {
         var cut = await RenderAsync();
-        Combat.End();
+        await OnDispatcherAsync(() => Combat.End());
         cut.Render();
         cut.Render();
 
@@ -132,8 +132,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Undone_entries_have_an_accessible_text()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.Undo();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.Undo());
         OpenHistory(cut);
 
         cut.Find("[data-testid=history-entry]").TextContent.Should().Contain("(deshecho)");
@@ -143,8 +143,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Recovering_from_the_notice_restores_the_log_and_clears_the_notice()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.End();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.End());
         cut.Render();
 
         cut.FindAll("[data-testid=notice-ended] button").First(b => b.TextContent.Trim() == "Deshacer").Click();
@@ -157,8 +157,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Recovering_from_the_dialog_restores_the_log_and_clears_the_notice()
     {
         await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.End();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.End());
         Shell.OpenStartCombat();
         var dialog = Render<StartCombatDialog>();
 
@@ -172,7 +172,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Start_dialog_offers_recover_previous_combat()
     {
         await RenderAsync();
-        Combat.End();
+        await OnDispatcherAsync(() => Combat.End());
         Shell.OpenStartCombat();
         var dialog = Render<StartCombatDialog>();
 
@@ -197,7 +197,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Expanded_strip_pins_the_history_toggle_under_the_header_with_its_count()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
         cut.Render();
 
         var toggle = cut.Find(".combat-strip__sticky [data-testid=history-toggle]");
@@ -218,7 +218,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Collapsed_history_button_opens_the_popover_with_the_entries()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
         Collapse(cut);
 
         cut.Find("[data-testid=history-toggle]").Click();
@@ -253,7 +253,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Popover_undo_and_redo_work_inside_it()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
         Collapse(cut);
         cut.Find("[data-testid=history-toggle]").Click();
 
@@ -268,8 +268,8 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     public async Task Popover_undo_and_redo_are_disabled_in_read_only()
     {
         var cut = await RenderAsync();
-        Combat.Damage("a", 3);
-        Combat.Undo();
+        await OnDispatcherAsync(() => Combat.Damage("a", 3));
+        await OnDispatcherAsync(() => Combat.Undo());
         MakeReadOnly();
         Collapse(cut);
         cut.Find("[data-testid=history-toggle]").Click();
@@ -319,8 +319,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
         var cut = await RenderAsync();
         Collapse(cut);
         cut.Find("[data-testid=history-toggle]").Click();
-        Combat.End();
-
+        await OnDispatcherAsync(() => Combat.End());
         Shell.HistoryOpen.Should().BeFalse();
     }
 

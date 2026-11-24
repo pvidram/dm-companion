@@ -16,12 +16,12 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     private async Task<IRenderedComponent<DmShell>> RenderWithExpiredAsync()
     {
         await OpenMapAsync(MapState.Empty with { Tokens = [GenericToken("a", "Ana", hp: 20), GenericToken("g", "Goblin 2", hp: 40)] });
-        Combat.Start([new InitiativeEntry("a", 15), new InitiativeEntry("g", 10)]);
-        Combat.AddCondition("g", new ConditionDraft("frightened", "Asustado", null, 1, EntryOf("g")));
-        Combat.NextTurn();
-        Combat.NextTurn();
-        Combat.NextTurn();
-        return Render<DmShell>();
+        await OnDispatcherAsync(() => Combat.Start([new InitiativeEntry("a", 15), new InitiativeEntry("g", 10)]));
+        await OnDispatcherAsync(() => Combat.AddCondition("g", new ConditionDraft("frightened", "Asustado", null, 1, EntryOf("g"))));
+        await OnDispatcherAsync(() => Combat.NextTurn());
+        await OnDispatcherAsync(() => Combat.NextTurn());
+        await OnDispatcherAsync(() => Combat.NextTurn());
+        return await RenderShellAsync();
     }
 
     [Fact]
@@ -88,8 +88,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     {
         await RenderWithExpiredAsync();
 
-        Combat.Dismiss(Combat.Notices.Single());
-
+        await OnDispatcherAsync(() => Combat.Dismiss(Combat.Notices.Single()));
         Goblin.ConditionList.Single().Expired.Should().BeTrue();
     }
 
@@ -107,7 +106,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Ended_notice_close_button_dismisses_it()
     {
         var cut = await RenderWithExpiredAsync();
-        Combat.End();
+        await OnDispatcherAsync(() => Combat.End());
         cut.WaitForAssertion(() => cut.FindAll("[data-testid=notice-ended]").Should().ContainSingle());
 
         cut.Find("[data-testid=notice-ended]").Closest(".ds-notice")!.QuerySelector("button[aria-label='Cerrar aviso']")!.Click();
@@ -119,9 +118,8 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Notices_with_their_own_dismiss_button_get_no_extra_close_button()
     {
         var cut = await RenderWithExpiredAsync();
-        Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null));
-        Combat.Damage("g", 22);
-
+        await OnDispatcherAsync(() => Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null)));
+        await OnDispatcherAsync(() => Combat.Damage("g", 22));
         cut.WaitForAssertion(() => cut.Find("[data-testid=notice-concentration]"));
 
         cut.Find("[data-testid=notice-concentration]").Closest(".ds-notice")!.QuerySelectorAll("button[aria-label='Cerrar aviso']").Should().BeEmpty();
@@ -131,10 +129,8 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Concentration_notice_shows_the_dc()
     {
         var cut = await RenderWithExpiredAsync();
-        Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null));
-
-        Combat.Damage("g", 22);
-
+        await OnDispatcherAsync(() => Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null)));
+        await OnDispatcherAsync(() => Combat.Damage("g", 22));
         cut.WaitForAssertion(() => cut.Find("[data-testid=notice-concentration]").TextContent
             .Should().Contain("Goblin 2: Salvación de Constitución para mantener la concentración: CD 11"));
     }

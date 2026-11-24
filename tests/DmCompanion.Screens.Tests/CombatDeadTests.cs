@@ -41,8 +41,7 @@ public sealed class CombatDeadTests : CombatUiTestBase
     public async Task Dead_row_is_struck_through()
     {
         var cut = await RenderAsync();
-        Combat.MarkDead("b");
-
+        await OnDispatcherAsync(() => Combat.MarkDead("b"));
         cut.FindAll("[data-testid=strip-row]")[1].ClassList.Should().Contain("combat-strip__row--dead");
     }
 
@@ -58,7 +57,7 @@ public sealed class CombatDeadTests : CombatUiTestBase
     public async Task Dead_cell_is_greyed_in_the_collapsed_strip()
     {
         var cut = await RenderAsync();
-        Combat.MarkDead("b");
+        await OnDispatcherAsync(() => Combat.MarkDead("b"));
         cut.Find("[data-testid=strip-toggle]").Click();
 
         cut.FindAll("[data-testid=strip-cell]")[1].ClassList.Should().Contain("combat-strip__cell--dead");
@@ -82,7 +81,7 @@ public sealed class CombatDeadTests : CombatUiTestBase
     public async Task Card_revives()
     {
         await RenderAsync(start: false);
-        Combat.MarkDead("a");
+        await OnDispatcherAsync(() => Combat.MarkDead("a"));
         Shell.OpenTokenCard(new TokenCardRequest("a", 100, 100));
         var card = Render<TokenCard>();
 
@@ -106,7 +105,7 @@ public sealed class CombatDeadTests : CombatUiTestBase
     public async Task Three_failures_notice_marks_dead()
     {
         var cut = await RenderAsync();
-        Combat.SetDeathSaves("a", 0, 3);
+        await OnDispatcherAsync(() => Combat.SetDeathSaves("a", 0, 3));
         cut.Render();
         var text = cut.Find("[data-testid=notice-three-failures]").TextContent;
 
@@ -119,7 +118,7 @@ public sealed class CombatDeadTests : CombatUiTestBase
     public async Task Three_failures_notice_not_now_dismisses_without_marking()
     {
         var cut = await RenderAsync();
-        Combat.SetDeathSaves("a", 0, 3);
+        await OnDispatcherAsync(() => Combat.SetDeathSaves("a", 0, 3));
         cut.Render();
 
         cut.FindAll("[data-testid=notice-three-failures] button").First(b => b.TextContent.Trim() == "Ahora no").Click();
@@ -131,7 +130,7 @@ public sealed class CombatDeadTests : CombatUiTestBase
     public async Task Three_failures_notice_survives_the_first_render()
     {
         var cut = await RenderAsync();
-        Combat.SetDeathSaves("a", 0, 3);
+        await OnDispatcherAsync(() => Combat.SetDeathSaves("a", 0, 3));
         cut.Render();
         cut.Render();
 
