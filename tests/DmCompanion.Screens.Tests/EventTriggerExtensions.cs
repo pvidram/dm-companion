@@ -18,6 +18,11 @@ namespace DmCompanion.Screens.Tests;
 /// in order, so when the barrier runs the handler's synchronous part and the render it caused are done.
 /// </para>
 /// <para>The barrier does not wait for the asynchronous tail of a handler (it may be waiting on something the test releases later).</para>
+/// <para>
+/// Covered triggers: <c>Click</c>, <c>Input</c> (generic value and <see cref="ChangeEventArgs"/>), <c>Change</c> (same),
+/// <c>KeyDown</c> (<see cref="KeyboardEventArgs"/> and <see cref="Key"/>) and <c>Blur</c>. When a test needs another synchronous
+/// trigger (DoubleClick, KeyUp, Submit, ...), add its wrapper here or use the *Async variant.
+/// </para>
 /// </summary>
 internal static class EventTriggerExtensions
 {
@@ -39,6 +44,20 @@ internal static class EventTriggerExtensions
     {
         var dispatcher = DispatcherOf(element);
         EventHandlerDispatchExtensions.Change(element, value);
+        Settle(dispatcher);
+    }
+
+    public static void Input(this IElement element, ChangeEventArgs eventArgs)
+    {
+        var dispatcher = DispatcherOf(element);
+        EventHandlerDispatchExtensions.Input(element, eventArgs);
+        Settle(dispatcher);
+    }
+
+    public static void Change(this IElement element, ChangeEventArgs eventArgs)
+    {
+        var dispatcher = DispatcherOf(element);
+        EventHandlerDispatchExtensions.Change(element, eventArgs);
         Settle(dispatcher);
     }
 
@@ -68,5 +87,17 @@ internal static class EventTriggerExtensions
         (element.Owner?.Context.GetService<BunitContext>()
             ?? throw new InvalidOperationException("The element was not rendered by a bUnit context.")).Renderer.Dispatcher;
 
-    private static void Settle(Dispatcher dispatcher) => dispatcher.InvokeAsync(() => { }).GetAwaiter().GetResult();
+    private static void Settle(Dispatcher dispatcher)
+    {
+        var barrier = dispatcher.InvokeAsync(() => { });
+        try
+        {
+            if (!barrier.Wait(BunitContext.DefaultWaitTimeout))
+                throw new TimeoutException("The renderer dispatcher did not become free after the event.");
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions.Count == 1)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerExceptions[0]).Throw();
+        }
+    }
 }
