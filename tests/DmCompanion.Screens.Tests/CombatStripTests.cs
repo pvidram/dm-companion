@@ -32,7 +32,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         await OpenMapAsync(state ?? Tokens3(GenericToken("a", "Ana", hp: 20)));
         if (start) Combat.Start([new InitiativeEntry("a", 15), new InitiativeEntry("b", 10), new InitiativeEntry("c", 5)]);
-        return Render<DmShell>();
+        return await RenderShellAsync();
     }
 
     private string EntryOf(string tokenId) => Combat.State!.Entries.First(e => e.TokenId == tokenId).Id;

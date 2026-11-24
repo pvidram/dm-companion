@@ -31,7 +31,7 @@ public abstract class CombatUiTestBase : TokenTestBase
             await Session.FlushAsync();
         }
 
-        return Render<DmShell>();
+        return await RenderShellAsync();
     }
 
     protected MapToken Ana => Tokens.First(t => t.Id == "a");
