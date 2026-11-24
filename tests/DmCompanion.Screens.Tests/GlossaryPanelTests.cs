@@ -13,6 +13,8 @@ namespace DmCompanion.Screens.Tests;
 
 public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
 {
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+
     private readonly TempVault _vault = TempVault.FromDemo();
 
     public GlossaryPanelTests()
@@ -39,7 +41,11 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
         Services.AddVaultBrowsingForTests();
     }
 
-    Task IAsyncLifetime.InitializeAsync() => Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+    async Task IAsyncLifetime.InitializeAsync()
+    {
+        await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+        await Services.WaitForAudioLibraryAsync(TimeSpan.FromSeconds(10));
+    }
 
     async Task IAsyncLifetime.DisposeAsync()
     {
@@ -54,6 +60,8 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
     {
         var cut = Render<DmShell>();
         cut.Find("button[aria-label='Glosario']").Click();
+        // El cuerpo del panel se pinta en un re-render que puede no haber terminado al volver el clic: se espera a él.
+        cut.WaitForElement("section.glossary-panel .glossary-tabs", Timeout);
         return cut;
     }
 
