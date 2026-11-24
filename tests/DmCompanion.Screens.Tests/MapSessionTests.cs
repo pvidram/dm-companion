@@ -467,6 +467,30 @@ public sealed class MapSessionTests : IAsyncLifetime
         await close.Should().NotThrowAsync();
     }
 
+    // Una recarga por cambio externo en vuelo (con el gate tomado) cuando el dispose se cuela dentro de StopTimer del cierre:
+    // el dispose espera el gate y la recarga necesita el lock del temporizador. Antes, StopTimer llamaba a Change con el lock
+    // tomado y el cierre quedaba bloqueado para siempre (cuelgue intermitente de la suite con el watcher real).
+    [Fact]
+    public async Task Close_whose_timer_is_disposed_while_a_reload_holds_the_gate_does_not_deadlock()
+    {
+        SeedState(StatePath, StateWithToken());
+        var time = new HookedTimeProvider();
+        var session = new MapSession(_host, _prefs, time, NullLogger<MapSession>.Instance);
+        await session.OpenAsync(MapNote);
+        session.Mutate(e => e.MoveToken("t1", 66, 66));
+        await session.FlushAsync();
+        var reads = Volatile.Read(ref _factory.ReadsStarted);
+        _factory.ReadDelay = TimeSpan.FromMilliseconds(500);
+        SeedState(StatePath, StateWithToken(x: 1, y: 1));
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.ReadsStarted) > reads);
+        time.BeforeNextChange = () => session.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+        var close = Task.Run(async () => await session.CloseAsync());
+
+        (await Task.WhenAny(close, Task.Delay(Timeout)) == close).Should().BeTrue("el cierre no debe bloquearse con una recarga en vuelo");
+        await close;
+    }
+
     // Ventana 2: el cierre espera el gate detrás del guardado final del dispose y lo obtiene justo antes de que se deseche.
     [Fact]
     public async Task Close_that_gets_the_gate_just_before_dispose_releases_it_does_not_throw()
