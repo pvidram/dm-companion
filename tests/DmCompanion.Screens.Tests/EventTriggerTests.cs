@@ -30,16 +30,15 @@ public sealed class EventTriggerTests : BunitContext
     /// <summary>Occupies the renderer's dispatcher from another thread and frees it after a short while.</summary>
     private void BusyDispatcherForAWhile()
     {
-        using var entered = new ManualResetEventSlim();
-        var release = new ManualResetEventSlim();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _ = Task.Run(() => Renderer.Dispatcher.InvokeAsync(() =>
         {
-            entered.Set();
-            release.Wait();
-            release.Dispose();
+            entered.SetResult();
+            release.Task.Wait();
         }));
-        entered.Wait();
-        _ = Task.Delay(150).ContinueWith(_ => release.Set(), TaskScheduler.Default);
+        entered.Task.Wait();
+        _ = Task.Delay(150).ContinueWith(_ => release.SetResult(), TaskScheduler.Default);
     }
 
     [Fact]
@@ -64,5 +63,19 @@ public sealed class EventTriggerTests : BunitContext
         input.Input("hola");
 
         _typed.Should().Be("hola");
+    }
+
+    [Fact]
+    public void Control_bUnits_own_Click_returns_before_the_handler_has_run_while_another_thread_is_rendering()
+    {
+        // Proves the premise: if a future bUnit waits natively, this fails and the wrappers can go.
+        var cut = RenderButtonAndInput();
+        var button = cut.Find("button");
+        BusyDispatcherForAWhile();
+
+        EventHandlerDispatchExtensions.Click(button, new MouseEventArgs());
+
+        _clicks.Should().Be(0);
+        cut.WaitForAssertion(() => _clicks.Should().Be(1));
     }
 }
