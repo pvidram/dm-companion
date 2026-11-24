@@ -55,6 +55,9 @@ public sealed class SoundFixesTests : SoundTestContext
     public async Task Mixer_changes_do_not_repaint_the_library()
     {
         var cut = RenderOpenSound();
+        // Barrera: los repintados que la apertura dejó encolados (cambios de biblioteca) se ejecutan antes de tomar la línea base;
+        // si no, bajo carga se cuentan como repintados causados por el mezclador.
+        await cut.InvokeAsync(() => { });
         var library = cut.FindComponent<SoundLibrary>();
         var mix = cut.FindComponent<SoundMix>();
         var (libraryBefore, mixBefore) = (library.RenderCount, mix.RenderCount);

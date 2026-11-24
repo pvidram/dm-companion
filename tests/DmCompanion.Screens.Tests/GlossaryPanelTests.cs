@@ -8,6 +8,7 @@ using DmCompanion.Screens.Tests.Support;
 using DmCompanion.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace DmCompanion.Screens.Tests;
 
@@ -30,7 +31,7 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
         Services.AddScoped<ShellState>();
         Services.AddSoundForTests();
         Services.AddGlossaryForTests();
-        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<TimeProvider>(new FakeTimeProvider());
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
         Services.AddSingleton<CombatController>();
@@ -44,7 +45,7 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
     async Task IAsyncLifetime.InitializeAsync()
     {
         await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
-        await Services.WaitForAudioLibraryAsync(TimeSpan.FromSeconds(10));
+        await Services.WaitForAudioLibraryAsync(Timeout);
     }
 
     async Task IAsyncLifetime.DisposeAsync()

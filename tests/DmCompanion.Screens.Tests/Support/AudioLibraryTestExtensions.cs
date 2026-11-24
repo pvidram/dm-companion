@@ -15,11 +15,22 @@ internal static class AudioLibraryTestExtensions
     public static async Task WaitForAudioLibraryAsync(this IServiceProvider services, TimeSpan timeout)
     {
         var library = services.GetRequiredService<AudioLibraryService>();
-        var deadline = DateTime.UtcNow + timeout;
-        while (ReferenceEquals(library.Current, AudioLibrary.Empty))
+        var published = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnChanged(object? sender, EventArgs e) => published.TrySetResult();
+        library.Changed += OnChanged;
+        try
         {
-            if (DateTime.UtcNow > deadline) throw new TimeoutException("La biblioteca de audio no terminó de cargarse.");
-            await Task.Delay(2);
+            // Se suscribe antes de mirar Current: lo que ya se publicó antes de suscribirse se ve en Current (cada publicación
+            // es una instancia nueva); lo que se publique después llega por el evento.
+            if (ReferenceEquals(library.Current, AudioLibrary.Empty)) await published.Task.WaitAsync(timeout);
+        }
+        catch (TimeoutException)
+        {
+            throw new TimeoutException("La biblioteca de audio no terminó de cargarse.");
+        }
+        finally
+        {
+            library.Changed -= OnChanged;
         }
     }
 }

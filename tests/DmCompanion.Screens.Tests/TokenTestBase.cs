@@ -62,9 +62,10 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
     protected IReadOnlyList<MapToken> Tokens => Session.Editor!.State.Tokens;
 
     /// <summary>
-    /// Renderiza el shell y espera a que el dispatcher quede libre. El primer render deja trabajo encolado (renders en cascada,
-    /// continuaciones asíncronas) que sigue corriendo en otro hilo cuando Render ya ha devuelto; una prueba que cambia el
-    /// estado a continuación desde su propio hilo encola el re-render detrás y lee el DOM antes de que se pinte.
+    /// Renderiza el shell y espera a que se drene el trabajo que el dispatcher tenía encolado hasta ese momento (una barrera: no
+    /// garantiza que quede ocioso). El primer render deja trabajo encolado (renders en cascada, continuaciones asíncronas) que
+    /// sigue corriendo en otro hilo cuando Render ya ha devuelto; una prueba que cambia el estado a continuación desde su propio
+    /// hilo encola el re-render detrás y lee el DOM antes de que se pinte.
     /// </summary>
     protected async Task<IRenderedComponent<DmShell>> RenderShellAsync()
     {
