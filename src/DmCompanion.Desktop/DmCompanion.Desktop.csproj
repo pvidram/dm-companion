@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <OutputType>WinExe</OutputType>
+    <!-- Debe ser Exe, no WinExe: Microsoft.AspNetCore.App.Internal.Assets solo añade _framework/blazor.web.js con OutputType == 'Exe'.
+         La ventana sin consola en Windows se pide aparte, en el bloque de más abajo. -->
+    <OutputType>Exe</OutputType>
     <ApplicationIcon>Assets\dm-companion.ico</ApplicationIcon>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <AssemblyName>DMCompanion</AssemblyName>
@@ -12,6 +14,13 @@
     <DebugType>none</DebugType>
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
+
+  <!-- Con Exe el apphost de Windows saldría como aplicación de consola; esta propiedad del SDK lo marca como gráfico (subsistema GUI). -->
+  <Target Name="WindowedAppHost" BeforeTargets="_GetAppHostCreationConfiguration">
+    <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('win')) or $(DefaultAppHostRuntimeIdentifier.StartsWith('win'))">
+      <_UseWindowsGraphicalUserInterface>true</_UseWindowsGraphicalUserInterface>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Photino.NET" Version="4.0.16" />
