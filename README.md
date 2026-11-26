@@ -39,8 +39,9 @@ I run my games from a tablet at the table and keep my campaign in an [Obsidian](
      Show: the combat panel with initiative order, conditions with durations and the log.
      Then replace this comment with: ![Combat panel with initiative, conditions with durations and the combat log](docs/screenshots/combat.png) -->
 
-- **Fog of war and players' view:** fog zones (reveal, trace, erase), opaque on the TV and translucent for the DM.
-- **Second screen on a TV:** a small local HTTP/SSE server with a user-chosen code; the TV shows a players-safe view (hidden tokens, aliases, enemy health by state, fixed framing), character sheets, images, glossary entries and manual pages.
+- **Fog of war and players' view:** fog zones (reveal, trace, erase), total fog or NPC-only fog, freehand drawing, opaque on the TV and translucent for the DM.
+- **Grid calibration:** calibrate the map grid by drawing a rectangle over a known number of cells.
+- **Second screen on a TV:** a small local HTTP/SSE server with a user-chosen code; in combat the TV map takes all the space below the initiative strip; the TV shows a players-safe view (hidden tokens, aliases, enemy health by state, fixed framing), character sheets, images, glossary entries and manual pages.
 
 <!-- SCREENSHOT docs/screenshots/tv-players-view.png
      Show: the players' view on the TV with fog of war; better still, next to the DM view of the same map.
@@ -52,12 +53,21 @@ I run my games from a tablet at the table and keep my campaign in an [Obsidian](
      Show: glossary search with a creature entry open.
      Then replace this comment with: ![Glossary search with a creature entry open](docs/screenshots/glossary.png) -->
 
-- **PDF manuals:** pdf.js viewer with range loading, zoom, outline, text search, bookmarks stored next to the PDF, "show on TV" for a page or a cropped area.
+- **PDF manuals:** pdf.js viewer with range loading, continuous reading (scroll through the pages), zoom, outline, text search, bookmarks stored next to the PDF, "show on TV" for a page or a cropped area.
 
 <!-- SCREENSHOT docs/screenshots/pdf-manual.png
      Show: the viewer with the outline and a page.
      Then replace this comment with: ![PDF manual viewer with the outline and a page](docs/screenshots/pdf-manual.png) -->
 
+- **Players' journal:** entries with images for each character, received from Android's "Share" menu, links to glossary creatures, a generated shared logbook and a slideshow on the TV.
+
+<!-- SCREENSHOT docs/screenshots/journal.png
+     Show: a character's journal with an entry and its images, next to the shared logbook.
+     Then replace this comment with: ![Players' journal with an entry, its images and the shared logbook](docs/screenshots/journal.png) -->
+
+- **Resizable panels and floating windows:** drag the panel dividers to resize them, or detach a panel into a floating window and pin it with a pushpin.
+- **Add a player from the app:** create a new character without leaving the app.
+- **Create a vault from the app:** start a new vault and add folders to it from the app.
 - **Ambient sound:** background tracks and sound effects with per-effect volume and repeat mode, fades, scenes, a field in note frontmatter to start a scene.
 
 <!-- SCREENSHOT docs/screenshots/ambient-sound.png
@@ -129,11 +139,11 @@ The DevHost works on a copy of `samples/vault-demo`. See [README.es.md](README.e
 
 ## Roadmap
 
-Done: vault and screens (1), map with tokens and game systems (2), combat (3), fog of war and players' view (4), SRD glossary (5), PDF manuals (5b), ambient sound (6), TV second screen (7), desktop version. Planned, with a design doc each in [`docs/design/`](docs/design/): continuous reading in the manual viewer (5c) and a players' journal (8).
+Everything planned is done: vault and screens (1), map with tokens and game systems (2), combat (3), fog of war and players' view (4), SRD glossary (5), PDF manuals (5b) with continuous reading (5c), ambient sound (6), TV second screen (7), players' journal (8), desktop version, resizable panels, adding a player, creating a vault, fog by type and freehand drawing, grid calibration and the maximised TV map. Nothing is currently planned. Design docs, in Spanish, are in [`docs/design/`](docs/design/).
 
 ## About this repository
 
-DM Companion was developed in a private repository. This public version has its history condensed into one commit per phase, and process documents (agent instructions, handoffs, manual checklists) were left out. Design specs, in Spanish, are kept in [`docs/design/`](docs/design/).
+DM Companion was developed in a private repository. This public version has its history condensed into one commit per phase, and it includes the agent instructions (`CLAUDE.md` and `.claude/rules/`), because they show how AI-assisted work is done in the project. Handoffs and manual checklists were left out. Design specs, in Spanish, are kept in [`docs/design/`](docs/design/).
 
 ## License
 

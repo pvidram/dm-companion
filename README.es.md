@@ -10,12 +10,29 @@ App Android para tablet que ayuda a dirigir partidas de D&D 5e (2024). Funcional
 - Glosario (SRD 5.2.1 en español, sin conexión).
 - Ambiente sonoro.
 - Vista de jugadores en una TV.
+- Visor de manuales en PDF con lectura continua.
+- Diario de jugadores.
 
 Es un proyecto personal: funciona sin conexión, sin cuentas y sin nube. La sincronización del vault entre el PC y la tablet la hace Syncthing, por fuera de la app.
 
-**Estado:** están hechas las fases 1 a 7 (incluida la 5b) y la versión de PC: vault de Obsidian (fase 1), mapa con tokens y sistemas de juego (fase 2), combate e iniciativa (fase 3), niebla y vista de jugadores (fase 4), glosario del SRD 5.2.1 en español (fase 5), visor de manuales en PDF (fase 5b), ambiente sonoro (fase 6) y segunda pantalla en una TV (fase 7). Pendientes: lectura continua en el visor de manuales (fase 5c) y diario de jugadores (fase 8), de las que solo hay spec en [docs/design/](docs/design/). Las pruebas manuales en la tablet de algunas fases siguen pendientes.
+**Estado:** todo lo previsto está hecho: vault de Obsidian (fase 1), mapa con tokens y sistemas de juego (fase 2), combate e iniciativa (fase 3), niebla y vista de jugadores (fase 4), glosario del SRD 5.2.1 en español (fase 5), visor de manuales en PDF (fase 5b) con lectura continua (fase 5c), ambiente sonoro (fase 6), segunda pantalla en una TV (fase 7), diario de jugadores (fase 8) y la versión de PC. Hoy no hay nada pendiente. Las pruebas manuales en la tablet de algunas fases siguen sin hacerse.
 
-> Se desarrolló en un repositorio privado y se publica con el historial condensado en un commit por fase.
+Novedades:
+
+- **Lectura continua:** el visor de PDF permite desplazarse por las páginas seguidas.
+- **Diario de jugadores:** entradas con imágenes por personaje, recibidas desde «Compartir» de Android, enlace a criaturas del glosario, bitácora común generada y pase de diapositivas en la TV.
+- **Paneles redimensionables y ventanas flotantes** con chincheta.
+- **Añadir jugador** desde la app.
+- **Crear un vault y carpetas** desde la app.
+- **Niebla total o de PNJ** y trazado a mano alzada.
+- **Calibrar la cuadrícula** dibujando un rectángulo.
+- **Mapa de la TV al máximo** en combate.
+
+<!-- SCREENSHOT docs/screenshots/diario.png
+     Muestra: el diario de un personaje con una entrada y sus imágenes, junto a la bitácora común.
+     Luego sustituye este comentario por: ![Diario de jugadores con una entrada, sus imágenes y la bitácora común](docs/screenshots/diario.png) -->
+
+> Se desarrolló en un repositorio privado y se publica con el historial condensado. Incluye las instrucciones para el agente (`CLAUDE.md` y `.claude/rules/`), porque enseñan cómo se trabaja con IA en el proyecto; los traspasos y las checklists manuales quedan fuera.
 
 ## Stack
 
@@ -141,7 +158,14 @@ Los documentos de diseño (en español) están en [docs/design/](docs/design/):
 - Fase 5b (manuales): [spec](docs/design/2026-11-16-fase-5b-manuales-pdf-design.md)
 - Fase 6 (ambiente sonoro): [spec](docs/design/2026-11-15-fase-6-ambiente-sonoro-design.md)
 - Fase 7 (segunda pantalla): [spec](docs/design/2026-11-15-fase-7-segunda-pantalla-design.md)
-- Pendientes: [fase 5c](docs/design/2026-11-16-fase-5c-lectura-continua-design.md) y [fase 8](docs/design/2026-11-16-fase-8-diario-design.md)
+- Fase 5c (lectura continua): [spec](docs/design/2026-11-16-fase-5c-lectura-continua-design.md)
+- Fase 8 (diario): [spec](docs/design/2026-11-16-fase-8-diario-design.md)
+- Paneles redimensionables: [spec](docs/design/2026-11-22-paneles-redimensionables-design.md)
+- TV al máximo: [spec](docs/design/2026-11-22-tv-mapa-maximo-design.md)
+- Añadir jugador: [spec](docs/design/2026-11-22-anadir-jugador-design.md)
+- Crear vault: [spec](docs/design/2026-11-22-crear-vault-design.md)
+- Niebla por tipos y mano alzada: [spec](docs/design/2026-11-22-niebla-tipos-mano-alzada-design.md)
+- Calibrar la cuadrícula: [spec](docs/design/2026-11-22-calibrar-cuadricula-design.md)
 
 ## Licencias
 
