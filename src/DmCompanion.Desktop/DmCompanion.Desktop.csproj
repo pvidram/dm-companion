@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <ApplicationIcon>Assets\dm-companion.ico</ApplicationIcon>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <AssemblyName>DMCompanion</AssemblyName>
     <Version>0.1.0</Version>
@@ -10,6 +12,15 @@
     <DebugType>none</DebugType>
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Photino.NET" Version="4.0.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\dm-companion.ico" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\dm-companion.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DmCompanion.Core\DmCompanion.Core.csproj" />
