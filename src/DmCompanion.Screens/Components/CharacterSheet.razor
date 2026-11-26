@@ -5,6 +5,14 @@
 <article class="character-sheet">
     <PcPortrait Entity="Entity" />
     <h3 data-testid="pc-title">@Entity.Title</h3>
+    @if (Entity.Alias is { } alias)
+    {
+        <p data-testid="pc-alias">Alias: @alias</p>
+    }
+    @if (Entity.Player is { } player)
+    {
+        <p data-testid="pc-player">Jugador/a: @player</p>
+    }
     <ShowOnTvButton Entity="Entity" />
     @if (JournalComponentBase.IsAvailable(Services))
     {

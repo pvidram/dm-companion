@@ -18,6 +18,22 @@ public class VaultEntityFactoryTests
         Create("Sin frontmatter").Title.Should().Be("Varek");
 
     [Fact]
+    public void Alias_and_player_read_from_frontmatter()
+    {
+        var entity = Create("---\ntype: pc\nalias: Cuervo\nplayer: Ana\n---\n");
+
+        (entity.Alias, entity.Player).Should().Be(("Cuervo", "Ana"));
+    }
+
+    [Fact]
+    public void Alias_and_player_are_null_when_absent()
+    {
+        var entity = Create("---\ntype: pc\n---\n");
+
+        (entity.Alias, entity.Player).Should().Be((null, null));
+    }
+
+    [Fact]
     public void Create_reads_type() =>
         Create("---\ntype: npc\n---\n").Type.Should().Be(EntityType.Npc);
 

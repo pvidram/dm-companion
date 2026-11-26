@@ -21,7 +21,7 @@ public sealed class MapNameDialogPickerTests : MapsTestContext
     public void Import_dialog_with_a_native_picker_takes_the_image_from_it()
     {
         var cut = RenderOpenMaps();
-        cut.FindAll("section.ds-parchment .ds-parchment__actions button")[1].Click();
+        cut.FindAll("section.ds-parchment:not([hidden]) .ds-parchment__actions button")[1].Click();
         cut.WaitForAssertion(() => OpenDialogText(cut).Should().Contain("Elegir imagen"), Wait);
 
         OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Elegir imagen").Click();

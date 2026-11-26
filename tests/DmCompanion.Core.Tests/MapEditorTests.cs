@@ -16,6 +16,22 @@ public class MapEditorTests
     private static TokenDraft Generic(int size = 1) => new("Goblin", null, TokenSide.Enemy, size, 15, 7);
 
     [Fact]
+    public void AddToken_keeps_the_draft_alias_trimmed()
+    {
+        var ed = NewEditor();
+        var t = ed.AddToken(Generic() with { Alias = "  Sombra " }, 10, 10);
+        t.Alias.Should().Be("Sombra");
+    }
+
+    [Fact]
+    public void AddToken_with_blank_alias_stores_null()
+    {
+        var ed = NewEditor();
+        var t = ed.AddToken(Generic() with { Alias = "   " }, 10, 10);
+        t.Alias.Should().BeNull();
+    }
+
+    [Fact]
     public void MoveToken_clamps_to_the_bounds()
     {
         var ed = NewEditor();

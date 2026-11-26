@@ -160,7 +160,8 @@
         Session.Mutate(editor =>
         {
             foreach (var (entity, side) in notes)
-                names.Add(Place(editor, new TokenDraft(entity.Title, entity.RelativePath, side, 1, null, null), cx, cy));
+                names.Add(Place(editor, new TokenDraft(entity.Title, entity.RelativePath, side, 1, null, null,
+                    entity.Type == EntityType.Pc ? entity.Alias : null), cx, cy));
             return names.Count > 0;
         });
         _added = string.Join(", ", names);

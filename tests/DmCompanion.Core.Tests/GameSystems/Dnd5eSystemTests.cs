@@ -30,6 +30,57 @@ public class Dnd5eSystemTests
     [Fact] public void Lyra_initiative_is_signed() => Eval(LyraYaml).ById["initiative"].Display.Should().Be("+3");
     [Fact] public void Lyra_str_shows_score_and_modifier() => Eval(LyraYaml).ById["str"].Display.Should().Be("8 (−1)");
 
+    // --- Creación de PJ ---
+    [Fact]
+    public void Pc_creation_fields_follow_the_template_defaults()
+    {
+        System.PcCreationFields.Select(f => f.Id).Should().Equal("ac", "hp", "speed", "level", "str", "dex", "con", "int", "wis", "cha");
+        System.PcCreationFields.Select(f => f.Default).Should().Equal(10, 10, 30, 1, 10, 10, 10, 10, 10, 10);
+    }
+
+    [Fact]
+    public void Pc_stats_yaml_with_defaults_is_the_template() =>
+        System.PcStatsYaml(CreationField.Defaults(System.PcCreationFields))
+            .Should().Be(System.StatsTemplate(EntityType.Pc));
+
+    private static StatValues EvalCreated() => Eval(System.PcStatsYaml(new Dictionary<string, int>
+        { ["ac"] = 17, ["hp"] = 31, ["speed"] = 25, ["level"] = 5, ["dex"] = 14 }));
+
+    [Fact] public void Pc_stats_yaml_writes_the_given_ac() => EvalCreated().ById["ac"].Display.Should().Be("17");
+    [Fact] public void Pc_stats_yaml_writes_the_given_hp() => EvalCreated().ById["hp"].Display.Should().Be("31");
+    [Fact] public void Pc_stats_yaml_writes_the_given_speed() => EvalCreated().ById["speed"].Display.Should().Be("25");
+    [Fact] public void Pc_stats_yaml_writes_the_given_dex() => EvalCreated().ById["dex"].Display.Should().Be("14 (+2)");
+    [Fact] public void Pc_stats_yaml_writes_the_level_used_by_skills() => EvalCreated().ById["skill_stealth"].Display.Should().Be("+2");
+    [Fact] public void Pc_stats_yaml_evaluates_without_warnings() => EvalCreated().Warnings.Should().BeEmpty();
+
+    [Fact]
+    public void Pc_stats_yaml_uses_the_default_for_a_missing_id() =>
+        Eval(System.PcStatsYaml(new Dictionary<string, int>())).ById["ac"].Display.Should().Be("10");
+
+    [Fact]
+    public void Pc_stats_yaml_has_no_initiative_bonus_key() =>
+        System.PcStatsYaml(new Dictionary<string, int>()).Should().NotContain("initiative_bonus");
+
+    [Fact]
+    public void Initiative_without_bonus_is_the_dexterity_modifier()
+    {
+        var v = EvalWith("", "{ dex: 14 }").ById["initiative"];
+        v.Display.Should().Be("+2");
+        v.Source.Should().Be(StatSource.Derived);
+    }
+
+    [Fact]
+    public void Manual_initiative_bonus_wins_over_dexterity()
+    {
+        var v = EvalWith("  initiative_bonus: 5\n", "{ dex: 16 }").ById["initiative"];
+        v.Display.Should().Be("+5");
+        v.Source.Should().Be(StatSource.Frontmatter);
+    }
+
+    [Fact]
+    public void Initiative_without_bonus_or_dexterity_is_dash() =>
+        Eval("stats:\n  ac: 10").ById["initiative"].Display.Should().Be(StatFormat.Dash);
+
     // --- Bonificador de competencia ---
     private static string PerceptionProficient(string extra) =>
         Eval("stats:\n  abilities: { wis: 10 }\n  skills: { perception: proficient }\n" + extra).ById["skill_perception"].Display;
@@ -158,11 +209,17 @@ public class Dnd5eSystemTests
             .Should().BeEquivalentTo("ac", "hp", "speed", "passive_perception");
 
     // --- Plantilla ---
-    private const string TodayTemplate = "portrait:\nstats:\n  ac: 10\n  hp: 10\n  speed: 30\n  initiative_bonus: 0\n  abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }\n";
+    private const string TodayTemplate = "portrait:\nstats:\n  ac: 10\n  hp: 10\n  speed: 30\n  abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }\n";
 
     [Fact]
     public void Template_starts_with_todays_template() =>
         System.StatsTemplate(EntityType.Pc).Should().StartWith(TodayTemplate);
+
+    [Theory]
+    [InlineData(EntityType.Pc)]
+    [InlineData(EntityType.Npc)]
+    public void Template_has_no_initiative_bonus_so_initiative_follows_dexterity(EntityType type) =>
+        System.StatsTemplate(type).Should().NotContain("initiative_bonus");
 
     [Fact]
     public void Template_contains_18_skills_set_to_none() =>

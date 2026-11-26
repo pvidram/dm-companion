@@ -117,6 +117,19 @@ public sealed class PlayerPreviewTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Aliased_pc_token_keeps_its_portrait_in_the_preview()
+    {
+        var state = MapTestVault.StateWithGrid(false);
+        await OpenMapAsync(state with { Tokens = [.. state.Tokens, new MapToken("t4", "Sombra", "Personajes/sombra.md", TokenSide.Pc, 1, 105, 35, null, null, Alias: "Sombra")] });
+        await _host.Current!.SaveAsync("Personajes/sombra.md", "---\ntype: pc\nname: Torvald\nportrait: _assets/lyra.png\n---\n",
+            Core.Vault.Storage.WritePrecondition.Overwrite);
+
+        var token = Parse(_preview.BuildJson()).GetProperty("tokens").EnumerateArray().Single(t => t.GetProperty("id").GetString() == "t4");
+
+        token.GetProperty("portraitUrl").ValueKind.Should().Be(JsonValueKind.String);
+    }
+
+    [Fact]
     public async Task Closing_the_map_deactivates_the_view()
     {
         await OpenMapAsync();

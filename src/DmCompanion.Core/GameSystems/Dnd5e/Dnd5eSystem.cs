@@ -28,7 +28,6 @@ public sealed class Dnd5eSystem : IGameSystem
         AddPlain(values, "ac", FrontmatterReader.GetInt(stats, "ac"), signed: false);
         AddPlain(values, "hp", FrontmatterReader.GetInt(stats, "hp"), signed: false);
         AddPlain(values, "speed", FrontmatterReader.GetInt(stats, "speed"), signed: false);
-        AddPlain(values, "initiative", FrontmatterReader.GetInt(stats, "initiative_bonus"), signed: true);
 
         var abilities = FrontmatterReader.GetMap(stats, "abilities");
         var scores = new Dictionary<string, int>();
@@ -39,6 +38,8 @@ public sealed class Dnd5eSystem : IGameSystem
                 ? new StatValue(id, $"{s} ({StatFormat.Signed(AbilityModifier.Of(s))})", s, StatSource.Frontmatter)
                 : Missing(id, "Falta la característica.");
         }
+
+        values["initiative"] = Initiative(stats, scores);
 
         var (bonus, bonusReason) = ProficiencyBonus.Resolve(stats);
         var saves = FrontmatterReader.GetMap(stats, "saves");
@@ -56,13 +57,56 @@ public sealed class Dnd5eSystem : IGameSystem
     public string StatsTemplate(EntityType type)
     {
         var sb = new StringBuilder();
-        sb.Append("portrait:\nstats:\n  ac: 10\n  hp: 10\n  speed: 30\n  initiative_bonus: 0\n");
+        sb.Append("portrait:\nstats:\n  ac: 10\n  hp: 10\n  speed: 30\n");
         sb.Append("  abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }\n");
         sb.Append("  level: 1\n");
+        AppendProficiencies(sb);
+        return sb.ToString();
+    }
+
+    private static readonly IReadOnlyList<CreationField> CreationFields =
+    [
+        new("ac", "CA", 10, 0, 50, "Básicas"),
+        new("hp", "PG", 10, 1, 999, "Básicas"),
+        new("speed", "Velocidad", 30, 0, 120, "Básicas"),
+        new("level", "Nivel", 1, 1, 20, "Básicas"),
+        new("str", "Fuerza", 10, 1, 30, "Características"),
+        new("dex", "Destreza", 10, 1, 30, "Características"),
+        new("con", "Constitución", 10, 1, 30, "Características"),
+        new("int", "Inteligencia", 10, 1, 30, "Características"),
+        new("wis", "Sabiduría", 10, 1, 30, "Características"),
+        new("cha", "Carisma", 10, 1, 30, "Características"),
+    ];
+
+    public IReadOnlyList<CreationField> PcCreationFields => CreationFields;
+
+    public string PcStatsYaml(IReadOnlyDictionary<string, int> values)
+    {
+        int V(string id) => values.TryGetValue(id, out var v) ? v : CreationFields.First(f => f.Id == id).Default;
+        var sb = new StringBuilder();
+        sb.Append("portrait:\nstats:\n");
+        sb.Append("  ac: ").Append(V("ac")).Append("\n  hp: ").Append(V("hp")).Append("\n  speed: ").Append(V("speed")).Append('\n');
+        sb.Append("  abilities: { ").Append(string.Join(", ", AbilityIds.Select(a => $"{a}: {V(a)}"))).Append(" }\n");
+        sb.Append("  level: ").Append(V("level")).Append('\n');
+        AppendProficiencies(sb);
+        return sb.ToString();
+    }
+
+    private static void AppendProficiencies(StringBuilder sb)
+    {
         sb.Append("  saves: { ").Append(string.Join(", ", AbilityIds.Select(a => a + ": none"))).Append(" }\n");
         sb.Append("  skills:\n");
         foreach (var skill in Dnd5eSkills.All) sb.Append("    ").Append(skill.Key).Append(": none\n");
-        return sb.ToString();
+    }
+
+    private static StatValue Initiative(IReadOnlyDictionary<string, object?> stats, Dictionary<string, int> scores)
+    {
+        const string id = "initiative";
+        if (FrontmatterReader.GetInt(stats, "initiative_bonus") is { } manual)
+            return new StatValue(id, StatFormat.Signed(manual), manual, StatSource.Frontmatter);
+        if (!scores.TryGetValue("dex", out var dex)) return Missing(id, "Falta el valor.");
+        var modifier = AbilityModifier.Of(dex);
+        return new StatValue(id, StatFormat.Signed(modifier), modifier, StatSource.Derived);
     }
 
     private static void AddPlain(Dictionary<string, StatValue> values, string id, int? number, bool signed) =>

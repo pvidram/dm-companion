@@ -45,12 +45,12 @@ public sealed class CharacterSheetTests : BunitContext, IAsyncLifetime
         _vault.Dispose();
     }
 
-    private async Task<IRenderedComponent<CharacterSheet>> RenderSheetAsync(string? campaignSystem, string pcStats)
+    private async Task<IRenderedComponent<CharacterSheet>> RenderSheetAsync(string? campaignSystem, string pcStats, string extraFrontmatter = "")
     {
         if (campaignSystem is not null)
             await File.WriteAllTextAsync(_vault.PathOf("Campana.md"), $"---\ntype: campaign\nname: Campaña\nsystem: {campaignSystem}\n---\n");
         Directory.CreateDirectory(_vault.PathOf("Personajes"));
-        await File.WriteAllTextAsync(_vault.PathOf("Personajes/Lyra.md"), $"---\ntype: pc\nname: Lyra\n{pcStats}---\nTexto.\n");
+        await File.WriteAllTextAsync(_vault.PathOf("Personajes/Lyra.md"), $"---\ntype: pc\nname: Lyra\n{extraFrontmatter}{pcStats}---\nTexto.\n");
         var host = Services.GetRequiredService<VaultHost>();
         await host.OpenAsync(_vault.Root);
         return Render<CharacterSheet>(p => p.Add(c => c.Entity, host.Current!.Index.Entities.First(e => e.Title == "Lyra")));
@@ -62,6 +62,18 @@ public sealed class CharacterSheetTests : BunitContext, IAsyncLifetime
     private static string Stat(IRenderedComponent<CharacterSheet> cut, string label) =>
         cut.FindAll(".ds-stat").First(s => s.QuerySelector(".ds-stat__label")!.TextContent == label)
             .QuerySelector(".ds-stat__value")!.TextContent;
+
+    [Fact]
+    public async Task Sheet_shows_the_player_name_when_present() =>
+        (await RenderSheetAsync(null, LyraStats, "player: Ana\n")).Find("[data-testid=pc-player]").TextContent.Should().Be("Jugador/a: Ana");
+
+    [Fact]
+    public async Task Sheet_shows_the_alias_when_present() =>
+        (await RenderSheetAsync(null, LyraStats, "alias: Cuervo\n")).Find("[data-testid=pc-alias]").TextContent.Should().Be("Alias: Cuervo");
+
+    [Fact]
+    public async Task Sheet_omits_alias_and_player_when_absent() =>
+        (await RenderSheetAsync(null, LyraStats)).FindAll("[data-testid=pc-alias],[data-testid=pc-player]").Should().BeEmpty();
 
     [Fact]
     public async Task Dnd5e_sheet_shows_armor_class_and_hit_points()

@@ -7,10 +7,10 @@ public class NoteTemplatesTests
 {
     private static readonly IGameSystem Dnd5e = GameSystemRegistry.Default.Get("dnd5e");
 
-    // Plantilla literal de personaje jugador anterior a los sistemas de juego (commit de6f828).
+    // Plantilla de personaje jugador anterior a los sistemas de juego (commit de6f828), sin initiative_bonus: la iniciativa se deriva de la Destreza.
     private const string LegacyPcTemplate =
         "---\ntype: pc\nname: \"Lyra\"\n" +
-        "portrait:\nstats:\n  ac: 10\n  hp: 10\n  speed: 30\n  initiative_bonus: 0\n" +
+        "portrait:\nstats:\n  ac: 10\n  hp: 10\n  speed: 30\n" +
         "  abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }\n";
 
     [Theory]
@@ -55,7 +55,7 @@ public class NoteTemplatesTests
     }
 
     [Fact]
-    public void Create_dnd5e_pc_keeps_the_legacy_template_as_exact_prefix() =>
+    public void Create_dnd5e_pc_keeps_the_legacy_template_without_initiative_bonus_as_exact_prefix() =>
         NoteTemplates.Create(EntityType.Pc, "Lyra", Dnd5e).Should().StartWith(LegacyPcTemplate);
 
     [Fact]

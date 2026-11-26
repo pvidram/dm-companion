@@ -24,4 +24,13 @@ public interface IGameSystem
 
     /// <summary>Bloque YAML "stats:" (y claves hermanas) para plantillas pc/npc.</summary>
     string StatsTemplate(EntityType type);
+
+    /// <summary>Estadísticas base que se piden al crear un PJ, en orden de formulario.</summary>
+    IReadOnlyList<CreationField> PcCreationFields { get; }
+
+    /// <summary>
+    /// Bloque YAML "stats:" (y claves hermanas) de un PJ nuevo, terminado en salto de línea.
+    /// Una id ausente en <paramref name="values"/> usa su valor por defecto; las desconocidas se ignoran.
+    /// </summary>
+    string PcStatsYaml(IReadOnlyDictionary<string, int> values);
 }

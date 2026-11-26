@@ -28,18 +28,72 @@ public sealed class AddTokenDialogTests : TokenTestBase
     private static AngleSharp.Dom.IElement ButtonText(IRenderedComponent<AddTokenDialog> cut, string text) =>
         cut.FindAll("button").First(b => b.TextContent.Trim() == text);
 
-    private static void Search(IRenderedComponent<AddTokenDialog> cut, string text) =>
-        cut.Find("input[type=search]").Input(text);
+    private static Task SearchAsync(IRenderedComponent<AddTokenDialog> cut, string text) =>
+        cut.InvokeAsync(() => cut.Find("input[type=search]").Input(text));
 
     private static AngleSharp.Dom.IElement AddRow(IRenderedComponent<AddTokenDialog> cut, string name) =>
         cut.FindAll("[data-testid=token-result]").Single(r => r.GetAttribute("data-name") == name)
             .QuerySelectorAll("button").Single(b => b.TextContent.Trim() == "Añadir");
 
+    private async Task<IRenderedComponent<AddTokenDialog>> RenderWithNotesAsync(params (string Path, string Content)[] extra)
+    {
+        await OpenMapAsync(null, null, () =>
+        {
+            Notes();
+            foreach (var (path, content) in extra) WriteNote(path, content);
+        });
+        Shell.OpenAddToken();
+        return Render<AddTokenDialog>();
+    }
+
+    [Fact]
+    public async Task Adding_a_pc_note_with_alias_prefills_the_token_alias()
+    {
+        var cut = await RenderWithNotesAsync(("Personajes/lobo.md", "---\ntype: pc\nname: Lobo\nalias: El Lobo\n---\n"));
+        await SearchAsync(cut, "Lobo");
+
+        await cut.InvokeAsync(() => AddRow(cut, "Lobo").Click());
+
+        Tokens.Single().Should().Match<MapToken>(t => t.Alias == "El Lobo" && t.Name == "Lobo");
+    }
+
+    [Fact]
+    public async Task Adding_a_pc_note_without_alias_leaves_the_token_alias_null()
+    {
+        var cut = await RenderAsync();
+        await SearchAsync(cut, "Borin");
+
+        await cut.InvokeAsync(() => AddRow(cut, "Borin").Click());
+
+        Tokens.Single().Alias.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Alias_in_a_non_pc_note_is_ignored()
+    {
+        var cut = await RenderWithNotesAsync(("Bestiario/brujo.md", "---\ntype: npc\nname: Brujo\nalias: El Oscuro\n---\n"));
+        await SearchAsync(cut, "Brujo");
+
+        await cut.InvokeAsync(() => AddRow(cut, "Brujo").Click());
+
+        Tokens.Single().Alias.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Add_all_pcs_copies_each_alias()
+    {
+        var cut = await RenderWithNotesAsync(("Personajes/lobo.md", "---\ntype: pc\nname: Lobo\nalias: El Lobo\n---\n"));
+
+        await cut.InvokeAsync(() => ButtonText(cut, "Añadir todos los PJ").Click());
+
+        Tokens.OrderBy(t => t.Name).Select(t => (t.Name, t.Alias)).Should().Contain(("Lobo", "El Lobo")).And.Contain(("Borin", null));
+    }
+
     [Fact]
     public async Task Adding_a_note_twice_numbers_the_second_token()
     {
         var cut = await RenderAsync();
-        Search(cut, "Goblin");
+        await SearchAsync(cut, "Goblin");
 
         AddRow(cut, "Goblin").Click();
         AddRow(cut, "Goblin").Click();
@@ -51,7 +105,7 @@ public sealed class AddTokenDialogTests : TokenTestBase
     public async Task Adding_a_note_twice_keeps_the_same_source()
     {
         var cut = await RenderAsync();
-        Search(cut, "Goblin");
+        await SearchAsync(cut, "Goblin");
 
         AddRow(cut, "Goblin").Click();
         AddRow(cut, "Goblin").Click();
@@ -63,7 +117,7 @@ public sealed class AddTokenDialogTests : TokenTestBase
     public async Task Added_tokens_do_not_overlap()
     {
         var cut = await RenderAsync();
-        Search(cut, "Goblin");
+        await SearchAsync(cut, "Goblin");
 
         AddRow(cut, "Goblin").Click();
         AddRow(cut, "Goblin").Click();
@@ -77,7 +131,7 @@ public sealed class AddTokenDialogTests : TokenTestBase
         JSInterop.Setup<double[]>("mapCanvas.viewCenter").SetResult([500, 400]);
         var cut = await RenderAsync();
         await Services.GetRequiredService<MapCanvasInterop>().LoadAsync(default);
-        Search(cut, "Goblin");
+        await SearchAsync(cut, "Goblin");
 
         AddRow(cut, "Goblin").Click();
         cut.WaitForState(() => Tokens.Count == 1, Timeout);
@@ -89,7 +143,7 @@ public sealed class AddTokenDialogTests : TokenTestBase
     public async Task An_npc_note_defaults_to_the_enemy_side()
     {
         var cut = await RenderAsync();
-        Search(cut, "Goblin");
+        await SearchAsync(cut, "Goblin");
 
         AddRow(cut, "Goblin").Click();
 
@@ -100,7 +154,7 @@ public sealed class AddTokenDialogTests : TokenTestBase
     public async Task A_pc_note_defaults_to_the_pc_side()
     {
         var cut = await RenderAsync();
-        Search(cut, "Borin");
+        await SearchAsync(cut, "Borin");
 
         AddRow(cut, "Borin").Click();
 
@@ -111,7 +165,7 @@ public sealed class AddTokenDialogTests : TokenTestBase
     public async Task The_side_chosen_before_adding_is_used()
     {
         var cut = await RenderAsync();
-        Search(cut, "Goblin");
+        await SearchAsync(cut, "Goblin");
         var row = cut.Find("[data-testid=token-result][data-name=Goblin]");
 
         row.QuerySelector("select")!.Change("1"); // Pc, Ally, Enemy
@@ -132,7 +186,7 @@ public sealed class AddTokenDialogTests : TokenTestBase
     public async Task Search_only_offers_pc_and_npc_notes()
     {
         var cut = await RenderAsync();
-        Search(cut, "Cripta");
+        await SearchAsync(cut, "Cripta");
 
         cut.FindAll("[data-testid=token-result]").Should().BeEmpty();
     }

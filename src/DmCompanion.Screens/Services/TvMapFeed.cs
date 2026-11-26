@@ -28,7 +28,7 @@ public sealed class TvMapFeed(VaultHost host, TokenHitPoints hitPoints, NoteImag
 
     public TvMapMessage Build(MapDefinition map, MapState state, TvFrame frame)
     {
-        var view = PlayerViewProjector.Project(map, state, frame, hitPoints.Rules, hitPoints.MaxFor, t => new TokenLook(PortraitOf(host, t)));
+        var view = PlayerViewProjector.Project(map, state, frame, hitPoints.Rules, hitPoints.MaxFor, t => LookOf(host, t));
         var files = new Dictionary<string, TvFile>(StringComparer.Ordinal);
         var message = new { kind = "map", map = PlayerMapJson.Map(view, p => UrlFor(p, files), wholeMap: false) };
         return new TvMapMessage(JsonSerializer.Serialize(message, Json), files);
@@ -54,11 +54,14 @@ public sealed class TvMapFeed(VaultHost host, TokenHitPoints hitPoints, NoteImag
         _ => null,
     };
 
-    internal static string? PortraitOf(VaultHost host, MapToken token) =>
-        token.Source is { } source && host.Current is { } vault
-        && TokenSourceResolver.Resolve(source, vault.Index, _ => null).Note?.Portrait is { } portrait && !string.IsNullOrWhiteSpace(portrait)
-            ? VaultPaths.Normalize(portrait)
-            : null;
+    // Un PJ con alias conserva el retrato en la TV: el alias oculta la identidad, no la cara del personaje.
+    internal static TokenLook LookOf(VaultHost host, MapToken token)
+    {
+        if (token.Source is not { } source || host.Current is not { } vault) return new TokenLook(null, false);
+        var note = TokenSourceResolver.Resolve(source, vault.Index, _ => null).Note;
+        var portrait = note?.Portrait is { } p && !string.IsNullOrWhiteSpace(p) ? VaultPaths.Normalize(p) : null;
+        return new TokenLook(portrait, note?.Type == EntityType.Pc);
+    }
 
     /// <summary>
     /// Da de alta una imagen del vault en la lista blanca <paramref name="files"/> y devuelve su URL (`files/{id}`); null si la

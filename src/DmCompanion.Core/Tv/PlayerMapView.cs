@@ -3,7 +3,7 @@ using DmCompanion.Core.Maps;
 namespace DmCompanion.Core.Tv;
 
 /// <summary>Aspecto de un token en la TV: retrato opcional (la inicial la calcula el proyector).</summary>
-public sealed record TokenLook(string? PortraitPath);
+public sealed record TokenLook(string? PortraitPath, bool KeepsPortraitWithAlias = false);
 
 public sealed record PlayerToken(
     string Id, string Name, string Initial, string? PortraitPath, TokenSide Side, int Size,

@@ -46,6 +46,11 @@ public sealed class BackNavigation(ShellState shell)
             shell.CloseNewNote();
             return Task.FromResult(true);
         }
+        if (shell.AddPlayerOpen)
+        {
+            shell.CloseAddPlayer();
+            return Task.FromResult(true);
+        }
         if (shell.ConflictsOpen)
         {
             shell.CloseConflicts();

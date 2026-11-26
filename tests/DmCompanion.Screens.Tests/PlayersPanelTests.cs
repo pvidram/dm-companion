@@ -64,6 +64,15 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
             .QuerySelector(".ds-stat__value")!.TextContent;
 
     [Fact]
+    public async Task Players_list_does_not_show_the_player_name()
+    {
+        File.WriteAllText(_vault.PathOf("Personajes/Mira.md"), "---\ntype: pc\nname: Mira\nplayer: Ana\n---\n");
+        await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+
+        RenderPanel().FindAll("button.ds-list-row").Select(b => b.TextContent).Should().NotContain(t => t.Contains("Ana"));
+    }
+
+    [Fact]
     public void Lists_both_player_characters() =>
         RenderPanel().FindAll("button.ds-list-row").Select(b => b.TextContent.Trim().Length > 0 ? b.TextContent : "")
             .Should().SatisfyRespectively(
@@ -164,4 +173,48 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
     [Fact]
     public void Without_the_journal_services_there_is_no_bitacora_section() =>
         RenderPanel().FindAll("section.journal-log").Should().BeEmpty();
+
+    [Fact]
+    public void Add_player_button_is_visible_with_players() =>
+        RenderPanel().Find("[data-testid=add-player]").TextContent.Should().Contain("Añadir jugador");
+
+    [Fact]
+    public async Task Add_player_button_is_visible_with_an_empty_list()
+    {
+        File.Delete(_vault.PathOf("Personajes/Lyra.md"));
+        File.Delete(_vault.PathOf("Personajes/Torvald.md"));
+        await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+
+        var cut = RenderPanel();
+
+        (cut.FindAll("[data-testid=add-player]").Count, cut.Find(".ds-empty").TextContent.Contains("Añadir jugador"))
+            .Should().Be((1, true));
+    }
+
+    [Fact]
+    public async Task Add_player_button_opens_the_dialog_state()
+    {
+        var cut = RenderPanel();
+
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-player]").Click());
+
+        Shell.AddPlayerOpen.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Added_player_appears_in_the_list_with_its_sheet()
+    {
+        var cut = RenderPanel();
+        var dialog = Render<AddPlayerDialog>();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-player]").Click());
+        await dialog.InvokeAsync(() => dialog.Find("[data-testid=add-player-name]").Input("Mira Cuervo"));
+        await dialog.InvokeAsync(() => dialog.Find("[data-testid=add-player-player]").Input("Ana"));
+
+        await dialog.InvokeAsync(() => dialog.FindAll("footer button").First(b => b.TextContent.Trim() == "Crear").Click());
+
+        cut.WaitForAssertion(() => (
+                cut.FindAll("button.ds-list-row").Any(b => b.TextContent.Contains("Mira Cuervo")),
+                cut.Find("[data-testid=pc-player]").TextContent)
+            .Should().Be((true, "Jugador/a: Ana")), TimeSpan.FromSeconds(10));
+    }
 }

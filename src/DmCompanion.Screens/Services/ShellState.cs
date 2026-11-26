@@ -72,6 +72,7 @@ public sealed class ShellState
     /// <summary>«Ampliar»: el visor de manuales ocupa casi toda la pantalla (spec 5b §6). Vuelve a false al cerrar el manual.</summary>
     public bool ManualViewerExpanded { get; private set; }
     public NewNoteRequest? NewNote { get; private set; }
+    public bool AddPlayerOpen { get; private set; }
     public bool ConflictsOpen { get; private set; }
     public bool AddTokenOpen { get; private set; }
 
@@ -340,6 +341,18 @@ public sealed class ShellState
         Notify();
     }
 
+    public void OpenAddPlayer()
+    {
+        AddPlayerOpen = true;
+        Notify();
+    }
+
+    public void CloseAddPlayer()
+    {
+        AddPlayerOpen = false;
+        Notify();
+    }
+
     public void ClosePanel(OverlayPanel panel)
     {
         if (ActivePanel != panel) return;
@@ -590,6 +603,7 @@ public sealed class ShellState
         ActiveManualPane = ManualPane.None;
         ManualViewerExpanded = false;
         NewNote = null;
+        AddPlayerOpen = false;
         ConflictsOpen = false;
         AddTokenOpen = false;
         AddTokenPrefill = null;
