@@ -188,8 +188,10 @@
             var colors = theme();
             var w = background ? background.naturalWidth : (map.width || DEFAULT_WIDTH);
             var h = background ? background.naturalHeight : (map.height || DEFAULT_HEIGHT);
-            var frame = map.frame || { x: 0, y: 0, width: w, height: h };
-            var t = root.tvLayout.stageTransform(frame, { width: area.width, height: area.height });
+            var viewport = { width: area.width, height: area.height };
+            // Se amplía el encuadre a la proporción del escenario (la tira de combate le quita altura): sin barras.
+            var frame = root.tvLayout.fitFrameToViewport(map.frame || { x: 0, y: 0, width: w, height: h }, viewport);
+            var t = root.tvLayout.stageTransform(frame, viewport);
             layer.scale({ x: t.scale, y: t.scale });
             layer.position({ x: t.x, y: t.y });
             layer.clip({ x: frame.x, y: frame.y, width: frame.width, height: frame.height });

@@ -14,6 +14,21 @@
         };
     }
 
+    // Amplía el lado corto del encuadre alrededor de su centro hasta la proporción del escenario (como TvFrame.FitToAspect).
+    // Nunca recorta: así el mapa llena el escenario sin barras aunque la tira de combate le quite altura.
+    function fitFrameToViewport(frame, viewport) {
+        if (!frame || !(frame.width > 0) || !(frame.height > 0) || !(viewport.width > 0) || !(viewport.height > 0)) return frame;
+        var target = viewport.width / viewport.height;
+        var current = frame.width / frame.height;
+        if (Math.abs(target - current) < 1e-9) return frame;
+        if (target > current) {
+            var width = frame.height * target;
+            return { x: frame.x - (width - frame.width) / 2, y: frame.y, width: width, height: frame.height };
+        }
+        var height = frame.width / target;
+        return { x: frame.x, y: frame.y - (height - frame.height) / 2, width: frame.width, height: height };
+    }
+
     // El servidor ya omite a los ocultos; aquí solo se descartan entradas inválidas, respetando el orden.
     function visibleStripEntries(entries) {
         var result = [];
@@ -83,7 +98,7 @@
     }
 
     var api = {
-        stageTransform: stageTransform, visibleStripEntries: visibleStripEntries, hpClass: hpClass,
+        stageTransform: stageTransform, fitFrameToViewport: fitFrameToViewport, visibleStripEntries: visibleStripEntries, hpClass: hpClass,
         availableViewport: availableViewport, pickContentScale: pickContentScale, CONTENT_SCALES: CONTENT_SCALES,
         sheetView: sheetView, fogPolygons: fogPolygons, slideView: slideView
     };
