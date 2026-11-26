@@ -174,22 +174,41 @@ public sealed partial class JournalFormDialog
             _notice = $"Demasiadas imágenes a la vez (máximo {MaxFilesAtOnce}).";
             return;
         }
-        foreach (var file in files)
+        // Hasta leerlos todos, «Guardar», «Descartar», atrás y Escape esperan: si no, se guardaría solo una parte en silencio.
+        var owner = !_busy;
+        if (owner)
         {
-            if (file.Size > MaxImageBytes || !JournalPaths.HasSupportedExtension(file.Name))
+            _busy = true;
+            Shell.SetJournalFormSaving(true);
+        }
+        try
+        {
+            foreach (var file in files)
             {
-                _unreadable++;
-                continue;
+                if (file.Size > MaxImageBytes || !JournalPaths.HasSupportedExtension(file.Name))
+                {
+                    _unreadable++;
+                    continue;
+                }
+                try
+                {
+                    var bytes = await ReadAsync(file);
+                    _draft.AddPicked(file.Name, () => Task.FromResult<Stream>(new MemoryStream(bytes, writable: false)));
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Log.LogWarning("No se pudo leer una imagen elegida ({ExceptionType}).", ex.GetType().FullName);
+                    _unreadable++;
+                }
             }
-            try
+        }
+        finally
+        {
+            if (owner)
             {
-                var bytes = await ReadAsync(file);
-                _draft.AddPicked(file.Name, () => Task.FromResult<Stream>(new MemoryStream(bytes, writable: false)));
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                Log.LogWarning("No se pudo leer una imagen elegida ({ExceptionType}).", ex.GetType().FullName);
-                _unreadable++;
+                _busy = false;
+                Shell.SetJournalFormSaving(false);
+                TakeShare();
             }
         }
     }

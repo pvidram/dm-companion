@@ -40,7 +40,7 @@ public sealed partial class JournalStore
 
         var taken = await TakenNamesAsync(vault, current.DiaryFolder, ct);
         var (newBase, renamed) = ChooseBase(current, oldPath, known, taken, edit.Title);
-        var shared = await ImagesCitedByOthersAsync(vault, current.DiaryFolder, oldPath, ct);
+        if (await ImagesCitedByOthersAsync(vault, current, oldPath, ct) is not { } shared) return new JournalResult(JournalStatus.Failed);
         var plan = new EditPlan(oldPath, loaded, current, newBase, renamed, keep, PlanImages(items, newBase, renamed, taken, shared), unreadable, shared);
         return await ApplyAsync(vault, plan, edit, known, ct);
     }

@@ -88,4 +88,39 @@ public sealed class JournalStoreDeleteTests : JournalStoreTestBase
 
         (result.Status, Names(Diary)).Should().Be((JournalStatus.Done, "2026-11-16 Ankheg-1.png|2026-11-16 Ankheg-2.png|2026-11-16 Copia.md"));
     }
+
+    [Fact]
+    public async Task Delete_keeps_every_image_when_a_sibling_note_has_broken_yaml()
+    {
+        await CreateAsync("Ankheg", "a.png", "b.png");
+        File.WriteAllText(PathOf(Diary + "/2026-11-16 Copia.md"), "---\ntype: journal\nimages: [\n---\nA medio editar.\n");
+
+        var result = await Store.DeleteAsync(Entry, await StampAsync(Entry));
+
+        (result.Status, Names(Diary)).Should().Be((JournalStatus.Done, "2026-11-16 Ankheg-1.png|2026-11-16 Ankheg-2.png|2026-11-16 Copia.md"));
+    }
+
+    [Fact]
+    public async Task Delete_ignores_a_valid_sibling_note_that_is_not_a_journal_entry()
+    {
+        await CreateAsync("Ankheg", "a.png");
+        File.WriteAllText(PathOf(Diary + "/Suelta.md"), "---\ntype: note\n---\nMía.\n");
+
+        var result = await Store.DeleteAsync(Entry, await StampAsync(Entry));
+
+        (result.Status, Names(Diary)).Should().Be((JournalStatus.Done, "Suelta.md"));
+    }
+
+    [Fact]
+    public async Task Delete_fails_without_touching_anything_when_a_sibling_note_cannot_be_read()
+    {
+        await CreateAsync("Ankheg", "a.png");
+        File.WriteAllText(PathOf(Diary + "/Otra.md"), "---\ntype: journal\n---\n");
+        var stamp = await StampAsync(Entry);
+        Factory.Storage!.LockedNote = Diary + "/Otra.md";
+
+        var result = await Store.DeleteAsync(Entry, stamp);
+
+        (result.Status, Names(Diary)).Should().Be((JournalStatus.Failed, "2026-11-16 Ankheg-1.png|2026-11-16 Ankheg.md|Otra.md"));
+    }
 }

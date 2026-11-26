@@ -59,12 +59,16 @@ internal sealed class JournalFaultyStorage(IVaultStorage inner) : IVaultStorage
 {
     public volatile bool FailNoteWrites;
     public volatile bool ThrowOnNoteWrites;
+    public volatile string? LockedNote;
 
     public string RootPath => inner.RootPath;
 
     public Task<IReadOnlyList<VaultFile>> ListMarkdownFilesAsync(CancellationToken ct = default) => inner.ListMarkdownFilesAsync(ct);
 
-    public Task<VaultFileContent> ReadAsync(string relativePath, CancellationToken ct = default) => inner.ReadAsync(relativePath, ct);
+    public Task<VaultFileContent> ReadAsync(string relativePath, CancellationToken ct = default) =>
+        LockedNote is { } locked && VaultPaths.Normalize(relativePath).Equals(locked, StringComparison.OrdinalIgnoreCase)
+            ? throw new IOException("Bloqueada por otro proceso.")
+            : inner.ReadAsync(relativePath, ct);
 
     public Task<byte[]> ReadBytesAsync(string relativePath, CancellationToken ct = default) => inner.ReadBytesAsync(relativePath, ct);
 

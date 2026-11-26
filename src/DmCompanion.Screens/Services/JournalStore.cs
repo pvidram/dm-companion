@@ -24,7 +24,7 @@ public sealed partial class JournalStore(VaultHost host, TimeProvider time, ILog
     }
 
     // Nota leída para editarla o borrarla. Entry es null si el YAML es inválido o no es type: journal.
-    private sealed record Loaded(VaultFileContent File, IReadOnlyDictionary<string, object?> Fields, JournalEntry? Entry);
+    private sealed record Loaded(VaultFileContent File, IReadOnlyDictionary<string, object?> Fields, JournalEntry? Entry, bool YamlBroken);
 
     public Task<JournalResult> CreateAsync(JournalCreate request, CancellationToken ct = default) =>
         RunAsync(vault => CreateCoreAsync(vault, request, ct), ct);
@@ -116,7 +116,7 @@ public sealed partial class JournalStore(VaultHost host, TimeProvider time, ILog
         if (await LoadAsync(vault, path, ct) is not { } loaded) return new JournalResult(JournalStatus.NotFound);
         if (loaded.File.LastWriteTimeUtc != expectedLastWriteUtc) return new JournalResult(JournalStatus.ModifiedOnDisk);
         if (loaded.Entry is not { } entry) return new JournalResult(JournalStatus.Failed);
-        var shared = await ImagesCitedByOthersAsync(vault, entry.DiaryFolder, path, ct);
+        if (await ImagesCitedByOthersAsync(vault, entry, path, ct) is not { } shared) return new JournalResult(JournalStatus.Failed);
         try
         {
             await vault.DeleteAsync(path, ct);
@@ -134,16 +134,29 @@ public sealed partial class JournalStore(VaultHost host, TimeProvider time, ILog
     }
 
     // Nombres de imagen que citan las demás notas de la carpeta, leídas del disco (no del índice en memoria).
-    private async Task<HashSet<string>> ImagesCitedByOthersAsync(VaultService vault, string folder, string notePath, CancellationToken ct)
+    // Si alguna no se puede interpretar (YAML roto), no se sabe qué cita: se protegen todas las imágenes de la entrada.
+    // Null si no se pudo leer una nota (p. ej. un bloqueo de Syncthing): quien llama no debe tocar nada.
+    private async Task<HashSet<string>?> ImagesCitedByOthersAsync(VaultService vault, JournalEntry entry, string notePath, CancellationToken ct)
     {
         var cited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var files = await vault.ListFilesAsync(path => JournalPaths.FolderOf(path).Equals(folder, StringComparison.OrdinalIgnoreCase) && VaultPaths.IsMarkdown(path), ct);
-        foreach (var file in files)
+        try
         {
-            var other = VaultPaths.Normalize(file.RelativePath);
-            if (other.Equals(notePath, StringComparison.OrdinalIgnoreCase)) continue;
-            if (await LoadAsync(vault, other, ct) is { Entry: { } entry })
-                foreach (var image in entry.Images) cited.Add(image.Name);
+            var files = await vault.ListFilesAsync(path => JournalPaths.FolderOf(path).Equals(entry.DiaryFolder, StringComparison.OrdinalIgnoreCase) && VaultPaths.IsMarkdown(path), ct);
+            foreach (var file in files)
+            {
+                var other = VaultPaths.Normalize(file.RelativePath);
+                if (other.Equals(notePath, StringComparison.OrdinalIgnoreCase)) continue;
+                if (await LoadAsync(vault, other, ct) is not { } loaded) continue;
+                if (loaded.YamlBroken)
+                    foreach (var image in entry.Images) cited.Add(image.Name);
+                else if (loaded.Entry is { } sibling)
+                    foreach (var image in sibling.Images) cited.Add(image.Name);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogError("No se pudo leer otra nota del diario ({ExceptionType}).", ex.GetType().FullName);
+            return null;
         }
         return cited;
     }
@@ -164,7 +177,7 @@ public sealed partial class JournalStore(VaultHost host, TimeProvider time, ILog
         var entry = parsed.HasError || !JournalReader.IsJournal(parsed.Fields)
             ? null
             : JournalReader.Read(path, parsed.Fields, parsed.Body, null, file.LastWriteTimeUtc, _ => true);
-        return new Loaded(file, parsed.Fields, entry);
+        return new Loaded(file, parsed.Fields, entry, parsed.HasError);
     }
 
     // Se lee todo el flujo antes de escribir: un fallo de lectura (imagen ilegible) se distingue de uno de escritura (vault).
