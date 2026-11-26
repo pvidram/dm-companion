@@ -11,6 +11,7 @@ using DmCompanion.UI;
 using DmCompanion.UI.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace DmCompanion.Screens.Tests;
 
@@ -24,7 +25,7 @@ public sealed class MapControlsFogTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(new InMemoryAppPreferences());
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
-        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<TimeProvider>(new FakeTimeProvider());
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
         Services.AddGlossaryForTests();

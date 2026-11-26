@@ -458,7 +458,12 @@ public sealed class MapSessionTests : IAsyncLifetime
         var time = new HookedTimeProvider();
         var session = new MapSession(_host, _prefs, time, NullLogger<MapSession>.Instance);
         await session.OpenAsync(MapNote);
+        var stats = Volatile.Read(ref _factory.StateStats);
         session.Mutate(e => e.AddToken(new TokenDraft("Orco", null, TokenSide.Enemy, 1, null, null), 5, 5) is not null);
+        await session.FlushAsync();
+        // El watcher devuelve el eco del guardado propio y su recarga toma el gate. El gancho de abajo bloquea el hilo con _lock
+        // tomado hasta que el dispose obtiene ese gate, y la recarga necesita _lock para soltarlo: se espera a que pase antes.
+        await WaitUntilAsync(() => Volatile.Read(ref _factory.StateStats) > stats);
         await session.FlushAsync();
         time.BeforeNextChange = () => session.DisposeAsync().AsTask().GetAwaiter().GetResult();
 

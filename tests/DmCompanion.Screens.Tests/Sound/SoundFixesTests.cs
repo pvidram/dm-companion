@@ -1,6 +1,7 @@
 using System.Reflection;
 using Bunit;
 using DmCompanion.Core.Audio;
+using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Screens.Components.Sound;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
@@ -9,6 +10,9 @@ namespace DmCompanion.Screens.Tests.Sound;
 
 public sealed class SoundFixesTests : SoundTestContext
 {
+    public SoundFixesTests() =>
+        Services.AddSingleton<IVaultServiceFactory>(new CountingFactory { ListDelay = TimeSpan.FromMilliseconds(100) });
+
     private static AngleSharp.Dom.IElement SaveButton(IRenderedComponent<Components.DmShell> cut) =>
         cut.FindAll("button").First(b => b.TextContent.Contains("Guardar como escena"));
 
@@ -42,10 +46,10 @@ public sealed class SoundFixesTests : SoundTestContext
         var cut = RenderOpenSound();
         cut.WaitForElement("button[aria-label='Sobrescribir Bosque con la mezcla actual']", Wait);
 
-        cut.Find("button[aria-label='Sobrescribir Bosque con la mezcla actual']").Click();
+        await cut.InvokeAsync(() => cut.Find("button[aria-label='Sobrescribir Bosque con la mezcla actual']").Click());
         var asked = OpenDialog(cut).TextContent.Contains("¿Sustituir la escena «Bosque» por lo que suena ahora?");
         var untouched = (await Store.LoadSceneAsync("Bosque"))!.Background!.Source;
-        OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Sustituir").Click();
+        await cut.InvokeAsync(() => OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Sustituir").Click());
 
         cut.WaitForAssertion(() => (asked, untouched, Store.LoadSceneAsync("Bosque").GetAwaiter().GetResult()!.Background!.Source)
             .Should().Be((true, new TrackBackground(Lluvia), new SectionBackground("Taberna"))), Wait);
@@ -91,9 +95,9 @@ public sealed class SoundFixesTests : SoundTestContext
         var cut = RenderOpenSound();
         cut.WaitForElement("button[aria-label='Renombrar Bosque']", Wait);
 
-        cut.Find("button[aria-label='Renombrar Bosque']").Click();
-        OpenDialog(cut).QuerySelector("input")!.Input("Selva");
-        OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Renombrar").Click();
+        await cut.InvokeAsync(() => cut.Find("button[aria-label='Renombrar Bosque']").Click());
+        await cut.InvokeAsync(() => OpenDialog(cut).QuerySelector("input")!.Input("Selva"));
+        await cut.InvokeAsync(() => OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Renombrar").Click());
 
         cut.WaitForAssertion(() => Mixer.State.SceneName.Should().Be("Selva"), Wait);
     }
@@ -106,9 +110,9 @@ public sealed class SoundFixesTests : SoundTestContext
         var cut = RenderOpenSound();
         cut.WaitForElement("button[aria-label='Renombrar Bosque']", Wait);
 
-        cut.Find("button[aria-label='Renombrar Bosque']").Click();
-        OpenDialog(cut).QuerySelector("input")!.Input("Cueva: noche");
-        OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Renombrar").Click();
+        await cut.InvokeAsync(() => cut.Find("button[aria-label='Renombrar Bosque']").Click());
+        await cut.InvokeAsync(() => OpenDialog(cut).QuerySelector("input")!.Input("Cueva: noche"));
+        await cut.InvokeAsync(() => OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Renombrar").Click());
 
         cut.WaitForAssertion(() => Mixer.State.SceneName.Should().Be("Cueva noche"), Wait);
     }
@@ -118,22 +122,22 @@ public sealed class SoundFixesTests : SoundTestContext
     {
         await Mixer.SetBackgroundAsync(new TrackBackground(Lluvia));
         var cut = RenderOpenSound();
-        SaveButton(cut).Click();
-        OpenDialog(cut).QuerySelector("input")!.Input("Bosque");
+        await cut.InvokeAsync(() => SaveButton(cut).Click());
+        await cut.InvokeAsync(() => OpenDialog(cut).QuerySelector("input")!.Input("Bosque"));
 
         await Mixer.SetBackgroundAsync(new SectionBackground("Taberna"));
-        OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Guardar").Click();
+        await cut.InvokeAsync(() => OpenDialog(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Guardar").Click());
 
         cut.WaitForAssertion(() => Store.LoadSceneAsync("Bosque").GetAwaiter().GetResult()!.Background!.Source.Should().Be(new TrackBackground(Lluvia)), Wait);
     }
 
     [Fact]
-    public void Notices_expire()
+    public async Task Notices_expire()
     {
         Directory.CreateDirectory(PathOf("_audio/_dm/favorites.json"));
         var cut = RenderOpenSound();
         Expand(cut, "Efectos");
-        cut.Find("button[aria-label='Favorito: trueno']").Click();
+        await cut.InvokeAsync(() => cut.Find("button[aria-label='Favorito: trueno']").Click());
         cut.WaitForElement(".sound-block [role=alert]", Wait);
 
         ((FakeTimeProvider)Services.GetRequiredService<TimeProvider>()).Advance(TimeSpan.FromSeconds(7));

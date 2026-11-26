@@ -25,10 +25,10 @@ public sealed class CombatStripDetailsTests : CombatUiTestBase
     public async Task Add_accepts_a_negative_initiative()
     {
         var cut = await RenderWithSpareAsync();
-        cut.Find("[data-testid=strip-add]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-add]").Click());
 
-        cut.Find("[data-testid=add-initiative]").Input("-1");
-        cut.Find("[data-testid=add-token-c]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-initiative]").Input("-1"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-token-c]").Click());
 
         Combat.State!.Entries.Last().Initiative.Should().Be(-1);
     }
@@ -37,7 +37,7 @@ public sealed class CombatStripDetailsTests : CombatUiTestBase
     public async Task Add_with_non_numeric_text_shows_an_error()
     {
         var cut = await RenderWithSpareAsync();
-        cut.Find("[data-testid=strip-add]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-add]").Click());
 
         // Find y acción juntos y con reintento: un re-render tardío entre ambos deja el manejador encontrado obsoleto.
         cut.WaitForAssertion(() => cut.Find("[data-testid=add-initiative]").Input("abc"));
@@ -50,10 +50,10 @@ public sealed class CombatStripDetailsTests : CombatUiTestBase
     public async Task Add_with_non_numeric_text_does_not_add_the_entry()
     {
         var cut = await RenderWithSpareAsync();
-        cut.Find("[data-testid=strip-add]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-add]").Click());
 
-        cut.Find("[data-testid=add-initiative]").Input("abc");
-        cut.Find("[data-testid=add-token-c]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-initiative]").Input("abc"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-token-c]").Click());
 
         Combat.State!.Entries.Should().HaveCount(2);
     }
@@ -63,7 +63,7 @@ public sealed class CombatStripDetailsTests : CombatUiTestBase
     {
         var cut = await RenderAsync();
         MakeReadOnly();
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.Find("[data-testid=next-turn]").HasAttribute("disabled").Should().BeTrue();
     }
@@ -72,7 +72,7 @@ public sealed class CombatStripDetailsTests : CombatUiTestBase
     public async Task Opening_a_card_for_a_stale_index_does_nothing()
     {
         var cut = await RenderAsync();
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
         var strip = cut.FindComponent<CombatStripBar>().Instance;
 
         var open = async () => await (Task)typeof(CombatStripBar).GetMethod("OpenCardAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(strip, [new StripTap(99, 0, 0)])!;
@@ -84,10 +84,10 @@ public sealed class CombatStripDetailsTests : CombatUiTestBase
     public async Task Ending_combat_clears_the_selected_token()
     {
         var cut = await RenderAsync();
-        Shell.SelectCombatToken("a");
+        await cut.InvokeAsync(() => Shell.SelectCombatToken("a"));
 
-        cut.Find("[data-testid=strip-end]").Click();
-        cut.FindAll(".ds-dialog-backdrop:not([hidden]) .ds-button--damage").Single().Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-end]").Click());
+        await cut.InvokeAsync(() => cut.FindAll(".ds-dialog-backdrop:not([hidden]) .ds-button--damage").Single().Click());
 
         Shell.SelectedCombatTokenId.Should().BeNull();
     }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DmCompanion.Core.Tv;
+using DmCompanion.Core.Vault;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
 using DmCompanion.Screens.Services;
@@ -66,6 +67,30 @@ public abstract class TvSessionTestBase : IAsyncLifetime
 
     protected static JsonElement? TokenIn(JsonElement map, string id) =>
         map.GetProperty("tokens").EnumerateArray().Cast<JsonElement?>().FirstOrDefault(t => t!.Value.GetProperty("id").GetString() == id);
+
+    /// <summary>
+    /// Borra un fichero que no es una nota y espera a que el watcher lo notifique. Los suscriptores de FileChanged se llaman en el
+    /// orden de suscripción, así que cuando llega aquí el resolvedor de imágenes y la TV ya lo han visto (la lista queda obsoleta).
+    /// </summary>
+    protected async Task DeleteAndAwaitWatcherAsync(string path)
+    {
+        var vault = Host.Current!;
+        var seen = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnChanged(object? sender, VaultChange change)
+        {
+            if (string.Equals(VaultPaths.Normalize(change.RelativePath), path, StringComparison.OrdinalIgnoreCase)) seen.TrySetResult();
+        }
+        vault.FileChanged += OnChanged;
+        try
+        {
+            await vault.DeleteAsync(path);
+            await seen.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            vault.FileChanged -= OnChanged;
+        }
+    }
 
     protected static async Task WaitUntilAsync(Func<bool> condition)
     {

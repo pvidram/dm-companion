@@ -8,14 +8,11 @@ using DmCompanion.Screens.Tests.Support;
 using DmCompanion.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
 
 namespace DmCompanion.Screens.Tests;
 
 public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-
     private readonly TempVault _vault = TempVault.FromDemo();
 
     public GlossaryPanelTests()
@@ -31,7 +28,7 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
         Services.AddScoped<ShellState>();
         Services.AddSoundForTests();
         Services.AddGlossaryForTests();
-        Services.AddSingleton<TimeProvider>(new FakeTimeProvider());
+        Services.AddSingleton(TimeProvider.System);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
         Services.AddSingleton<CombatController>();
@@ -42,11 +39,7 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
         Services.AddVaultBrowsingForTests();
     }
 
-    async Task IAsyncLifetime.InitializeAsync()
-    {
-        await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
-        await Services.WaitForAudioLibraryAsync(Timeout);
-    }
+    Task IAsyncLifetime.InitializeAsync() => Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
 
     async Task IAsyncLifetime.DisposeAsync()
     {
@@ -57,12 +50,10 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
 
     private ShellState Shell => Services.GetRequiredService<ShellState>();
 
-    private IRenderedComponent<DmShell> OpenPanel()
+    private async Task<IRenderedComponent<DmShell>> OpenPanelAsync()
     {
         var cut = Render<DmShell>();
-        cut.Find("button[aria-label='Glosario']").Click();
-        // El cuerpo del panel se pinta en un re-render que puede no haber terminado al volver el clic: se espera a él.
-        cut.WaitForElement("section.glossary-panel .glossary-tabs", Timeout);
+        await cut.InvokeAsync(() => cut.Find("button[aria-label='Glosario']").Click());
         return cut;
     }
 
@@ -71,10 +62,10 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
     private static IReadOnlyList<string> Rows(IRenderedComponent<DmShell> cut) =>
         Panel(cut).QuerySelectorAll("button.ds-list-row").Select(b => b.TextContent).ToList();
 
-    private static void Search(IRenderedComponent<DmShell> cut, string text) => Panel(cut).QuerySelector("input[type=search]")!.Input(text);
+    private static Task Search(IRenderedComponent<DmShell> cut, string text) => cut.InvokeAsync(() => Panel(cut).QuerySelector("input[type=search]")!.Input(text));
 
-    private static void Chip(IRenderedComponent<DmShell> cut, string label) =>
-        Panel(cut).QuerySelectorAll("button.glossary-chip").First(b => b.TextContent.Trim() == label).Click();
+    private static Task Chip(IRenderedComponent<DmShell> cut, string label) =>
+        cut.InvokeAsync(() => Panel(cut).QuerySelectorAll("button.glossary-chip").First(b => b.TextContent.Trim() == label).Click());
 
     [Fact]
     public void Rail_has_a_Glossary_button()
@@ -85,44 +76,44 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
-    public void Opening_the_panel_lists_entries()
+    public async Task Opening_the_panel_lists_entries()
     {
-        var cut = OpenPanel();
+        var cut = await OpenPanelAsync();
 
         Rows(cut).Should().NotBeEmpty();
     }
 
     [Fact]
-    public void Searching_fireball_finds_Bola_de_fuego()
+    public async Task Searching_fireball_finds_Bola_de_fuego()
     {
-        var cut = OpenPanel();
+        var cut = await OpenPanelAsync();
 
-        Search(cut, "bola de fuego");
+        await Search(cut, "bola de fuego");
 
         Rows(cut).Should().Contain(row => row.Contains("Bola de fuego"));
     }
 
     [Fact]
-    public void Category_chip_filters()
+    public async Task Category_chip_filters()
     {
-        var cut = OpenPanel();
+        var cut = await OpenPanelAsync();
 
-        Chip(cut, "Conjuros");
+        await Chip(cut, "Conjuros");
 
         Rows(cut).Should().NotBeEmpty().And.OnlyContain(row => !row.Contains("Aboleth"));
         Panel(cut).QuerySelectorAll("button.glossary-chip").Single(b => b.GetAttribute("aria-pressed") == "true").TextContent.Trim().Should().Be("Conjuros");
     }
 
     [Fact]
-    public void Cr_filter_hides_the_aboleth()
+    public async Task Cr_filter_hides_the_aboleth()
     {
-        var cut = OpenPanel();
-        Chip(cut, "Criaturas");
-        Search(cut, "aboleth");
+        var cut = await OpenPanelAsync();
+        await Chip(cut, "Criaturas");
+        await Search(cut, "aboleth");
         Rows(cut).Should().Contain(row => row.Contains("Aboleth"));
 
         var upTo = Panel(cut).QuerySelector("select[aria-label='VD hasta']")!;
-        upTo.Change(upTo.QuerySelectorAll("option").Single(o => o.TextContent == "2").GetAttribute("value")!);
+        await cut.InvokeAsync(() => upTo.Change(upTo.QuerySelectorAll("option").Single(o => o.TextContent == "2").GetAttribute("value")!));
 
         Rows(cut).Should().NotContain(row => row.Contains("Aboleth"));
     }
@@ -133,33 +124,33 @@ public sealed class GlossaryPanelTests : BunitContext, IAsyncLifetime
         Directory.CreateDirectory(_vault.PathOf("Glosario"));
         await File.WriteAllTextAsync(_vault.PathOf("Glosario/Investidura.md"), "---\ntype: rule\nname: Investidura\n---\nTexto.\n");
         await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
-        var cut = OpenPanel();
+        var cut = await OpenPanelAsync();
 
-        Search(cut, "investidura");
+        await Search(cut, "investidura");
 
         Panel(cut).QuerySelector("button.ds-list-row .ds-condition")!.TextContent.Trim().Should().Be("Tuya");
     }
 
     [Fact]
-    public void Selecting_a_row_opens_its_detail_and_Atras_returns()
+    public async Task Selecting_a_row_opens_its_detail_and_Atras_returns()
     {
-        var cut = OpenPanel();
-        Chip(cut, "Criaturas");
-        Search(cut, "guerrero goblin");
+        var cut = await OpenPanelAsync();
+        await Chip(cut, "Criaturas");
+        await Search(cut, "guerrero goblin");
 
-        Panel(cut).QuerySelectorAll("button.ds-list-row").First(b => b.TextContent.Contains("Guerrero goblin")).Click();
+        await cut.InvokeAsync(() => Panel(cut).QuerySelectorAll("button.ds-list-row").First(b => b.TextContent.Contains("Guerrero goblin")).Click());
         Shell.SelectedGlossaryKey.Should().Be("srd:criaturas/goblin-warrior");
         Panel(cut).QuerySelector("h3")!.TextContent.Should().Contain("Guerrero goblin");
 
-        Panel(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Atrás").Click();
+        await cut.InvokeAsync(() => Panel(cut).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Atrás").Click());
 
         Shell.SelectedGlossaryKey.Should().BeNull();
     }
 
     [Fact]
-    public void Attribution_is_shown()
+    public async Task Attribution_is_shown()
     {
-        var cut = OpenPanel();
+        var cut = await OpenPanelAsync();
 
         Panel(cut).TextContent.Should().Contain("Creative Commons");
     }
