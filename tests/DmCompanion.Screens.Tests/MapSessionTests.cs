@@ -778,7 +778,7 @@ public sealed class MapSessionTests : IAsyncLifetime
         var entries = await SaveAfterDiskTouchAsync(TouchStateMtime);
 
         entries.Should().ContainSingle().Which.Should().Match<(Microsoft.Extensions.Logging.LogLevel Level, string Message)>(e =>
-            e.Level == Microsoft.Extensions.Logging.LogLevel.Information && e.Message.Contains("con el mismo contenido; no es un cambio externo"));
+            e.Level == Microsoft.Extensions.Logging.LogLevel.Debug && e.Message.Contains("con el mismo contenido; no es un cambio externo"));
     }
 
     [Fact]

@@ -267,4 +267,27 @@ public sealed class JournalStoreUpdateTests : JournalStoreTestBase
 
         Exists(Diary + "/" + Two).Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Update_with_a_new_title_keeps_the_image_names_when_a_sibling_note_has_broken_yaml()
+    {
+        var stamp = await CreateTwoImagesAsync();
+        File.WriteAllText(PathOf(Diary + "/Copia.md"), "---\ntype: journal\nimages: [\n---\n");
+
+        var result = await UpdateAsync(stamp, "Dragón", null, null, JournalImageItem.Keep(One), JournalImageItem.Keep(Two));
+
+        (result.Status, Names(Diary)).Should().Be((JournalStatus.Done, $"{One}|{Two}|2026-11-16 Dragón.md|Copia.md"));
+    }
+
+    [Fact]
+    public async Task Update_fails_without_touching_anything_when_a_sibling_note_cannot_be_read()
+    {
+        var stamp = await CreateTwoImagesAsync();
+        File.WriteAllText(PathOf(Diary + "/Otra.md"), "---\ntype: journal\n---\n");
+        Factory.Storage!.LockedNote = Diary + "/Otra.md";
+
+        var result = await UpdateAsync(stamp, "Dragón", null, null, JournalImageItem.Keep(One), JournalImageItem.Keep(Two));
+
+        (result.Status, Names(Diary)).Should().Be((JournalStatus.Failed, $"{One}|{Two}|2026-11-16 Ankheg.md|Otra.md"));
+    }
 }
