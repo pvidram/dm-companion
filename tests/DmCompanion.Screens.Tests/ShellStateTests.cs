@@ -30,6 +30,100 @@ public sealed class ShellStateTests
     }
 
     [Fact]
+    public void RequestNewFolder_stores_the_parent_and_raises_Changed()
+    {
+        var shell = new ShellState();
+        var raised = 0;
+        shell.Changed += (_, _) => raised++;
+
+        shell.RequestNewFolder("/a", _ => Task.CompletedTask);
+
+        (shell.NewFolder!.ParentPath, raised).Should().Be(("/a", 1));
+    }
+
+    [Fact]
+    public void CloseNewFolder_clears_the_request_and_raises_Changed()
+    {
+        var shell = new ShellState();
+        shell.RequestNewFolder("/a", _ => Task.CompletedTask);
+        var raised = 0;
+        shell.Changed += (_, _) => raised++;
+
+        shell.CloseNewFolder();
+
+        (shell.NewFolder, raised).Should().Be((null, 1));
+    }
+
+    [Fact]
+    public void RequestCreateVault_stores_the_folder_and_raises_Changed()
+    {
+        var shell = new ShellState();
+        var raised = 0;
+        shell.Changed += (_, _) => raised++;
+
+        shell.RequestCreateVault("/a/b", _ => Task.CompletedTask);
+
+        (shell.CreateVault!.FolderPath, raised).Should().Be(("/a/b", 1));
+    }
+
+    [Fact]
+    public void CloseCreateVault_clears_the_request_and_raises_Changed()
+    {
+        var shell = new ShellState();
+        shell.RequestCreateVault("/a/b", _ => Task.CompletedTask);
+        var raised = 0;
+        shell.Changed += (_, _) => raised++;
+
+        shell.CloseCreateVault();
+
+        (shell.CreateVault, raised).Should().Be((null, 1));
+    }
+
+    [Fact]
+    public void RequestVaultConfirm_remembers_whether_creating_is_offered()
+    {
+        var shell = new ShellState();
+
+        shell.RequestVaultConfirm("/a", true);
+
+        (shell.ConfirmingVaultPath, shell.ConfirmingVaultCanCreate).Should().Be(("/a", true));
+    }
+
+    [Fact]
+    public void RequestVaultConfirm_defaults_to_not_offering_creation()
+    {
+        var shell = new ShellState();
+
+        shell.RequestVaultConfirm("/a");
+
+        shell.ConfirmingVaultCanCreate.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CloseVaultConfirm_clears_the_create_flag()
+    {
+        var shell = new ShellState();
+        shell.RequestVaultConfirm("/a", true);
+
+        shell.CloseVaultConfirm();
+
+        shell.ConfirmingVaultCanCreate.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reset_clears_the_new_dialogs()
+    {
+        var shell = new ShellState();
+        shell.RequestNewFolder("/a", _ => Task.CompletedTask);
+        shell.RequestCreateVault("/a", _ => Task.CompletedTask);
+        shell.RequestVaultConfirm("/a", true);
+
+        shell.Reset();
+
+        (shell.NewFolder, shell.CreateVault, shell.ConfirmingVaultCanCreate).Should().Be((null, null, false));
+    }
+
+    [Fact]
     public void Reset_clears_panel_selections_and_dialogs()
     {
         var shell = new ShellState();

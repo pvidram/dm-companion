@@ -36,6 +36,7 @@
 
 <p>@_current</p>
 <Button Variant="ButtonVariant.Secondary" Disabled="@(!CanGoUp)" OnClick="GoUp">Atrás</Button>
+<Button Variant="ButtonVariant.Secondary" OnClick="RequestNewFolder">Nueva carpeta</Button>
 <Button Variant="ButtonVariant.Primary" OnClick="UseCurrent">Usar esta carpeta</Button>
 
 @if (_folders.Count == 0)
@@ -102,7 +103,27 @@ else
         if (CanGoUp && ParentOf(_current) is { } parent) Navigate(parent);
     }
 
-    private Task UseCurrent() => OnUse.InvokeAsync(new VaultChoice(_current, Browser.LooksLikeVault(_current)));
+    private Task UseCurrent()
+    {
+        var status = Browser.Classify(_current);
+        return OnUse.InvokeAsync(new VaultChoice(_current, status == FolderVaultStatus.Vault,
+            status == FolderVaultStatus.Empty && !IsPlatformRoot(_current)));
+    }
+
+    // En una raíz de la plataforma (almacenamiento, unidades) no se ofrece crear un vault.
+    private bool IsPlatformRoot(string path)
+    {
+        var target = Normalize(path);
+        return SamePath(Storage.DefaultBrowseRoot, target) || Storage.Roots.Any(r => SamePath(r, target));
+    }
+
+    private void RequestNewFolder() => Shell.RequestNewFolder(_current, OnFolderCreated);
+
+    private Task OnFolderCreated(string path) => InvokeAsync(() =>
+    {
+        Navigate(path);
+        StateHasChanged();
+    });
 
     private void OnTypedPathChanged(string value) => _typedPath = value;
 
@@ -145,6 +166,9 @@ else
     // «C:\» y «/» son raíces; «C:» (unidad sin barra) significa «directorio actual de C», no se usa.
     private static bool IsRoot(string path) =>
         path is "/" or "\\" || DriveRootPattern.IsMatch(path) || (path.Length > 0 && Path.GetPathRoot(path) == path);
+
+    private static bool SamePath(string a, string b) =>
+        string.Equals(Normalize(a), Normalize(b), StringComparison.OrdinalIgnoreCase);
 
     private static string Normalize(string path) => IsRoot(path) || path.Length <= 1 ? path : path.TrimEnd('/', '\\');
 

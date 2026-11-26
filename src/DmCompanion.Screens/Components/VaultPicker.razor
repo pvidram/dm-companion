@@ -14,20 +14,23 @@
         </Parchment>
     </Overlays>
     <Dialogs>
-        <ConfirmDialog Title="¿Abrir esta carpeta?" IsOpen="@(_unlikelyVault is not null)"
-                       Message="@VaultBrowsing.UnlikelyVaultMessage"
-                       ConfirmText="Abrir de todos modos" OnConfirm="ConfirmUnlikelyVault" OnCancel="CancelUnlikelyVault" />
+        <UnlikelyVaultDialog IsOpen="@(_unlikelyVault is not null)" CanCreate="_unlikelyCanCreate"
+                             OnOpenAnyway="ConfirmUnlikelyVault" OnCreate="CreateHere" OnCancel="CancelUnlikelyVault" />
+        <NewFolderDialog />
+        <CreateVaultDialog />
     </Dialogs>
 </TableFrame>
 
 @code {
     private string? _unlikelyVault;
+    private bool _unlikelyCanCreate;
 
     private async Task UseAsync(VaultChoice choice)
     {
         if (!choice.LooksLikeVault)
         {
             _unlikelyVault = choice.Path;
+            _unlikelyCanCreate = choice.CanCreateVault;
             return;
         }
         await Host.OpenAsync(choice.Path);
@@ -38,6 +41,13 @@
         if (_unlikelyVault is not { } path) return;
         _unlikelyVault = null;
         await Host.OpenAsync(path);
+    }
+
+    private void CreateHere()
+    {
+        if (_unlikelyVault is not { } path) return;
+        _unlikelyVault = null;
+        Shell.RequestCreateVault(path, async p => { await Host.OpenAsync(p); });
     }
 
     private void CancelUnlikelyVault() => _unlikelyVault = null;

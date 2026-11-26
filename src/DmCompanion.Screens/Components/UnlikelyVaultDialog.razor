@@ -1,0 +1,22 @@
+<Dialog Title="¿Abrir esta carpeta?" IsOpen="IsOpen" OnClose="OnCancel">
+    <ChildContent><p>@VaultBrowsing.UnlikelyVaultMessage</p></ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Secondary" OnClick="OnCancel">Cancelar</Button>
+        <Button Variant="ButtonVariant.Secondary" OnClick="OnOpenAnyway">Abrir de todos modos</Button>
+        @if (CanCreate)
+        {
+            <Button Variant="ButtonVariant.Primary" OnClick="OnCreate">Crear vault aquí</Button>
+        }
+    </Footer>
+</Dialog>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+
+    /// <summary>Si se ofrece «Crear vault aquí» (solo en carpetas vacías que no son raíces de la plataforma).</summary>
+    [Parameter] public bool CanCreate { get; set; }
+
+    [Parameter] public EventCallback OnOpenAnyway { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

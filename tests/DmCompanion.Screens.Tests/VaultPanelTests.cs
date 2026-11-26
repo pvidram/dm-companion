@@ -139,4 +139,76 @@ public sealed class VaultPanelTests : BunitContext, IAsyncLifetime
         cut.WaitForAssertion(() => (Host.Current?.RootPath, Shell.ActivePanel, Panel(cut).QuerySelector("[role=alert]") is not null)
             .Should().Be((_vault.Root, OverlayPanel.Vault, true)), Wait);
     }
+
+    private static IElement CreateVaultButton(IRenderedComponent<DmShell> cut) =>
+        cut.FindAll(".ds-dialog").First(d => d.TextContent.Contains("Crear vault de campaña"))
+            .QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Crear");
+
+    [Fact]
+    public void An_empty_folder_asks_and_offers_to_create_a_vault()
+    {
+        var cut = RenderWithPanelOpen();
+
+        Choose(cut, _plain.Root);
+
+        cut.WaitForAssertion(() => Shell.ConfirmingVaultCanCreate.Should().BeTrue(), Wait);
+    }
+
+    [Fact]
+    public async Task Creating_a_vault_from_the_panel_switches_to_it()
+    {
+        var cut = RenderWithPanelOpen();
+        Choose(cut, _plain.Root);
+        cut.WaitForAssertion(() => Shell.ConfirmingVaultCanCreate.Should().BeTrue(), Wait);
+
+        await cut.InvokeAsync(() => cut.FindAll("button").First(b => b.TextContent.Trim() == "Crear vault aquí").Click());
+        await cut.InvokeAsync(() => CreateVaultButton(cut).Click());
+
+        cut.WaitForAssertion(() => (Host.Current?.RootPath, Shell.ActivePanel).Should().Be((_plain.Root, OverlayPanel.None)), Wait);
+        Directory.Exists(Path.Combine(_plain.Root, ".obsidian")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Cancelling_the_unsaved_changes_prompt_creates_nothing()
+    {
+        var cut = RenderWithPanelOpen();
+        Choose(cut, _plain.Root);
+        cut.WaitForAssertion(() => Shell.ConfirmingVaultCanCreate.Should().BeTrue(), Wait);
+        await cut.InvokeAsync(() => cut.FindAll("button").First(b => b.TextContent.Trim() == "Crear vault aquí").Click());
+        await cut.InvokeAsync(() => Shell.SetEditorDirty(true));
+
+        await cut.InvokeAsync(() => CreateVaultButton(cut).Click());
+        cut.WaitForAssertion(() => Shell.ActiveEditorDialog.Should().Be(EditorDialog.ConfirmClose), Wait);
+        await cut.InvokeAsync(Shell.CancelDiscard);
+
+        (Directory.Exists(Path.Combine(_plain.Root, ".obsidian")), Directory.GetFiles(_plain.Root).Length, Host.Current?.RootPath)
+            .Should().Be((false, 0, _vault.Root));
+    }
+
+    [Fact]
+    public async Task Confirming_the_unsaved_changes_prompt_creates_and_opens_the_vault()
+    {
+        var cut = RenderWithPanelOpen();
+        Choose(cut, _plain.Root);
+        cut.WaitForAssertion(() => Shell.ConfirmingVaultCanCreate.Should().BeTrue(), Wait);
+        await cut.InvokeAsync(() => cut.FindAll("button").First(b => b.TextContent.Trim() == "Crear vault aquí").Click());
+        await cut.InvokeAsync(() => Shell.SetEditorDirty(true));
+
+        await cut.InvokeAsync(() => CreateVaultButton(cut).Click());
+        cut.WaitForAssertion(() => Shell.ActiveEditorDialog.Should().Be(EditorDialog.ConfirmClose), Wait);
+        await cut.InvokeAsync(Shell.ConfirmDiscardAsync);
+
+        cut.WaitForAssertion(() => (Host.Current?.RootPath).Should().Be(_plain.Root), Wait);
+    }
+
+    [Fact]
+    public void A_non_empty_non_vault_folder_does_not_offer_creation()
+    {
+        for (var i = 0; i < 2001; i++) File.WriteAllText(Path.Combine(_plain.Root, $"f{i}.txt"), "");
+        var cut = RenderWithPanelOpen();
+
+        Choose(cut, _plain.Root);
+
+        cut.WaitForAssertion(() => (Shell.ConfirmingVaultPath, Shell.ConfirmingVaultCanCreate).Should().Be((_plain.Root, false)), Wait);
+    }
 }

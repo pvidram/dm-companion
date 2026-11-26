@@ -11,6 +11,7 @@ internal static class VaultBrowsingTestServices
     public static IServiceCollection AddVaultBrowsingForTests(this IServiceCollection services)
     {
         services.AddSingleton<IFolderBrowser, DirectoryBrowser>();
+        services.AddSingleton<IVaultCreator, FileSystemVaultCreator>();
         services.AddSingleton<IStorageAccess, RootStorageAccess>();
         return services;
     }

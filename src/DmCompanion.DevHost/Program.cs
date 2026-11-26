@@ -27,6 +27,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDmCompanionUI();
 builder.Services.AddSingleton<IVaultServiceFactory, FileSystemVaultServiceFactory>();
 builder.Services.AddSingleton<IFolderBrowser, DirectoryBrowser>();
+builder.Services.AddSingleton<IVaultCreator, FileSystemVaultCreator>();
 builder.Services.AddSingleton<IAppPreferences>(sp =>
     new JsonFileAppPreferences(DevHostPaths.PreferencesFile, sp.GetRequiredService<ILogger<JsonFileAppPreferences>>()));
 builder.Services.AddSingleton<IStorageAccess, DevStorageAccess>();

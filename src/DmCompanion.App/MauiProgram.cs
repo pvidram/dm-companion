@@ -22,6 +22,7 @@ public static class MauiProgram
 		builder.Services.AddDmCompanionUI();
 		builder.Services.AddSingleton<IVaultServiceFactory, FileSystemVaultServiceFactory>();
 		builder.Services.AddSingleton<IFolderBrowser, DirectoryBrowser>();
+		builder.Services.AddSingleton<IVaultCreator, FileSystemVaultCreator>();
 		builder.Services.AddSingleton<IStorageAccess, AndroidStorageAccess>();
 		builder.Services.AddSingleton<IAppPreferences, MauiAppPreferences>();
 		builder.Services.AddSingleton<VaultHost>();
