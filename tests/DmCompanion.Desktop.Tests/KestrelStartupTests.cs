@@ -19,13 +19,16 @@ public sealed class KestrelStartupTests : IDisposable
             builder.UseSetting("Desktop:SingleInstance", "true");
             // Puerto libre elegido por el sistema: el test no enlaza el 5190 habitual.
             builder.UseSetting("Desktop:Port", "0");
-            builder.UseSetting("Desktop:WaitOnError", "false");
+            // Este test arranca el Main real con Kestrel: sin esto abriría una ventana nativa.
+            builder.UseSetting("Desktop:NoWindow", "true");
             builder.UseSetting("Desktop:MutexName", @"Local\DmCompanion.Tests." + Guid.NewGuid().ToString("N"));
             builder.UseSetting("Desktop:DataRoot", _data.Root);
             builder.ConfigureTestServices(services =>
             {
                 services.AddSingleton<IAppPreferences, InMemoryAppPreferences>();
                 services.AddSingleton<IBrowserLauncher>(_launcher);
+                // El Main real registra GitHubUpdateCheck: se sustituye para que ningún test salga a la red.
+                services.AddSingleton<IUpdateCheck, NoNetworkUpdateCheck>();
             });
         });
         factory.UseKestrel(0);
@@ -61,11 +64,11 @@ public sealed class KestrelStartupTests : IDisposable
     }
 
     [Fact]
-    public void Startup_opens_the_browser_at_the_url_in_instance_json()
+    public void Startup_does_not_open_the_browser()
     {
-        var url = StartAndReadUrl();
+        StartAndReadUrl();
 
-        _launcher.Opened.Should().Equal(url);
+        _launcher.Opened.Should().BeEmpty();
     }
 
     [Fact]

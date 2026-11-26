@@ -1,32 +1,33 @@
 namespace DmCompanion.Desktop;
 
-/// <summary>Un fallo de arranque se muestra en la consola y se registra solo con el tipo de la excepción.</summary>
+/// <summary>Un fallo de arranque se muestra en un diálogo y se registra solo con el tipo de la excepción.</summary>
 public static class StartupFailure
 {
-    /// <summary>
-    /// Escribe el mensaje, registra el tipo de la excepción y, si <paramref name="wait"/>, espera a Intro para que la ventana
-    /// no se cierre sin rastro. Devuelve el código de salida (1).
-    /// </summary>
-    public static int Report(string message, ILogger? logger, Exception? exception, bool wait, TextWriter output, TextReader input)
+    /// <summary>Muestra el mensaje con <paramref name="show"/>, lo registra y devuelve el código de salida (1).</summary>
+    public static int Report(string message, ILogger? logger, Exception? exception, Action<string> show)
     {
-        output.WriteLine(message);
         if (logger is not null)
         {
             if (exception is null) logger.LogError("{Message}", message);
-            else logger.LogError(exception, "El arranque falló.");
+            else logger.LogError("El arranque falló ({ExceptionType}).", exception.GetType().FullName);
         }
-        if (wait)
-        {
-            output.WriteLine("Pulsa Intro para cerrar esta ventana.");
-            input.ReadLine();
-        }
+        show(message);
         return 1;
     }
 
-    public static string UnexpectedFailureMessage(bool hasStarted) => hasStarted
-        ? "DM Companion se ha detenido por un error. Ábrelo de nuevo; si se repite, revisa los registros en %LOCALAPPDATA%\\DmCompanion\\logs."
-        : "DM Companion no ha podido arrancar. Cierra otras copias abiertas e inténtalo de nuevo; si se repite, revisa los registros en %LOCALAPPDATA%\\DmCompanion\\logs.";
+    /// <summary>En Linux, un DllNotFoundException (también como excepción interna) al crear la ventana es la falta de WebKitGTK; en otro caso, null.</summary>
+    public static string? MissingNativeLibraryMessage(Exception exception, bool isLinux) => isLinux && ContainsDllNotFound(exception)
+        ? "Falta WebKitGTK (libwebkit2gtk-4.1). Instálalo con el gestor de paquetes de tu distribución (por ejemplo, sudo apt install libwebkit2gtk-4.1-0 libnotify4) y vuelve a abrir DM Companion."
+        : null;
 
-    /// <summary>Por defecto solo espera con una consola interactiva; <c>Desktop:WaitOnError</c> lo fuerza o lo desactiva.</summary>
-    public static bool ShouldWait(IConfiguration config) => config.GetValue("Desktop:WaitOnError", !Console.IsInputRedirected);
+    private static bool ContainsDllNotFound(Exception? exception)
+    {
+        for (var e = exception; e is not null; e = e.InnerException)
+            if (e is DllNotFoundException) return true;
+        return false;
+    }
+
+    public static string UnexpectedFailureMessage(bool hasStarted, string logsFolder) => hasStarted
+        ? $"DM Companion se ha detenido por un error. Ábrelo de nuevo; si se repite, revisa los registros en {logsFolder}."
+        : $"DM Companion no ha podido arrancar. Cierra otras copias abiertas e inténtalo de nuevo; si se repite, revisa los registros en {logsFolder}.";
 }

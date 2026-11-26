@@ -49,6 +49,16 @@ public sealed class DesktopSmokeTests : IDisposable
     }
 
     [Fact]
+    public async Task Desktop_endpoints_do_not_exist_outside_desktop_mode()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/_desktop/focus");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task Styleguide_route_is_not_found()
     {
         using var client = _factory.CreateClient();
