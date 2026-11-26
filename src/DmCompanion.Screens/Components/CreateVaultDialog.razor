@@ -1,0 +1,91 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.GameSystems
+@using DmCompanion.Core.Vault.Storage
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider Provider
+
+<Dialog Title="Crear vault de campaña" IsOpen="@(Shell.CreateVault is not null)" OnClose="Shell.CloseCreateVault">
+    <ChildContent>
+        <TextField Label="Nombre de la campaña" @bind-Value="_name" />
+        <Select TValue="IGameSystem" Label="Sistema" @bind-Value="_system" Options="GameSystemRegistry.Default.All" LabelOf="@(s => s.DisplayName)" />
+        @if (_notice is { } notice)
+        {
+            <InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="@(_busy || string.IsNullOrWhiteSpace(_name))" OnClick="CreateAsync">Crear</Button>
+        <Button OnClick="Shell.CloseCreateVault">Cancelar</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private CreateVaultRequest? _seen;
+    private string _name = string.Empty;
+    private IGameSystem _system = GameSystemRegistry.Default.Get(null);
+    private string? _notice;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Sync();
+    }
+
+    protected override void OnVaultChanged() => Sync();
+
+    // Cada petición nueva (otra instancia) reinicia el formulario; el nombre propuesto es el de la carpeta.
+    private void Sync()
+    {
+        if (ReferenceEquals(_seen, Shell.CreateVault)) return;
+        _seen = Shell.CreateVault;
+        if (_seen is null) return;
+        _name = Path.GetFileName(_seen.FolderPath.TrimEnd('/', '\\'));
+        _system = GameSystemRegistry.Default.Get(null);
+        _notice = null;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_busy || Shell.CreateVault is not { } request) return;
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _notice = "Escribe el nombre de la campaña.";
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var (folder, name, systemId, done) = (request.FolderPath, _name, _system.Id, request.OnCreated);
+            var ran = false;
+            // Primero la confirmación de cambios sin guardar (si hay), después se crea y se abre: cancelarla no crea nada.
+            await Shell.RequestNavigationAsync(async () =>
+            {
+                ran = true;
+                await CreateAndOpenAsync(folder, name, systemId, done);
+            });
+            // Con cambios sin guardar la creación queda pendiente de la confirmación: este diálogo cede el sitio.
+            if (!ran && ReferenceEquals(Shell.CreateVault, request)) Shell.CloseCreateVault();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CreateAndOpenAsync(string folder, string name, string systemId, Func<string, Task> done)
+    {
+        // Se resuelve al pulsar: no todos los contextos que montan DmShell registran el creador.
+        var creator = Provider.GetRequiredService<IVaultCreator>();
+        var result = await creator.CreateAsync(folder, name, systemId);
+        if (result.Status != CreateVaultStatus.Created)
+        {
+            // Si el diálogo ya se cedió a la confirmación, el aviso va al panel «Cambiar vault».
+            if (Shell.CreateVault is not null) _notice = result.Message;
+            else Shell.ShowVaultSwitchError(result.Message ?? "No se pudo crear el vault.");
+            return;
+        }
+        Shell.CloseCreateVault();
+        await done(folder);
+    }
+}

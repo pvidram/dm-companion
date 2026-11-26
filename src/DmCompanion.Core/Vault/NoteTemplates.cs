@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using DmCompanion.Core.GameSystems;
 
 namespace DmCompanion.Core.Vault;
@@ -16,7 +17,7 @@ public static class NoteTemplates
         {
             EntityType.Pc => system.StatsTemplate(EntityType.Pc),
             EntityType.Npc => "secret: false\n" + system.StatsTemplate(EntityType.Npc),
-            EntityType.Campaign => "system: dnd5e\n",
+            EntityType.Campaign => $"system: {system.Id}\n",
             _ => string.Empty,
         };
         var body = type switch
@@ -72,14 +73,27 @@ public static class NoteFileName
         return Reserved.Contains(dot < 0 ? name : name[..dot]);
     }
 
-    public static string FromTitle(string title)
+    public static string FromTitle(string title) => TryFromTitle(title, out var name) ? name : "Sin título";
+
+    /// <summary>Como <see cref="FromTitle"/>, pero devuelve false si tras sanear no queda nada.</summary>
+    public static bool TryFromTitle(string title, [NotNullWhen(true)] out string? fileName)
     {
         var cleaned = Tidy(new string(title.Where(c => !Invalid.Contains(c) && !char.IsControl(c)).ToArray()));
         if (cleaned.Length > MaxLength) cleaned = Tidy(cleaned[..MaxLength]);
-        if (cleaned.Length == 0) return "Sin título";
-        if (!IsReserved(cleaned)) return cleaned;
-        var dot = cleaned.IndexOf('.');
-        return dot < 0 ? cleaned + "_" : cleaned[..dot] + "_" + cleaned[dot..];
+        if (cleaned.Length == 0)
+        {
+            fileName = null;
+            return false;
+        }
+
+        if (IsReserved(cleaned))
+        {
+            var dot = cleaned.IndexOf('.');
+            cleaned = dot < 0 ? cleaned + "_" : cleaned[..dot] + "_" + cleaned[dot..];
+        }
+
+        fileName = cleaned;
+        return true;
     }
 
     private static string Tidy(string value) => value.Trim().TrimStart('.').TrimEnd('.').Trim();

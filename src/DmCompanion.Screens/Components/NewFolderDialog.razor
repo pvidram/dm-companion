@@ -1,0 +1,67 @@
+@inherits DmComponentBase
+@using DmCompanion.Core.Vault.Storage
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider Provider
+
+<Dialog Title="Nueva carpeta" IsOpen="@(Shell.NewFolder is not null)" OnClose="Shell.CloseNewFolder">
+    <ChildContent>
+        <TextField Label="Nombre" @bind-Value="_name" />
+        @if (_notice is { } notice)
+        {
+            <InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="@(_busy || string.IsNullOrWhiteSpace(_name))" OnClick="CreateAsync">Crear</Button>
+        <Button OnClick="Shell.CloseNewFolder">Cancelar</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private NewFolderRequest? _seen;
+    private string _name = string.Empty;
+    private string? _notice;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Sync();
+    }
+
+    protected override void OnVaultChanged() => Sync();
+
+    // Cada petición nueva (otra instancia) reinicia el formulario.
+    private void Sync()
+    {
+        if (ReferenceEquals(_seen, Shell.NewFolder)) return;
+        _seen = Shell.NewFolder;
+        _name = string.Empty;
+        _notice = null;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_busy || Shell.NewFolder is not { } request) return;
+        _busy = true;
+        try
+        {
+            // Se resuelve al pulsar: no todos los contextos que montan DmShell registran el explorador.
+            var browser = Provider.GetRequiredService<IFolderBrowser>();
+            var result = browser.CreateDirectory(request.ParentPath, _name);
+            if (result.Status == CreateFolderStatus.Created)
+            {
+                Shell.CloseNewFolder();
+                await request.OnCreated(result.Path!);
+            }
+            else
+            {
+                _notice = result.Message;
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

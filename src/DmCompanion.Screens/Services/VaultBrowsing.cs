@@ -1,7 +1,7 @@
 namespace DmCompanion.Screens.Services;
 
 /// <summary>Carpeta elegida en el explorador y si parece un vault de Obsidian (si no, se pide confirmación).</summary>
-public sealed record VaultChoice(string Path, bool LooksLikeVault);
+public sealed record VaultChoice(string Path, bool LooksLikeVault, bool CanCreateVault = false);
 
 /// <summary>Cambio de vault desde el panel «Cambiar vault», compartido por el panel y su diálogo de confirmación.</summary>
 public static class VaultBrowsing

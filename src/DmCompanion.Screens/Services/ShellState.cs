@@ -18,6 +18,12 @@ public enum EditorCommand { Overwrite, Reload }
 
 public sealed record NewNoteRequest(string Title, string? Folder);
 
+/// <summary>Diálogo de nueva carpeta; <c>OnCreated</c> recibe la ruta de la carpeta creada.</summary>
+public sealed record NewFolderRequest(string ParentPath, Func<string, Task> OnCreated);
+
+/// <summary>Diálogo de crear vault; <c>OnCreated</c> recibe la ruta del vault creado.</summary>
+public sealed record CreateVaultRequest(string FolderPath, Func<string, Task> OnCreated);
+
 public enum JournalFormMode { New, Edit, Shared }
 
 /// <param name="PcPath">PJ propuesto en un formulario nuevo; null = el último usado o el primero.</param>
@@ -94,6 +100,12 @@ public sealed class ShellState
 
     /// <summary>Carpeta que no parece un vault y espera confirmación para abrirse desde el panel «Cambiar vault».</summary>
     public string? ConfirmingVaultPath { get; private set; }
+
+    /// <summary>Si, además de abrir la carpeta que espera confirmación, se ofrece crear un vault en ella.</summary>
+    public bool ConfirmingVaultCanCreate { get; private set; }
+
+    public NewFolderRequest? NewFolder { get; private set; }
+    public CreateVaultRequest? CreateVault { get; private set; }
 
     /// <summary>Por qué no se pudo cambiar de vault; se muestra en el panel, que vuelve a abrirse.</summary>
     public string? VaultSwitchError { get; private set; }
@@ -187,9 +199,34 @@ public sealed class ShellState
         Notify();
     }
 
-    public void RequestVaultConfirm(string path)
+    public void RequestVaultConfirm(string path, bool canCreate = false)
     {
         ConfirmingVaultPath = path;
+        ConfirmingVaultCanCreate = canCreate;
+        Notify();
+    }
+
+    public void RequestNewFolder(string parentPath, Func<string, Task> onCreated)
+    {
+        NewFolder = new NewFolderRequest(parentPath, onCreated);
+        Notify();
+    }
+
+    public void CloseNewFolder()
+    {
+        NewFolder = null;
+        Notify();
+    }
+
+    public void RequestCreateVault(string folderPath, Func<string, Task> onCreated)
+    {
+        CreateVault = new CreateVaultRequest(folderPath, onCreated);
+        Notify();
+    }
+
+    public void CloseCreateVault()
+    {
+        CreateVault = null;
         Notify();
     }
 
@@ -197,6 +234,7 @@ public sealed class ShellState
     {
         if (ConfirmingVaultPath is null) return;
         ConfirmingVaultPath = null;
+        ConfirmingVaultCanCreate = false;
         Notify();
     }
 
@@ -619,6 +657,9 @@ public sealed class ShellState
         DeletingScene = null;
         OverwritingScene = null;
         ConfirmingVaultPath = null;
+        ConfirmingVaultCanCreate = false;
+        NewFolder = null;
+        CreateVault = null;
         VaultSwitchError = null;
         DiscardingMap = false;
         EditorDirty = false;

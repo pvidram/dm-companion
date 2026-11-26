@@ -1,8 +1,7 @@
 @inherits DmComponentBase
 
-<ConfirmDialog Title="¿Abrir esta carpeta?" IsOpen="@(Shell.ConfirmingVaultPath is not null)"
-               Message="@VaultBrowsing.UnlikelyVaultMessage"
-               ConfirmText="Abrir de todos modos" OnConfirm="ConfirmAsync" OnCancel="Shell.CloseVaultConfirm" />
+<UnlikelyVaultDialog IsOpen="@(Shell.ConfirmingVaultPath is not null)" CanCreate="Shell.ConfirmingVaultCanCreate"
+                     OnOpenAnyway="ConfirmAsync" OnCreate="CreateHere" OnCancel="Shell.CloseVaultConfirm" />
 
 @code {
     private async Task ConfirmAsync()
@@ -11,4 +10,14 @@
         Shell.CloseVaultConfirm();
         await VaultBrowsing.SwitchAsync(Host, Shell, path);
     }
+
+    private void CreateHere()
+    {
+        if (Shell.ConfirmingVaultPath is not { } path) return;
+        Shell.CloseVaultConfirm();
+        Shell.RequestCreateVault(path, CreateAndOpenAsync);
+    }
+
+    // La confirmación de cambios sin guardar va primero: si se cancela, no se crea nada.
+    private Task CreateAndOpenAsync(string path) => VaultBrowsing.SwitchAsync(Host, Shell, path);
 }

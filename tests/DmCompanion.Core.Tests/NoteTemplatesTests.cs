@@ -75,7 +75,12 @@ public class NoteTemplatesTests
     [Fact]
     public void Create_campaign_has_minimal_frontmatter_and_summary() =>
         NoteTemplates.Create(EntityType.Campaign, "Mi campaña", GameSystemRegistry.Default.Get("cosmere"))
-            .Should().Be("---\ntype: campaign\nname: \"Mi campaña\"\nsystem: dnd5e\n---\n## Resumen\n");
+            .Should().Be("---\ntype: campaign\nname: \"Mi campaña\"\nsystem: cosmere\n---\n## Resumen\n");
+
+    [Fact]
+    public void Create_campaign_with_dnd5e_keeps_system_dnd5e() =>
+        NoteTemplates.Create(EntityType.Campaign, "Mi campaña", Dnd5e)
+            .Should().Contain("system: dnd5e\n");
 
     [Fact]
     public void DefaultFolder_of_campaign_is_the_vault_root() =>

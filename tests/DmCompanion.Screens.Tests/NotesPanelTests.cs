@@ -199,7 +199,7 @@ public sealed class NotesPanelTests : BunitContext, IAsyncLifetime
         var cut = RenderOpenNotes();
 
         cut.FindAll("section.ds-parchment .ds-dialog").Should().BeEmpty();
-        cut.FindAll(".ds-dialog").Should().HaveCount(12); // nueva nota, añadir jugador, nombre de mapa, borrar mapa, descartar mapa, conflictos de sincronización, conflicto de escritura, cerrar sin guardar, añadir token, empezar combate, terminar combate y abrir una carpeta que no parece un vault
+        cut.FindAll(".ds-dialog").Should().HaveCount(14); // nueva nota, añadir jugador, nombre de mapa, borrar mapa, descartar mapa, conflictos de sincronización, conflicto de escritura, cerrar sin guardar, añadir token, empezar combate, terminar combate, crear una carpeta, crear un vault y abrir una carpeta que no parece un vault
     }
 
     [Fact]

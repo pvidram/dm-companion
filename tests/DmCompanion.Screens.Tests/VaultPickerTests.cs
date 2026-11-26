@@ -247,6 +247,19 @@ public sealed class VaultPickerTests : BunitContext, IAsyncLifetime
         public string? InitialPath { get; set; }
     }
 
+    [Fact]
+    public async Task An_unlikely_folder_from_a_browser_that_cannot_classify_does_not_offer_creation()
+    {
+        _browser.Unlikely.Add("/inicio");
+        _storage.InitialPath = "/inicio";
+        var cut = Render<VaultPicker>();
+
+        await cut.InvokeAsync(() => ButtonWith(cut, "Usar esta carpeta").Click());
+
+        var open = string.Join(" ", cut.FindAll(".ds-dialog-backdrop:not([hidden])").Select(d => d.TextContent));
+        (open.Contains("Abrir de todos modos"), open.Contains("Crear vault aquí")).Should().Be((true, false));
+    }
+
     private sealed class FakeFolderBrowser : IFolderBrowser
     {
         public HashSet<string> Existing { get; } = [];

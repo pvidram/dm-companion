@@ -27,4 +27,16 @@ public sealed class NoteFileNameTests
     [Fact]
     public void FromTitle_does_not_end_in_dot_or_space_after_truncating() =>
         NoteFileName.FromTitle(new string('a', 119) + ". b").Should().Be(new string('a', 119));
+
+    [Theory]
+    [InlineData("???")] [InlineData("///")] [InlineData("  ")]
+    public void TryFromTitle_returns_false_when_nothing_is_left(string title) =>
+        NoteFileName.TryFromTitle(title, out _).Should().BeFalse();
+
+    [Fact]
+    public void TryFromTitle_returns_the_same_name_as_FromTitle()
+    {
+        NoteFileName.TryFromTitle("La Marca del Este", out var name);
+        name.Should().Be(NoteFileName.FromTitle("La Marca del Este"));
+    }
 }
