@@ -30,6 +30,7 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddWindowingForTests();
         Services.AddGlossaryForTests();
         Services.AddSoundForTests();
         Services.AddScoped<WikilinkInterop>();

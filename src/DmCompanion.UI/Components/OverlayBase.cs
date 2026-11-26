@@ -44,7 +44,7 @@ public abstract class OverlayBase : ComponentBase, IAsyncDisposable
         if (args.Key == "Escape" && OnClose.HasDelegate) await OnClose.InvokeAsync();
     }
 
-    public async ValueTask DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
         if (!_focusEntered) return;
         _focusEntered = false;

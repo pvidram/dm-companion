@@ -1,52 +1,66 @@
 @inherits DmComponentBase
-@using Microsoft.JSInterop
+@using DmCompanion.UI.Interop
 @inject CombatController Combat
+@inject PanelLayoutStore Layout
 
-@* Historial de la tira retraída: panel pequeño anclado bajo la franja, sobre el mapa (la franja recorta lo que sobresale, por eso vive en Overlays). Tocar fuera lo cierra. *@
+@* Historial de la tira retraída: panel pequeño anclado bajo la franja, sobre el mapa (la franja recorta lo que sobresale, por eso vive en Overlays). Tocar fuera lo cierra, salvo anclado: entonces es una ventana flotante que se mueve y redimensiona. *@
 @if (Combat.State is not null && !Combat.StripExpanded && Shell.HistoryOpen)
 {
-    <div class="combat-history-popover__backdrop" data-testid="history-backdrop" @onclick="Shell.CloseHistory"></div>
-    <section class="combat-history-popover" data-testid="history-popover" aria-label="Historial del combate" tabindex="-1" @ref="_popover" @onkeydown="OnKeyDown">
-        <header class="combat-history-popover__header">
-            <span class="combat-history-popover__title">Historial (@Combat.Log.Count)</span>
+    @if (!Pinned)
+    {
+        <div class="combat-history-popover__backdrop" data-testid="history-backdrop" @onclick="Shell.CloseHistory"></div>
+    }
+    <QuickCard class="@(Layout.GetSize(LayoutKeys.History)?.Height is null ? "combat-history-popover combat-history-popover--unsized" : "combat-history-popover")" data-testid="history-popover" Title="@($"Historial ({Combat.Log.Count})")"
+               Draggable="true" Resizable="true" FrameSize="Layout.GetSize(LayoutKeys.History)" Anchor="@(Pinned ? Layout.GetAnchor(LayoutKeys.History) : null)"
+               IsPinned="Pinned" OnPinnedChanged="SetPinned" OnFrameChanged="OnFrameChanged" OnFrameReset="@(() => Layout.ResetSize(LayoutKeys.History))"
+               OnClose="Close">
+        <HeaderActions>
             <IconButton Icon="IconName.Undo2" Label="Deshacer en el combate" Disabled="!Combat.CanUndo" data-testid="history-undo" OnClick="Combat.Undo" />
             <IconButton Icon="IconName.Redo2" Label="Rehacer en el combate" Disabled="!Combat.CanRedo" data-testid="history-redo" OnClick="Combat.Redo" />
-            <IconButton Icon="IconName.X" Label="Cerrar el historial" data-testid="history-close" OnClick="Shell.CloseHistory" />
-        </header>
-        <CombatHistoryList Log="Combat.Log" />
-    </section>
+        </HeaderActions>
+        <ChildContent>
+            <CombatHistoryList Log="Combat.Log" />
+        </ChildContent>
+    </QuickCard>
 }
 
 @code {
-    private ElementReference _popover;
-    private bool _focused;
+    // Última posición soltada en esta apertura: al anclar se guarda como ancla (el JS solo informa al soltar).
+    private WindowAnchor? _lastAnchor;
 
-    // Con el foco dentro, Esc cierra el panel.
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private bool Pinned => Layout.IsPinned(LayoutKeys.History);
+
+    private void SetPinned(bool pinned)
     {
-        var visible = Combat.State is not null && !Combat.StripExpanded && Shell.HistoryOpen;
-        if (visible == _focused) return;
-        _focused = visible;
-        if (!visible) return;
-        try
-        {
-            await _popover.FocusAsync();
-        }
-        catch (Exception ex) when (ex is JSException or InvalidOperationException or ObjectDisposedException)
-        {
-            // Sin foco el panel sigue funcionando: solo falta el atajo Esc.
-        }
+        Layout.SetPinned(LayoutKeys.History, pinned);
+        Layout.SetAnchor(LayoutKeys.History, pinned ? _lastAnchor : null);
+    }
+
+    // El tamaño se recuerda anclado o no; la posición solo si está anclado (sin anclar, la de la hoja de estilos).
+    private void OnFrameChanged(WindowFrameChange change)
+    {
+        if (change.Size is { } size) Layout.SetSize(LayoutKeys.History, size);
+        _lastAnchor = change.Anchor;
+        if (Pinned) Layout.SetAnchor(LayoutKeys.History, change.Anchor);
+    }
+
+    // Cerrado por cualquier vía, la próxima apertura vuelve a empezar sin posición recordada.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!(Combat.State is not null && !Combat.StripExpanded && Shell.HistoryOpen)) _lastAnchor = null;
+    }
+
+    // La X (y Esc) cierra y quita la chincheta.
+    private void Close()
+    {
+        SetPinned(false);
+        Shell.CloseHistory();
     }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
         Combat.Changed += OnCombatChanged;
-    }
-
-    private void OnKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape") Shell.CloseHistory();
     }
 
     // Al terminar el combate el panel se cierra: no debe reaparecer solo en el siguiente.

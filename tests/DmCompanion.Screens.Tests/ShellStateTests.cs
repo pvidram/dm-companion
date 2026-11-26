@@ -47,15 +47,14 @@ public sealed class ShellStateTests
     }
 
     [Fact]
-    public void Reset_closes_the_add_token_dialog_and_the_token_card()
+    public void Reset_closes_the_add_token_dialog()
     {
         var shell = new ShellState();
         shell.OpenAddToken();
-        shell.OpenTokenCard(new TokenCardRequest("t", 1, 2));
 
         shell.Reset();
 
-        (shell.AddTokenOpen, shell.TokenCard).Should().Be((false, null));
+        shell.AddTokenOpen.Should().BeFalse();
     }
 
     [Fact]
@@ -67,17 +66,6 @@ public sealed class ShellStateTests
         shell.Reset();
 
         shell.AddTokenPrefill.Should().BeNull();
-    }
-
-    [Fact]
-    public void Opening_a_token_card_replaces_the_previous_one()
-    {
-        var shell = new ShellState();
-        shell.OpenTokenCard(new TokenCardRequest("a", 1, 2));
-
-        shell.OpenTokenCard(new TokenCardRequest("b", 3, 4));
-
-        shell.TokenCard.Should().Be(new TokenCardRequest("b", 3, 4));
     }
 
     [Fact]

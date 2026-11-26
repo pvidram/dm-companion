@@ -1,6 +1,7 @@
 @inherits DmComponentBase
+@inject PanelLayoutStore LayoutStore
 
-<Parchment Title="Notas" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Notes)"
+<Parchment Title="Notas" Resizable="@(true)" FrameSize="@Rail.FrameSize(LayoutKeys.Notes)" OnFrameChanged="@(c => Rail.OnChanged(LayoutKeys.Notes, c))" OnFrameReset="@(() => Rail.OnReset(LayoutKeys.Notes))" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Notes)"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Notes))">
     <ChildContent>
         <SearchField Label="Buscar notas" @bind-Value="_query" />
@@ -53,5 +54,7 @@
 </Parchment>
 
 @code {
+    private RailPanelLayout? _rail;
+    private RailPanelLayout Rail => _rail ??= new(LayoutStore, () => _ = InvokeAsync(StateHasChanged));
     private string _query = string.Empty;
 }

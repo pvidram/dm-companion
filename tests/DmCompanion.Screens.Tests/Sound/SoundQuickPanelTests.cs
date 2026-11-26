@@ -1,6 +1,10 @@
 using Bunit;
 using DmCompanion.Core.Audio;
 using DmCompanion.Screens.Components.Sound;
+using DmCompanion.Screens.Services;
+using DmCompanion.Screens.Tests.Support;
+using DmCompanion.UI.Interop;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DmCompanion.Screens.Tests.Sound;
 
@@ -100,5 +104,53 @@ public sealed class SoundQuickPanelTests : SoundUiTestBase
         Time.Advance(TimeSpan.FromSeconds(7));
 
         cut.WaitForAssertion(() => cut.FindAll(".ds-notice").Should().BeEmpty(), Timeout);
+    }
+
+    private PanelLayoutStore Layout => Services.GetRequiredService<PanelLayoutStore>();
+    private FakeWindowFrameInterop Frames => Services.GetRequiredService<FakeWindowFrameInterop>();
+
+    [Fact]
+    public async Task Pinned_sound_quick_has_no_backdrop()
+    {
+        var cut = await OpenPanelAsync();
+
+        await ClickAsync(cut, "[data-testid=sound-quick] button[aria-label=Anclar]");
+
+        (Layout.IsPinned(LayoutKeys.SoundQuick), cut.FindAll("[data-testid=sound-quick-backdrop]").Count).Should().Be((true, 0));
+    }
+
+    [Fact]
+    public async Task Pinned_sound_quick_reopens_at_its_anchor()
+    {
+        var anchor = new WindowAnchor(WindowCorner.BottomLeft, 10, 20);
+        Layout.SetPinned(LayoutKeys.SoundQuick, true);
+        Layout.SetAnchor(LayoutKeys.SoundQuick, anchor);
+
+        await OpenPanelAsync();
+
+        Frames.Attached.Last().Anchor.Should().Be(anchor);
+    }
+
+    [Fact]
+    public async Task Unpinning_sound_quick_forgets_the_anchor()
+    {
+        Layout.SetPinned(LayoutKeys.SoundQuick, true);
+        Layout.SetAnchor(LayoutKeys.SoundQuick, new WindowAnchor(WindowCorner.TopLeft, 5, 6));
+        var cut = await OpenPanelAsync();
+
+        await ClickAsync(cut, "[data-testid=sound-quick] button[aria-label=Desanclar]");
+
+        (Layout.IsPinned(LayoutKeys.SoundQuick), Layout.GetAnchor(LayoutKeys.SoundQuick)).Should().Be((false, null));
+    }
+
+    [Fact]
+    public async Task Closing_sound_quick_also_unpins_it()
+    {
+        Layout.SetPinned(LayoutKeys.SoundQuick, true);
+        var cut = await OpenPanelAsync();
+
+        await ClickAsync(cut, "[data-testid=sound-quick] button[aria-label=Cerrar]");
+
+        (Layout.IsPinned(LayoutKeys.SoundQuick), Shell.SoundQuickOpen).Should().Be((false, false));
     }
 }

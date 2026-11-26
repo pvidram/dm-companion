@@ -1,7 +1,8 @@
 @inherits DmComponentBase
+@inject PanelLayoutStore LayoutStore
 @inject IServiceProvider Services
 
-<Parchment Title="Jugadores" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Players)"
+<Parchment Title="Jugadores" Resizable="@(true)" FrameSize="@Rail.FrameSize(LayoutKeys.Players)" OnFrameChanged="@(c => Rail.OnChanged(LayoutKeys.Players, c))" OnFrameReset="@(() => Rail.OnReset(LayoutKeys.Players))" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Players)"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Players))">
     <ChildContent>
         @if (JournalLogSection.CanShow(Services))
@@ -45,3 +46,8 @@
         }
     </Actions>
 </Parchment>
+
+@code {
+    private RailPanelLayout? _rail;
+    private RailPanelLayout Rail => _rail ??= new(LayoutStore, () => _ = InvokeAsync(StateHasChanged));
+}

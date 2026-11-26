@@ -31,6 +31,7 @@ El área del mapa es contenedor de consulta (`map-area`): los anchos de pergamin
 - Al abrirse mueven el foco dentro; al cerrarse (o desmontarse) lo devuelven. Solo los diálogos atrapan Tab.
 - Esc cierra la superposición más interna (invoca `OnClose`/`OnCancel`) y detiene la propagación del keydown, para que no cierre también a su padre.
 - Los diálogos van **solo** en la ranura `Dialogs`. Dentro de un pergamino quedarían en su contexto de apilamiento y las tarjetas se pintarían sobre el fondo del modal.
+- `Parchment` (salvo `Size=Full`) y `QuickCard` con `Resizable` se redimensionan con `window-frame.js` (`ResizableOverlayBase`): pintan `ResizeHandle` y avisan con `OnFrameChanged` solo al soltar; el doble toque en un tirador llama a `OnFrameReset`. `QuickCard` con `OnPinnedChanged` pinta una `PinButton` (chincheta) antes de la X; `Layer` ordena el apilado entre tarjetas. La vista TV oculta tiradores y chincheta.
 - `QuickCard.X` / `Y` son px relativos al área del mapa y no se limitan: el llamador los ajusta a los bordes.
 - Capas (`z-index`): mapa 0, barra del mapa 5, pergamino 10, tarjeta 20, aviso 25, diálogo 30.
 - `Toast` sale arriba a la derecha del área del mapa, con el fondo de madera translúcido (85 %); abajo va la `MapToolbar` anclada `Bottom`. Vive en `Overlays`, por debajo de `Dialogs` (25 < 30): cierra el diálogo antes de mostrar el aviso, o no se verá.
@@ -50,8 +51,8 @@ Convención de booleanos: `Is*` para estado, nombres HTML para atributos HTML (`
 | `Button` | `Variant` (`ButtonVariant`), `Combat`, `Disabled`, `Icon`, `ChildContent` | `OnClick` |
 | `IconButton` | `Icon`, `Label` (obligatorio), `Combat`, `Disabled`, `IsPressed` (`bool?`: null = sin `aria-pressed`) | `OnClick` |
 | `RailButton` | `Icon`, `Label`, `IsPressed` | `OnToggle` |
-| `Parchment` | `Title`, `Size` (`ParchmentSize`), `IsOpen`, `ChildContent`, `Actions` | `OnClose` |
-| `QuickCard` | `Title`, `Faction?`, `X`, `Y`, `IsOpen`, `ChildContent` | `OnClose` |
+| `Parchment` | `Title`, `Size` (`ParchmentSize`), `IsOpen`, `ChildContent`, `Actions`, `Resizable`, `FrameSize` (`WindowSize?`) | `OnClose`, `OnFrameChanged`, `OnFrameReset` |
+| `QuickCard` | `Title`, `Faction?`, `X`, `Y`, `Draggable`, `Resizable`, `FrameSize`, `Anchor`, `IsPinned`, `Layer`, `HeaderActions`, `IsOpen`, `ChildContent` | `OnClose`, `OnPinnedChanged`, `OnFrameChanged`, `OnFrameReset` |
 | `Dialog` | `Title`, `IsOpen` (cerrado por defecto), `ChildContent`, `Footer` | `OnClose` |
 | `ConfirmDialog` | `Title`, `Message`, `IsOpen`, `ConfirmText`, `CancelText`, `Destructive` | `OnConfirm`, `OnCancel` |
 | `TextField` | `Label`, `Value`, `Placeholder` | `ValueChanged` |

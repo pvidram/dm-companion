@@ -26,6 +26,8 @@
     width: clamp(min(280px, 100%), 25cqw, 340px); max-height: calc(100% - 2 * var(--space-4));
     box-shadow: var(--elevation-2);
 }
+/* Escala de apilado: telón de cierre (--z-card) < tarjeta anclada (+1; las de criatura llevan su puesto 1..4 en línea) < aviso (--z-toast = +5). */
+.ds-quick-card--pinned { z-index: calc(var(--z-card) + 1); }
 
 .ds-parchment__header {
     display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
@@ -75,3 +77,13 @@
 }
 /* Cabecera arrastrable (el JS vive en Screens): touch-action none para que el dedo o el lápiz no desplacen la página ni el mapa. */
 .ds-parchment__header--drag { touch-action: none; cursor: grab; user-select: none; }
+
+/* Tiradores de tamaño (los recoge window-frame.js). Zona táctil de 44 px aunque la marca visible sea fina; el marco que los contiene debe estar posicionado. */
+.ds-resize-handle { position: absolute; touch-action: none; user-select: none; z-index: 1; }
+.ds-resize-handle::after { content: ""; position: absolute; background: var(--border-frame); opacity: .5; border-radius: 2px; }
+.ds-resize-handle--e { top: 56px; right: -22px; bottom: 22px; width: 44px; cursor: ew-resize; }
+.ds-resize-handle--e::after { top: 25%; bottom: 25%; left: 20px; width: 4px; }
+.ds-resize-handle--s { left: 0; right: 22px; bottom: -22px; height: 44px; cursor: ns-resize; }
+.ds-resize-handle--s::after { left: 25%; right: 25%; top: 20px; height: 4px; }
+.ds-resize-handle--se { right: -22px; bottom: -22px; width: 44px; height: 44px; cursor: nwse-resize; }
+.ds-resize-handle--se::after { left: 20px; top: 20px; width: 14px; height: 14px; background: none; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor; border-radius: 0 0 4px 0; }

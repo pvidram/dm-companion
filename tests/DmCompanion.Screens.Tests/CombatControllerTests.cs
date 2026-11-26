@@ -320,8 +320,8 @@ public sealed class CombatControllerTests : TokenTestBase
     {
         await OpenForLogAsync();
         StartLog();
-        Shell.OpenTokenCard(new TokenCardRequest("g", 100, 100));
-        var cut = Render<DmCompanion.Screens.Components.TokenCard>();
+        Windows.OpenTokenCard("g", 100, 100);
+        var cut = Render<DmCompanion.Screens.Components.TokenCardLayer>();
         cut.Find("button[data-testid=token-hp-value]").Click();
         var input = cut.Find("[data-testid=token-hp-input]");
         input.Input("-7");

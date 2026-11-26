@@ -1,6 +1,7 @@
 @inherits DmComponentBase
+@inject PanelLayoutStore LayoutStore
 
-<Parchment Title="Cambiar vault" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Vault)"
+<Parchment Title="Cambiar vault" Resizable="@(true)" FrameSize="@Rail.FrameSize(LayoutKeys.Vault)" OnFrameChanged="@(c => Rail.OnChanged(LayoutKeys.Vault, c))" OnFrameReset="@(() => Rail.OnReset(LayoutKeys.Vault))" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Vault)"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Vault))">
     <ChildContent>
         @* El explorador solo existe con el panel abierto: cada vez empieza junto al vault actual y no lista carpetas oculto. *@
@@ -20,6 +21,8 @@
 </Parchment>
 
 @code {
+    private RailPanelLayout? _rail;
+    private RailPanelLayout Rail => _rail ??= new(LayoutStore, () => _ = InvokeAsync(StateHasChanged));
     private string? StartPath => Host.Current is { } open ? Path.GetDirectoryName(open.RootPath.TrimEnd('/', '\\')) : null;
 
     private async Task UseAsync(VaultChoice choice)

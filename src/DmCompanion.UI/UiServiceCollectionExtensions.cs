@@ -10,6 +10,7 @@ public static class UiServiceCollectionExtensions
     {
         // TryAdd: si el host ya registró un TimeProvider (p. ej. uno falso en tests), se respeta.
         services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<IWindowFrameInterop, WindowFrameInterop>();
         return services.AddScoped<IFocusInterop, FocusInterop>();
     }
 }

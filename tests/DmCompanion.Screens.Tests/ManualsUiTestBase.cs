@@ -34,6 +34,7 @@ public abstract class ManualsUiTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton<VaultFileUrls>();
         Services.AddScoped<ShellState>();
+        Services.AddWindowingForTests();
         Services.AddScoped<ManualViewerInterop>();
         Services.AddGlossaryForTests();
         Services.AddManualsForTests();

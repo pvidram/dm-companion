@@ -1,5 +1,6 @@
 using System.Globalization;
 using DmCompanion.UI.Components;
+using DmCompanion.UI.Interop;
 using DmCompanion.UI.Tests.Support;
 using Microsoft.AspNetCore.Components.Web;
 
@@ -138,5 +139,118 @@ public class OverlayTests : UiTestContext
         var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin"));
         var labelledBy = cut.Find(".ds-quick-card").GetAttribute("aria-labelledby");
         cut.Find(".ds-parchment__title").Id.Should().Be(labelledBy);
+    }
+
+    [Fact]
+    public void Resizable_parchment_has_three_handles()
+    {
+        var cut = Render<Parchment>(p => p.Add(x => x.Title, "Notas").Add(x => x.Resizable, true));
+        cut.FindAll("[data-resize-handle]").Select(h => h.GetAttribute("data-resize-handle")).Should().Equal("e", "s", "se");
+    }
+
+    [Fact]
+    public void Full_parchment_is_never_resizable()
+    {
+        var cut = Render<Parchment>(p => p.Add(x => x.Title, "Notas").Add(x => x.Resizable, true).Add(x => x.Size, ParchmentSize.Full));
+        cut.FindAll("[data-resize-handle]").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Resizable_parchment_attaches_with_side_edges()
+    {
+        Render<Parchment>(p => p.Add(x => x.Title, "Notas").Add(x => x.Resizable, true));
+        Frames.Attached.Should().ContainSingle().Which.Edges.Should().Be(ResizeEdges.Sides);
+    }
+
+    [Fact]
+    public void Quick_card_without_pin_callback_has_no_pin_button()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin"));
+        cut.FindAll("button[aria-label='Anclar']").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Quick_card_header_actions_render_before_the_pin()
+    {
+        var cut = Render<QuickCard>(p => p
+            .Add(x => x.Title, "Goblin")
+            .Add(x => x.OnPinnedChanged, (bool _) => { })
+            .Add(x => x.HeaderActions, "<button id=\"extra\">x</button>"));
+        cut.Find("header").InnerHtml.IndexOf("id=\"extra\"", StringComparison.Ordinal)
+            .Should().BeLessThan(cut.Find("header").InnerHtml.IndexOf("Anclar", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Frame_change_from_js_raises_OnFrameChanged()
+    {
+        WindowFrameChange? received = null;
+        Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.Draggable, true)
+            .Add(x => x.OnFrameChanged, (WindowFrameChange c) => received = c));
+        var change = new WindowFrameChange(10, 20, new WindowSize(300, 200), null);
+        await Frames.Listener!.OnFrameChangedAsync(change);
+        received.Should().Be(change);
+    }
+
+    [Fact]
+    public void Quick_card_renders_only_the_chosen_axes_in_its_style()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.X, 5).Add(x => x.Y, 6).Add(x => x.FrameSize, new WindowSize(420, null)));
+        cut.Find("section").GetAttribute("style").Should().Contain("width: 420px").And.NotContain("height");
+    }
+
+    [Fact]
+    public void Quick_card_without_position_renders_no_style_even_with_a_frame_size()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.FrameSize, new WindowSize(420, 300)));
+        cut.Find("section").HasAttribute("style").Should().BeFalse();
+    }
+
+    [Fact]
+    public void Quick_card_layer_is_clamped_below_the_toast()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.Layer, 9));
+        cut.Find("section").GetAttribute("style").Should().Contain("+ 4)");
+    }
+
+    [Fact]
+    public void Pinned_quick_card_has_the_pinned_modifier()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.IsPinned, true));
+        cut.Find("section").ClassList.Should().Contain("ds-quick-card--pinned");
+    }
+
+    [Fact]
+    public async Task A_move_only_change_has_no_size()
+    {
+        WindowFrameChange? received = null;
+        Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.Draggable, true)
+            .Add(x => x.OnFrameChanged, (WindowFrameChange c) => received = c));
+        await Frames.Listener!.OnFrameChangedAsync(new WindowFrameChange(10, 20, null, null));
+        received!.Size.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Frame_reset_raises_OnFrameReset()
+    {
+        var reset = false;
+        Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.Draggable, true).Add(x => x.OnFrameReset, () => reset = true));
+        await Frames.Listener!.OnFrameResetAsync();
+        reset.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Quick_card_updates_the_frame_when_its_position_changes()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.Draggable, true).Add(x => x.X, 1).Add(x => x.Y, 2));
+        cut.Render(p => p.Add(x => x.X, 50));
+        Frames.Updated.Should().ContainSingle().Which.X.Should().Be(50);
+    }
+
+    [Fact]
+    public void Quick_card_reapplies_the_frame_when_its_layer_changes()
+    {
+        var cut = Render<QuickCard>(p => p.Add(x => x.Title, "Goblin").Add(x => x.Draggable, true).Add(x => x.Layer, 1));
+        cut.Render(p => p.Add(x => x.Layer, 2));
+        Frames.Updated.Should().HaveCount(1);
     }
 }

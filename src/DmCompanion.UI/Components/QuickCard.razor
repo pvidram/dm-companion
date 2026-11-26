@@ -1,4 +1,5 @@
-@inherits OverlayBase
+@inherits ResizableOverlayBase
+@using DmCompanion.UI.Interop
 
 <section @attributes="AdditionalAttributes" @ref="Element" class="@CssClass" hidden="@(!IsOpen)" tabindex="-1" aria-labelledby="@_titleId"
          style="@Position" @onkeydown="HandleKeyDownAsync" @onkeydown:stopPropagation="true">
@@ -9,30 +10,65 @@
             <span class="ds-visually-hidden">@FactionVisuals.Label(faction)</span>
         }
         <h3 id="@_titleId" class="ds-parchment__title">@Title</h3>
+        @HeaderActions
+        @if (OnPinnedChanged.HasDelegate)
+        {
+            <PinButton IsPinned="IsPinned" OnToggle="OnPinnedChanged" />
+        }
         @if (OnClose.HasDelegate)
         {
             <IconButton Icon="IconName.X" Label="Cerrar" OnClick="OnClose" />
         }
     </header>
     <div class="ds-parchment__body">@ChildContent</div>
+    @if (Resizable)
+    {
+        <ResizeHandle Edge="se" />
+    }
 </section>
 
 @code {
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     /// <summary>Bando de la criatura: muestra su icono (y su nombre para lectores de pantalla) junto al título.</summary>
     [Parameter] public Faction? Faction { get; set; }
-    /// <summary>Posición izquierda en px relativa al área del mapa. No se limita: el llamador la ajusta a los bordes.</summary>
-    [Parameter] public double X { get; set; }
+    /// <summary>Posición izquierda en px relativa al área del mapa. No se limita: el llamador la ajusta a los bordes. Sin valor (X o Y), no se escribe left/top y manda la posición de la hoja de estilos.</summary>
+    [Parameter] public double? X { get; set; }
     /// <summary>Posición superior en px relativa al área del mapa. No se limita: el llamador la ajusta a los bordes.</summary>
-    [Parameter] public double Y { get; set; }
+    [Parameter] public double? Y { get; set; }
     /// <summary>La cabecera es el asa de un arrastre que implementa el llamador (JS sobre `[data-drag-handle]`); el componente solo la marca.</summary>
     [Parameter] public bool Draggable { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Tarjeta anclada: no la sustituye otra al abrirse. Solo se pinta la chincheta si hay <c>OnPinnedChanged</c>.</summary>
+    [Parameter] public bool IsPinned { get; set; }
+    [Parameter] public EventCallback<bool> OnPinnedChanged { get; set; }
+    /// <summary>Botones extra de la cabecera, entre el título y la chincheta.</summary>
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
+    /// <summary>Orden de apilado entre tarjetas (mayor, encima). Sin valor, el de la hoja de estilos.</summary>
+    [Parameter] public int? Layer { get; set; }
 
     /// <summary>El elemento de la tarjeta, para el llamador que le añade comportamiento por interop.</summary>
     public ElementReference Root => Element;
 
     private readonly string _titleId = $"ds-quick-card-{Guid.NewGuid():N}";
-    private string CssClass => AttributeMerge.Class("ds-quick-card", AdditionalAttributes);
-    private string Position => string.Create(CultureInfo.InvariantCulture, $"left: {X}px; top: {Y}px;");
+    private const int MaxLayer = 4;
+    private string CssClass => AttributeMerge.Class(IsPinned ? "ds-quick-card ds-quick-card--pinned" : "ds-quick-card", AdditionalAttributes);
+    private string? Position
+    {
+        get
+        {
+            var place = X is { } x && Y is { } y ? string.Create(CultureInfo.InvariantCulture, $"left: {x}px; top: {y}px;") : string.Empty;
+            // El tamaño elegido va en el style solo si el componente también pinta la posición (tarjetas con X e Y): si Blazor reescribe el style
+            // no borra el tamaño que puso el JS. Sin X/Y el JS es dueño de left/top y tamaño, y un style reescrito los perdería.
+            var size = place.Length == 0 ? string.Empty : ((FrameSize?.Width is { } w ? string.Create(CultureInfo.InvariantCulture, $" width: {w}px;") : string.Empty)
+                + (FrameSize?.Height is { } h ? string.Create(CultureInfo.InvariantCulture, $" height: {h}px;") : string.Empty));
+            // Sin pasar de 4: --z-card + 4 queda por debajo del aviso (--z-toast = --z-card + 5).
+            var layer = Layer is { } l ? $" z-index: calc(var(--z-card) + {Math.Clamp(l, 1, MaxLayer)});" : string.Empty;
+            var style = (place + size + layer).Trim();
+            return style.Length == 0 ? null : style;
+        }
+    }
+
+    protected override object? StyleKey => Layer;
+    protected override WindowFrameOptions FrameOptions =>
+        new(Draggable, Resizable ? ResizeEdges.Corner : ResizeEdges.None, new WindowSize(240, 160), FrameSize, X, Y, Anchor);
 }

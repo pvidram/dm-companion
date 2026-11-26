@@ -39,7 +39,7 @@ public sealed class PlayerPreviewOverlayTests : BunitContext, IAsyncLifetime
         Services.AddSoundForTests();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
         Services.AddScoped<PlayerPreview>();
         Services.AddScoped<PlayerPreviewInterop>();
 

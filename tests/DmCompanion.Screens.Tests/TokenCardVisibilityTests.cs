@@ -16,17 +16,17 @@ public sealed class TokenCardVisibilityTests : TokenTestBase
         Services.AddScoped<WikilinkInterop>();
     }
 
-    private async Task<IRenderedComponent<TokenCard>> CardAsync(MapToken token, params MapToken[] more)
+    private async Task<IRenderedComponent<TokenCardLayer>> CardAsync(MapToken token, params MapToken[] more)
     {
         await OpenMapAsync(MapState.Empty with { Tokens = [token, .. more] });
-        Shell.OpenTokenCard(new TokenCardRequest(token.Id, 100, 100));
-        return Render<TokenCard>();
+        Windows.OpenTokenCard(token.Id, 100, 100);
+        return Render<TokenCardLayer>();
     }
 
-    private static AngleSharp.Dom.IElement ButtonText(IRenderedComponent<TokenCard> cut, string text) =>
+    private static AngleSharp.Dom.IElement ButtonText(IRenderedComponent<TokenCardLayer> cut, string text) =>
         cut.FindAll("button").First(b => b.TextContent.Trim() == text);
 
-    private static bool HasButton(IRenderedComponent<TokenCard> cut, string text) =>
+    private static bool HasButton(IRenderedComponent<TokenCardLayer> cut, string text) =>
         cut.FindAll("button").Any(b => b.TextContent.Trim() == text);
 
     [Fact]
@@ -69,8 +69,8 @@ public sealed class TokenCardVisibilityTests : TokenTestBase
         await Session.CloseAsync();
         File.WriteAllText(PathOf(MapPaths.StatePathFor(MapTestVault.MapNote)), json);
         await Session.OpenAsync(MapTestVault.MapNote);
-        Shell.OpenTokenCard(new TokenCardRequest("t", 100, 100));
-        var cut = Render<TokenCard>();
+        Windows.OpenTokenCard("t", 100, 100);
+        var cut = Render<TokenCardLayer>();
 
         (HasButton(cut, "Ocultar a los jugadores"), HasButton(cut, "Revelar")).Should().Be((false, false));
     }

@@ -8,12 +8,14 @@
 @inject TokenHitPoints Hp
 @inject GlossaryService Glossary
 @inject CombatController Combat
-@inject MapCanvasInterop Canvas
-@inject DragPanelInterop DragPanel
+@inject WindowManager Windows
 @inject ILogger<TokenCard> Log
 
-<QuickCard @ref="_card" Draggable="true" Title="@(_token?.Name ?? string.Empty)" Faction="@(_token is null ? null : TokenSideMapping.ToFaction(_token.Side))"
-           X="@(Shell.TokenCard?.X ?? 0)" Y="@(Shell.TokenCard?.Y ?? 0)" IsOpen="@(_token is not null)" OnClose="Shell.CloseTokenCard">
+<QuickCard Draggable="true" Resizable="true" Title="@(_token?.Name ?? string.Empty)" Faction="@(_token is null ? null : TokenSideMapping.ToFaction(_token.Side))"
+           X="Window.X" Y="Window.Y" FrameSize="Window.Size" Layer="Layer" IsOpen="@(_token is not null)" OnClose="Close"
+           IsPinned="Window.IsPinned" OnPinnedChanged="@(pinned => Windows.SetPinned(Window.TokenId, pinned))"
+           OnFrameChanged="@(change => Windows.UpdateFrame(Window.TokenId, change))" OnFrameReset="@(() => Windows.ResetSize(Window.TokenId))"
+           @attributes="_frontAttributes">
     @if (_token is { } token)
     {
         <p data-testid="token-side">@FactionVisuals.Label(TokenSideMapping.ToFaction(token.Side))</p>
@@ -34,7 +36,7 @@
             }
             <div class="token-card__actions">
                 <Button Variant="ButtonVariant.Primary" Disabled="@(!CanSave(token))" OnClick="Save">Guardar</Button>
-                <Button OnClick="@(() => _editing = false)">Cancelar</Button>
+                <Button OnClick="@(() => SetEditing(false))">Cancelar</Button>
             </div>
         }
         else
@@ -90,10 +92,12 @@
     private static readonly IReadOnlyList<TokenSide> Sides = [TokenSide.Pc, TokenSide.Ally, TokenSide.Enemy];
     private static readonly IReadOnlyList<int> Sizes = [1, 2, 3];
 
-    private QuickCard? _card;
-    private TokenCardRequest? _placed;
+    [Parameter, EditorRequired] public TokenCardWindow Window { get; set; } = default!;
+    /// <summary>Puesto de apilado entre las tarjetas abiertas (1 = al fondo).</summary>
+    [Parameter] public int Layer { get; set; } = 1;
+
+    private Dictionary<string, object> _frontAttributes = default!;
     private MapToken? _token;
-    private string? _editingTokenId;
     private bool _editing;
     private TokenSide _side;
     private int _size;
@@ -111,19 +115,37 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        _frontAttributes = new()
+        {
+            ["onpointerdown"] = EventCallback.Factory.Create<PointerEventArgs>(this, BringToFront),
+            ["onfocusin"] = EventCallback.Factory.Create<FocusEventArgs>(this, BringToFront),
+        };
         Session.Changed += OnSessionChanged;
-        Canvas.TokenTapped += OnTokenTapped;
         Sync();
     }
 
     // La tarjeta sigue al token por id: si cambia el estado del mapa, sus datos se releen en cada pintado.
     protected override void OnVaultChanged() => Sync();
 
+    private void BringToFront() => Windows.BringToFront(Window.TokenId);
+
+    private void Close() => Windows.Close(Window.TokenId);
+
+    private void SetEditing(bool editing)
+    {
+        _editing = editing;
+        Windows.SetEditing(Window.TokenId, editing);
+    }
+
+    // Con el mapa cargado, un token que ya no existe (quitado desde otro sitio) cierra su tarjeta;
+    // sin editor (recarga) la tarjeta queda oculta y vuelve con el token.
     private void Sync()
     {
-        _token = Shell.TokenCard is { } request ? Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == request.TokenId) : null;
-        if (_token is null || _token.Id != _editingTokenId) (_editing, _editingHp, _hpNotice) = (false, false, null);
-        _editingTokenId = _token?.Id;
+        _token = Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == Window.TokenId);
+        if (_token is not null) return;
+        (_editingHp, _hpNotice) = (false, null);
+        if (_editing) SetEditing(false);
+        if (Session.Editor is not null) Close();
     }
 
     private void OnSessionChanged(object? sender, EventArgs e) => _ = RefreshAsync();
@@ -145,32 +167,6 @@
         catch (Exception ex)
         {
             Log.LogError("Fallo al refrescar la tarjeta del token ({ExceptionType}).", ex.GetType().FullName);
-        }
-    }
-
-    // Llega desde JS (hilo de Blazor o no): se vuelve al dispatcher y se observa la tarea.
-    private void OnTokenTapped(object? sender, TokenTappedEventArgs e) => _ = OpenAsync(e);
-
-    private async Task OpenAsync(TokenTappedEventArgs tap)
-    {
-        try
-        {
-            var area = await Canvas.HostRectAsync();
-            await InvokeAsync(() =>
-            {
-                if (Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == tap.Id) is not { } token) return;
-                var (relX, relY) = area is { } r ? (tap.ScreenX - r.Left, tap.ScreenY - r.Top) : (tap.ScreenX, tap.ScreenY);
-                var (x, y) = area is { } a ? TokenPlacement.CardPositionNear(relX, relY, a.Width, a.Height) : (relX, relY);
-                Shell.OpenTokenCard(new TokenCardRequest(token.Id, x, y));
-            });
-        }
-        catch (ObjectDisposedException)
-        {
-            // El componente ya se retiró mientras llegaba el toque.
-        }
-        catch (Exception ex)
-        {
-            Log.LogError("Fallo al abrir la tarjeta del token ({ExceptionType}).", ex.GetType().FullName);
         }
     }
 
@@ -267,7 +263,6 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await PlaceAsync();
         if (!_focusHpInput) return;
         _focusHpInput = false;
         try
@@ -278,15 +273,6 @@
         {
             // Sin foco la entrada sigue funcionando: solo hay que tocar el campo.
         }
-    }
-
-    // Cada apertura (una petición nueva) vuelve a colocar la tarjeta junto al token; entre aperturas el arrastre manda.
-    private async Task PlaceAsync()
-    {
-        var request = _token is null ? null : Shell.TokenCard;
-        if (ReferenceEquals(request, _placed) || _card is null) return;
-        _placed = request;
-        if (request is not null) await DragPanel.AttachAsync(_card.Root, request.X, request.Y);
     }
 
     private static string Text(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? StatFormat.Dash;
@@ -311,7 +297,7 @@
     {
         (_side, _size, _alias) = (token.Side, token.Size, token.Alias ?? string.Empty);
         (_name, _ac, _hp) = (token.Name, token.Ac?.ToString(CultureInfo.InvariantCulture) ?? string.Empty, token.Hp?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
-        _editing = true;
+        SetEditing(true);
     }
 
     private void Save()
@@ -321,7 +307,7 @@
         TryParseStat(_hp, out var hp);
         var edit = new TokenEdit(_side, _size, token.Source is null ? _name.Trim() : null, ac, hp, _alias);
         Session.Mutate(editor => editor.UpdateToken(token.Id, edit));
-        _editing = false;
+        SetEditing(false);
     }
 
     private void SetHidden(MapToken token, bool hidden) => Session.Mutate(editor => editor.SetHidden(token.Id, hidden));
@@ -330,14 +316,14 @@
     {
         if (_token is not { } token) return;
         Session.Mutate(editor => editor.RemoveToken(token.Id));
-        Shell.CloseTokenCard();
+        Close();
     }
 
     private TokenSource Resolve(string source) => TokenSourceResolver.Resolve(source, Index, Glossary.GetSrd);
 
     private void SeeMore(TokenSource resolved, string source)
     {
-        Shell.CloseTokenCard();
+        Close();
         if (resolved.Kind == TokenSourceKind.Srd)
         {
             Shell.OpenGlossary(source);
@@ -356,7 +342,6 @@
     public override void Dispose()
     {
         Session.Changed -= OnSessionChanged;
-        Canvas.TokenTapped -= OnTokenTapped;
         base.Dispose();
     }
 }

@@ -22,6 +22,15 @@ public class IconTests : UiTestContext
     public void File_name_is_the_kebab_case_of_the_icon_name(IconName name, string expected) =>
         IconFiles.FileName(name).Should().Be(expected);
 
+    [Theory]
+    [InlineData(IconName.Pin, "pin.svg")]
+    [InlineData(IconName.PinOff, "pin-off.svg")]
+    public void Pin_icons_map_to_their_svg_files(IconName name, string expected)
+    {
+        IconFiles.FileName(name).Should().Be(expected);
+        File.Exists(UiAssets.PathOf("icons/" + expected)).Should().BeTrue();
+    }
+
     [Fact]
     public void Icon_points_its_mask_at_the_packaged_svg()
     {

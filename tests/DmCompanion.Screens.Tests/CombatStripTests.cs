@@ -191,7 +191,7 @@ public sealed class CombatStripTests : TokenTestBase
 
         await cut.InvokeAsync(() => cut.FindAll("[data-testid=strip-cell]")[1].Click());
 
-        Shell.TokenCard!.TokenId.Should().Be("b");
+        Windows.TokenCards.Select(c => c.TokenId).Should().Equal("b");
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public sealed class CombatStripTests : TokenTestBase
         cut.WaitForAssertion(() =>
         {
             cut.FindAll("[data-testid=strip-cell]")[11].Click(new MouseEventArgs { ClientX = 4000, ClientY = 90 });
-            (Shell.TokenCard!.X + 340).Should().BeLessThanOrEqualTo(1000);
+            (Windows.TokenCards[0].X + 340).Should().BeLessThanOrEqualTo(1000);
         }, Timeout);
     }
 

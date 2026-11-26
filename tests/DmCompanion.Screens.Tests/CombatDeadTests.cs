@@ -70,8 +70,8 @@ public sealed class CombatDeadTests : CombatUiTestBase
     public async Task Card_marks_dead_with_and_without_combat(bool combat)
     {
         await RenderAsync(start: combat);
-        Shell.OpenTokenCard(new TokenCardRequest("a", 100, 100));
-        var card = Render<TokenCard>();
+        Windows.OpenTokenCard("a", 100, 100);
+        var card = Render<TokenCardLayer>();
 
         await card.InvokeAsync(() => card.Find("[data-testid=token-dead]").Click());
 
@@ -83,8 +83,8 @@ public sealed class CombatDeadTests : CombatUiTestBase
     {
         await RenderAsync(start: false);
         Combat.MarkDead("a");
-        Shell.OpenTokenCard(new TokenCardRequest("a", 100, 100));
-        var card = Render<TokenCard>();
+        Windows.OpenTokenCard("a", 100, 100);
+        var card = Render<TokenCardLayer>();
 
         await card.InvokeAsync(() => card.Find("[data-testid=token-dead]").Click());
 
@@ -96,8 +96,8 @@ public sealed class CombatDeadTests : CombatUiTestBase
     {
         await RenderAsync(start: false);
         MakeReadOnly();
-        Shell.OpenTokenCard(new TokenCardRequest("a", 100, 100));
-        var card = Render<TokenCard>();
+        Windows.OpenTokenCard("a", 100, 100);
+        var card = Render<TokenCardLayer>();
 
         card.Find("[data-testid=token-dead]").HasAttribute("disabled").Should().BeTrue();
     }

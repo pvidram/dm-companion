@@ -45,7 +45,7 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
         Services.AddSoundForTests();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
     }
 
     Task IAsyncLifetime.InitializeAsync() => Task.CompletedTask;
@@ -58,6 +58,7 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
     }
 
     protected MapSession Session => Services.GetRequiredService<MapSession>();
+    protected WindowManager Windows => Services.GetRequiredService<WindowManager>();
     protected ShellState Shell => Services.GetRequiredService<ShellState>();
     protected VaultHost Host => Services.GetRequiredService<VaultHost>();
     protected IReadOnlyList<MapToken> Tokens => Session.Editor!.State.Tokens;

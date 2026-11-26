@@ -42,7 +42,7 @@ public sealed class GridAdjustTests : BunitContext, IAsyncLifetime
         Services.AddSoundForTests();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
 
         JSInterop.SetupVoid("mapCanvas.load", _ => true).SetVoidResult();
         JSInterop.SetupVoid("mapCanvas.setMode", _ => true).SetVoidResult();

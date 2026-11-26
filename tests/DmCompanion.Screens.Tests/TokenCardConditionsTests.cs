@@ -12,12 +12,12 @@ public sealed class TokenCardConditionsTests : TokenTestBase
 {
     private static readonly TokenCondition Frightened = new("c1", "frightened", "Asustado", null, null, false);
 
-    private async Task<IRenderedComponent<TokenCard>> CardAsync(MapToken token, bool readOnly = false)
+    private async Task<IRenderedComponent<TokenCardLayer>> CardAsync(MapToken token, bool readOnly = false)
     {
         await OpenMapAsync(MapState.Empty with { Tokens = [token] });
         if (readOnly) typeof(MapSession).GetProperty(nameof(MapSession.IsReadOnly))!.SetValue(Session, true);
-        Shell.OpenTokenCard(new TokenCardRequest(token.Id, 100, 100));
-        return Render<TokenCard>();
+        Windows.OpenTokenCard(token.Id, 100, 100);
+        return Render<TokenCardLayer>();
     }
 
     private static MapToken Goblin() => GenericToken("g", "Goblin", hp: 7);

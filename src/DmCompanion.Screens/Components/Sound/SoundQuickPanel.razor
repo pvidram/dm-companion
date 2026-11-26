@@ -1,14 +1,18 @@
 @inherits SoundControlBase
+@using DmCompanion.UI.Interop
+@inject PanelLayoutStore Layout
 
-@* Panel rápido de sonido: popover bajo la franja (la franja recorta lo que sobresale, por eso vive en Overlays). Tocar fuera lo cierra. *@
+@* Panel rápido de sonido: popover bajo la franja (la franja recorta lo que sobresale, por eso vive en Overlays). Tocar fuera lo cierra, salvo anclado: entonces es una ventana flotante que se mueve y redimensiona. *@
 @if (Shell.SoundQuickOpen)
 {
-    <div class="sound-quick__backdrop" data-testid="sound-quick-backdrop" @onclick="Shell.CloseSoundQuick"></div>
-    <section class="sound-quick" data-testid="sound-quick" aria-label="Sonido rápido">
-        <header class="sound-quick__header">
-            <span class="sound-quick__title">Sonido</span>
-            <IconButton Icon="IconName.X" Label="Cerrar el sonido rápido" data-testid="sound-quick-close" OnClick="Shell.CloseSoundQuick" />
-        </header>
+    @if (!Pinned)
+    {
+        <div class="sound-quick__backdrop" data-testid="sound-quick-backdrop" @onclick="Shell.CloseSoundQuick"></div>
+    }
+    <QuickCard class="sound-quick" data-testid="sound-quick" Title="Sonido"
+               Draggable="true" Resizable="true" FrameSize="Layout.GetSize(LayoutKeys.SoundQuick)" Anchor="@(Pinned ? Layout.GetAnchor(LayoutKeys.SoundQuick) : null)"
+               IsPinned="Pinned" OnPinnedChanged="SetPinned" OnFrameChanged="OnFrameChanged" OnFrameReset="@(() => Layout.ResetSize(LayoutKeys.SoundQuick))"
+               OnClose="Close">
         @if (Notice is { } notice)
         {
             <InlineNotice Kind="NoticeKind.Warning">@notice</InlineNotice>
@@ -44,10 +48,42 @@
                 <span>@scene</span>
             </button>
         }
-    </section>
+    </QuickCard>
 }
 
 @code {
+    // Última posición soltada en esta apertura: al anclar se guarda como ancla (el JS solo informa al soltar).
+    private WindowAnchor? _lastAnchor;
+
+    private bool Pinned => Layout.IsPinned(LayoutKeys.SoundQuick);
+
+    private void SetPinned(bool pinned)
+    {
+        Layout.SetPinned(LayoutKeys.SoundQuick, pinned);
+        Layout.SetAnchor(LayoutKeys.SoundQuick, pinned ? _lastAnchor : null);
+    }
+
+    // El tamaño se recuerda anclado o no; la posición solo si está anclado (sin anclar, la de la hoja de estilos).
+    private void OnFrameChanged(WindowFrameChange change)
+    {
+        if (change.Size is { } size) Layout.SetSize(LayoutKeys.SoundQuick, size);
+        _lastAnchor = change.Anchor;
+        if (Pinned) Layout.SetAnchor(LayoutKeys.SoundQuick, change.Anchor);
+    }
+
+    // Cerrado por cualquier vía, la próxima apertura vuelve a empezar sin posición recordada.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!(Shell.SoundQuickOpen)) _lastAnchor = null;
+    }
+
+    // La X (y Esc) cierra y quita la chincheta.
+    private void Close()
+    {
+        SetPinned(false);
+        Shell.CloseSoundQuick();
+    }
+
     // Los favoritos suenan como efecto de una vez: repetir o hacer bucle se decide en la pantalla Sonido.
     private async Task PlayFavoriteAsync(string path)
     {

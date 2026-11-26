@@ -33,6 +33,7 @@ public abstract class JournalUiTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<NoteImageResolver>();
         Services.AddSingleton<PortraitUrlProvider>();
         Services.AddScoped<ShellState>();
+        Services.AddWindowingForTests();
         Services.AddScoped<WikilinkInterop>();
         Services.AddGlossaryForTests();
         Services.AddSingleton(TimeProvider.System);

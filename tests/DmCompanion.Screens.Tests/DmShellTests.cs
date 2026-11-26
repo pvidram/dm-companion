@@ -36,7 +36,7 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
         Services.AddVaultBrowsingForTests();
     }
 

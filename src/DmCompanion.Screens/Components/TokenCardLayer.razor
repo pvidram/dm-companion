@@ -1,0 +1,70 @@
+@inherits DmComponentBase
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
+@inject MapSession Session
+@inject MapCanvasInterop Canvas
+@inject WindowManager Windows
+@inject ILogger<TokenCardLayer> Log
+
+@* Orden estable por id: el apilado lo da la propiedad z-index (Order), y mover nodos del DOM al traer al frente perdería el foco. *@
+@{
+    var cards = Windows.TokenCards; // ya ordenadas por Order: el puesto es el z-index relativo (1..N), nunca crece sin límite
+}
+@foreach (var card in cards.OrderBy(c => c.TokenId, StringComparer.Ordinal))
+{
+    <TokenCard @key="card.TokenId" Window="card" Layer="@(cards.ToList().IndexOf(card) + 1)" />
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Windows.Changed += OnWindowsChanged;
+        Canvas.TokenTapped += OnTokenTapped;
+    }
+
+    private void OnWindowsChanged()
+    {
+        try
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró.
+        }
+    }
+
+    // Llega desde JS (hilo de Blazor o no): se vuelve al dispatcher y se observa la tarea.
+    private void OnTokenTapped(object? sender, TokenTappedEventArgs e) => _ = OpenAsync(e);
+
+    private async Task OpenAsync(TokenTappedEventArgs tap)
+    {
+        try
+        {
+            var area = await Canvas.HostRectAsync();
+            await InvokeAsync(() =>
+            {
+                if (Session.Editor?.State.Tokens.FirstOrDefault(t => t.Id == tap.Id) is not { } token) return;
+                var (relX, relY) = area is { } r ? (tap.ScreenX - r.Left, tap.ScreenY - r.Top) : (tap.ScreenX, tap.ScreenY);
+                var (x, y) = area is { } a ? TokenPlacement.CardPositionNear(relX, relY, a.Width, a.Height) : (relX, relY);
+                Windows.OpenTokenCard(token.Id, x, y);
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // El componente ya se retiró mientras llegaba el toque.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al abrir la tarjeta del token ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public override void Dispose()
+    {
+        Windows.Changed -= OnWindowsChanged;
+        Canvas.TokenTapped -= OnTokenTapped;
+        base.Dispose();
+    }
+}
