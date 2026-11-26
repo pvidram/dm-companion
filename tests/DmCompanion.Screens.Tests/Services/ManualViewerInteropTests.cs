@@ -134,18 +134,32 @@ public sealed class ManualViewerInteropTests : BunitContext
     }
 
     [Fact]
-    public async Task Swipe_from_js_asks_for_a_page_turn()
+    public async Task Page_changed_from_js_raises_PageChanged()
     {
         var planned = _module.Setup<ManualDocInfo?>("open", _ => true);
         planned.SetResult(new ManualDocInfo(3, [], true));
         await using var interop = CreateInterop();
-        var turns = new List<int>();
-        interop.PageTurnRequested += turns.Add;
+        var pages = new List<int>();
+        interop.PageChanged += pages.Add;
         await interop.OpenAsync(new ElementReference("host"), Url, 1);
 
-        ((DotNetObjectReference<ManualViewerCallbacks>)planned.Invocations.Single().Arguments[3]!).Value.OnSwipe(1);
+        ((DotNetObjectReference<ManualViewerCallbacks>)planned.Invocations.Single().Arguments[3]!).Value.OnPageChanged(2);
 
-        turns.Should().Equal(1);
+        pages.Should().Equal(2);
+    }
+
+    [Fact]
+    public async Task Page_failure_from_js_is_logged_by_type_only()
+    {
+        var planned = _module.Setup<ManualDocInfo?>("open", _ => true);
+        planned.SetResult(new ManualDocInfo(3, [], true));
+        var logger = new TextLogger();
+        await using var interop = new ManualViewerInterop(JSInterop.JSRuntime, logger);
+        await interop.OpenAsync(new ElementReference("host"), Url, 1);
+
+        ((DotNetObjectReference<ManualViewerCallbacks>)planned.Invocations.Single().Arguments[3]!).Value.OnPageFailed("RenderingError");
+
+        logger.Entries.Should().Equal("No se pudo pintar una página del manual (RenderingError).");
     }
 
     private ManualViewerInterop CreateInterop() => new(JSInterop.JSRuntime, NullLogger<ManualViewerInterop>.Instance);

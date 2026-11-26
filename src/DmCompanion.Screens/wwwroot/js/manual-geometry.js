@@ -1,4 +1,4 @@
-// Funciones puras del visor de manuales (escala, recorte, gesto de pasar página): se prueban con `node --test` (tests/js).
+// Funciones puras del visor de manuales (escala y recorte): se prueban con `node --test` (tests/js).
 (function (root) {
     'use strict';
 
@@ -30,13 +30,7 @@
         return { x: left / viewW, y: top / viewH, width: (right - left) / viewW, height: (bottom - top) / viewH };
     }
 
-    // Deslizamiento horizontal: 1 = página siguiente, -1 = anterior, 0 = no es un deslizamiento.
-    function swipeDirection(dx, dy, threshold) {
-        if (Math.abs(dx) < threshold || Math.abs(dx) < 2 * Math.abs(dy)) return 0;
-        return dx < 0 ? 1 : -1;
-    }
-
-    var api = { fitScale: fitScale, cropToPdf: cropToPdf, rectFromDrag: rectFromDrag, swipeDirection: swipeDirection };
+    var api = { fitScale: fitScale, cropToPdf: cropToPdf, rectFromDrag: rectFromDrag };
     root.manualGeometry = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -24,8 +24,10 @@ public abstract class ManualsUiTestBase : BunitContext, IAsyncLifetime
         JSInterop.Mode = JSRuntimeMode.Loose;
         Module = JSInterop.SetupModule(ManualViewerInterop.ModulePath);
         // En modo Loose un bool sin configurar sería false, que el visor entiende como «no se pudo pintar».
-        Module.Setup<bool>("showPage", _ => !PageFailsToPaint).SetResult(true);
-        Module.Setup<bool>("showPage", _ => PageFailsToPaint).SetResult(false);
+        Module.Setup<bool>("showPage", _ => !PageFailsToPaint && !HoldShowPage).SetResult(true);
+        Module.Setup<bool>("showPage", _ => PageFailsToPaint && !HoldShowPage).SetResult(false);
+        var held = Module.Setup<bool>("showPage", _ => HoldShowPage);
+        HeldShowPage = result => held.SetResult(result);
         Services.AddDmCompanionUI();
         Services.AddSingleton<IAppPreferences>(Prefs);
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
@@ -41,6 +43,11 @@ public abstract class ManualsUiTestBase : BunitContext, IAsyncLifetime
 
     /// <summary>true hace que showPage devuelva false (página que no se pudo pintar).</summary>
     protected bool PageFailsToPaint { get; set; }
+
+    /// <summary>true deja showPage pendiente hasta que se complete <see cref="HeldShowPage"/>.</summary>
+    protected bool HoldShowPage { get; set; }
+
+    protected Action<bool> HeldShowPage { get; private set; } = null!;
 
     protected ShellState Shell => Services.GetRequiredService<ShellState>();
 

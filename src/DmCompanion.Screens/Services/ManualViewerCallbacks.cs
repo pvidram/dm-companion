@@ -3,9 +3,13 @@ using Microsoft.JSInterop;
 namespace DmCompanion.Screens.Services;
 
 /// <summary>Avisos del visor JS hacia .NET mientras hay un documento abierto.</summary>
-public sealed class ManualViewerCallbacks(Action<int> onPageTurn)
+public sealed class ManualViewerCallbacks(Action<int> onPageChanged, Action<string> onPageFailed)
 {
-    /// <summary>Deslizamiento horizontal: 1 pide la página siguiente y -1 la anterior; el componente decide.</summary>
-    [JSInvokable("onSwipe")]
-    public void OnSwipe(int direction) => onPageTurn(direction);
+    /// <summary>La página que se está leyendo cambió al desplazarse (el JS lo avisa con retardo y solo si cambia).</summary>
+    [JSInvokable("onPageChanged")]
+    public void OnPageChanged(int page) => onPageChanged(page);
+
+    /// <summary>Una página no se pudo pintar ni con el reintento a menor escala; llega solo el tipo de error.</summary>
+    [JSInvokable("onPageFailed")]
+    public void OnPageFailed(string errorType) => onPageFailed(errorType);
 }

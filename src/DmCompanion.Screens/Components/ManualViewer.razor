@@ -78,11 +78,12 @@
     private bool _cropping;
     private bool _closed;
     private int _goKey;
+    private int _navigating;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        Viewer.PageTurnRequested += OnPageTurn;
+        Viewer.PageChanged += OnPageChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -115,7 +116,7 @@
         var start = Math.Clamp(remembered, 1, Math.Max(doc.PageCount, 1));
         SetPage(start);
         // El PDF puede tener ahora menos páginas que cuando se recordó la posición.
-        if (start != remembered) _pageFailed = !await Viewer.ShowPageAsync(start);
+        if (start != remembered) _pageFailed = !await ShowPageGuardedAsync(start);
         // Cargar los marcadores al abrir deja constancia en Diagnóstico de un fichero dañado, aunque no se abra el lateral.
         await Bookmarks.LoadAsync(Path);
         StateHasChanged();
@@ -161,11 +162,25 @@
         Positions.Remember(Path, page);
         // Quien llama puede ser un hijo (el índice): el visor debe repintar la página y el valor en cascada.
         StateHasChanged();
-        var painted = await Viewer.ShowPageAsync(page);
+        var painted = await ShowPageGuardedAsync(page);
         // Si mientras tanto se pidió otra página, el aviso es cosa de esa.
         if (_page != page) return;
         _pageFailed = !painted;
         StateHasChanged();
+    }
+
+    // Mientras el JS no ha recibido showPage, un aviso de página en vuelo es de la posición anterior y pisaría la navegación.
+    private async Task<bool> ShowPageGuardedAsync(int page)
+    {
+        _navigating++;
+        try
+        {
+            return await Viewer.ShowPageAsync(page);
+        }
+        finally
+        {
+            _navigating--;
+        }
     }
 
     private async Task GoToTypedAsync()
@@ -176,8 +191,21 @@
         _goKey++;
     }
 
-    // El evento llega desde el interop JS, fuera del dispatcher. Durante un recorte no se cambia de página.
-    private void OnPageTurn(int direction) => _ = InvokeAsync(() => _cropping ? Task.CompletedTask : GoToAsync(_page + direction));
+    // El evento llega desde el interop JS, fuera del dispatcher. Solo actualiza el estado: no vuelve a llamar a ShowPageAsync,
+    // porque el JS ya está en esa página y si no habría un bucle.
+    private void OnPageChanged(int page) => _ = InvokeAsync(() => ApplyPageChanged(page));
+
+    private void ApplyPageChanged(int page)
+    {
+        if (_doc is null || _closed || _navigating > 0) return;
+        page = Math.Clamp(page, 1, Math.Max(_doc.PageCount, 1));
+        if (page == _page) return;
+        SetPage(page);
+        Positions.Remember(Path, page);
+        // El aviso de «No se pudo mostrar esta página» era de la página anterior; los huecos que fallan ya lo indican en el visor.
+        _pageFailed = false;
+        StateHasChanged();
+    }
 
     private async Task BackAsync()
     {
@@ -195,7 +223,7 @@
     public async ValueTask DisposeAsync()
     {
         base.Dispose();
-        Viewer.PageTurnRequested -= OnPageTurn;
+        Viewer.PageChanged -= OnPageChanged;
         await CloseDocumentAsync();
     }
 }
