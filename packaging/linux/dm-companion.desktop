@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DM Companion
+Comment=Herramienta para dirigir partidas de D&D 5e
+Exec=DMCompanion
+Icon=dm-companion
+Categories=Game;RolePlaying;
+Terminal=false

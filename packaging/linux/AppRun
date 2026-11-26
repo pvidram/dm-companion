@@ -1,0 +1,4 @@
+#!/bin/sh
+# Punto de entrada del AppImage: lanza el ejecutable publicado que va dentro.
+here="$(dirname "$(readlink -f "$0")")"
+exec "$here/usr/lib/dm-companion/DMCompanion" "$@"
