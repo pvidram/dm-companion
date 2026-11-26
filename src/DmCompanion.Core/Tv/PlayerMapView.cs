@@ -14,7 +14,7 @@ public sealed record PlayerStripEntry(
 
 public sealed record PlayerCombat(int Round, IReadOnlyList<PlayerStripEntry> Entries);
 
-/// <summary>Lo único que ven los jugadores del mapa. <c>Fog</c>: puntos de las zonas de niebla tapadas, en el orden del estado.</summary>
+/// <summary>Lo único que ven los jugadores del mapa. <c>Fog</c>: puntos de las zonas de niebla totales tapadas (las de PNJ no viajan), en el orden del estado.</summary>
 public sealed record PlayerMapView(
     string MapPath, string? ImagePath, double Width, double Height, GridSettings Grid, TvFrame Frame,
     IReadOnlyList<PlayerToken> Tokens, IReadOnlyList<MapStroke> Strokes, PlayerCombat? Combat,

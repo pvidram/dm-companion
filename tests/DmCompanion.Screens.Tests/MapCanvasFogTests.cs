@@ -93,6 +93,85 @@ public sealed class MapCanvasFogTests : IAsyncLifetime
     }
 
     [Fact]
+    public void The_default_zone_type_is_total() => _interop.FogType.Should().Be(FogType.Total);
+
+    [Fact]
+    public async Task Adding_a_zone_uses_the_chosen_type()
+    {
+        await OpenAsync();
+        _interop.SetFogType(FogType.Npc);
+
+        _interop.OnFogZoneAdded(Triangle);
+
+        Zones.Single().EffectiveType.Should().Be(FogType.Npc);
+    }
+
+    [Fact]
+    public async Task Retyping_a_zone_applies_the_chosen_type_and_is_undoable()
+    {
+        await OpenAsync();
+        _interop.OnFogZoneAdded(Triangle);
+        _interop.SetFogType(FogType.Npc);
+
+        _interop.OnFogZoneRetyped(Zones.Single().Id);
+        var changed = Zones.Single().EffectiveType;
+        _session.Mutate(e => e.Undo());
+
+        (changed, Zones.Single().EffectiveType).Should().Be((FogType.Npc, FogType.Total));
+    }
+
+    [Fact]
+    public async Task Retyping_to_the_type_it_already_has_changes_nothing()
+    {
+        await OpenAsync();
+        _interop.OnFogZoneAdded(Triangle);
+        var before = _session.Editor!.State;
+
+        _interop.OnFogZoneRetyped(Zones.Single().Id);
+
+        _session.Editor.State.Should().BeSameAs(before);
+    }
+
+    [Fact]
+    public async Task Retyping_in_a_read_only_session_changes_nothing()
+    {
+        await OpenAsync(rawState: "{\"version\":5,\"tokens\":[],\"strokes\":[],\"fog\":[{\"id\":\"z1\",\"points\":[0,0,100,0,0,100]}]}");
+        _session.IsReadOnly.Should().BeTrue();
+        Zones.Single().IsNpc.Should().BeFalse();
+        _interop.SetFogType(FogType.Npc);
+
+        _interop.OnFogZoneRetyped("z1");
+
+        Zones.Single().IsNpc.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Choosing_the_freehand_tool_sends_it_to_the_canvas()
+    {
+        await OpenAsync();
+        await _interop.LoadAsync(default);
+
+        await _interop.SetFogToolAsync(FogTool.Freehand);
+
+        _js.Calls.Should().ContainSingle(c => c.Identifier == "mapCanvas.setFogTool").Which.Args.Should().Equal("Freehand");
+    }
+
+    [Fact]
+    public async Task The_canvas_dto_carries_the_zone_type()
+    {
+        await OpenAsync();
+        _interop.SetFogType(FogType.Npc);
+        _interop.OnFogZoneAdded(Triangle);
+        _interop.SetFogType(FogType.Total);
+        _interop.OnFogZoneAdded(Triangle);
+
+        await _interop.LoadAsync(default);
+
+        var dto = JsonSerializer.SerializeToElement(_js.Calls.Single(c => c.Identifier == "mapCanvas.load").Args[1], JsonSerializerOptions.Web);
+        dto.GetProperty("fog").EnumerateArray().Select(z => z.GetProperty("type").GetString()).Should().Equal("npc", "total");
+    }
+
+    [Fact]
     public async Task Read_only_session_changes_nothing()
     {
         await OpenAsync(rawState: "esto no es json");

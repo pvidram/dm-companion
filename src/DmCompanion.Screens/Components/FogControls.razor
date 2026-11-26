@@ -1,4 +1,5 @@
 @inherits DmComponentBase
+@using DmCompanion.Core.Maps
 @using DmCompanion.Screens.Services
 @using Microsoft.Extensions.Logging
 @inject MapSession Session
@@ -12,7 +13,9 @@
     <MapToolbarGroup Label="Niebla">
         <IconButton Icon="IconName.ScanEye" Label="Destapar" Disabled="Disabled" IsPressed="@(tool == FogTool.Reveal)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Reveal)" />
         <IconButton Icon="IconName.Pencil" Label="Trazar" Disabled="Disabled" IsPressed="@(tool == FogTool.Trace)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Trace)" />
+        <IconButton Icon="IconName.Spline" Label="Mano alzada" Disabled="Disabled" IsPressed="@(tool == FogTool.Freehand)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Freehand)" />
         <IconButton Icon="IconName.Eraser" Label="Goma" Disabled="Disabled" IsPressed="@(tool == FogTool.Erase)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Erase)" />
+        <IconButton Icon="IconName.ArrowLeftRight" Label="Cambiar tipo" Disabled="Disabled" IsPressed="@(tool == FogTool.Retype)" OnClick="() => Canvas.SetFogToolAsync(FogTool.Retype)" />
         @if (tool == FogTool.Trace)
         {
             <IconButton Icon="IconName.Delete" Label="Deshacer esquina" Disabled="@(Disabled || !hasDraft)" OnClick="() => Canvas.UndoFogCornerAsync()" />
@@ -20,6 +23,10 @@
         }
         <IconButton Icon="IconName.Undo2" Label="Deshacer" Disabled="@(Disabled || !editor.CanUndo)" OnClick="() => Session.Mutate(e => e.Undo())" />
         <IconButton Icon="IconName.Redo2" Label="Rehacer" Disabled="@(Disabled || !editor.CanRedo)" OnClick="() => Session.Mutate(e => e.Redo())" />
+    </MapToolbarGroup>
+    <MapToolbarGroup Label="Tipo de niebla">
+        <IconButton Icon="IconName.CloudFog" Label="Total" Disabled="Disabled" IsPressed="@(Canvas.FogType == FogType.Total)" OnClick="() => Canvas.SetFogType(FogType.Total)" />
+        <IconButton Icon="IconName.EyeOff" Label="PNJ" Disabled="Disabled" IsPressed="@(Canvas.FogType == FogType.Npc)" OnClick="() => Canvas.SetFogType(FogType.Npc)" />
     </MapToolbarGroup>
 }
 

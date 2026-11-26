@@ -304,7 +304,7 @@ public sealed class GridAdjustTests : BunitContext, IAsyncLifetime
         await OpenMapAsync();
         AdjustedTo(70, 0, 0);
         var bar = await AdjustingAsync();
-        var future = MapStateSerializer.Write(Session.Editor!.State).Replace("\"version\":2", "\"version\":4");
+        var future = MapStateSerializer.Write(Session.Editor!.State).Replace("\"version\":2", "\"version\":5");
         var statePath = _vault.PathOf(MapPaths.StatePathFor(MapTestVault.MapNote));
 
         File.WriteAllText(statePath, future);

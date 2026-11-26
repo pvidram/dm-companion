@@ -1,5 +1,6 @@
-// Modo Niebla del lienzo de la tablet (map-canvas.js): capa de niebla, borrador de Trazar y toques del lápiz.
-// C# manda: el JS solo avisa (zona añadida, alternada o borrada; esquinas del borrador) y repinta lo que recibe.
+// Modo Niebla del lienzo de la tablet (map-canvas.js): capa de niebla, borrador de Trazar, gesto de Mano alzada y toques del lápiz.
+// Herramientas (inst.fogTool): 'Reveal', 'Trace', 'Erase', 'Freehand' (gesto, ver freehandGesture) y 'Retype' (cambiar tipo).
+// C# manda: el JS solo avisa (zona añadida, alternada, borrada o cambiada de tipo; esquinas del borrador) y repinta lo que recibe.
 // La geometría está en fog-geometry.js.
 (function (root) {
     'use strict';
@@ -9,6 +10,9 @@
     const REVEALED_DASH = [12, 8];
     const DRAFT_LINE_PX = 2;
     const DRAFT_DOT_PX = 6;
+    // Mano alzada: tolerancia del simplificado y separación mínima entre puntos recogidos (px de pantalla).
+    const FREEHAND_TOLERANCE_PX = 4;
+    const FREEHAND_MIN_SPACING_PX = 2;
 
     function ignore() { /* la llamada a C# puede fallar si el circuito se cerró */ }
 
@@ -19,7 +23,11 @@
     function colors(host) {
         const css = getComputedStyle(host.closest('.ds-root') || document.documentElement);
         const get = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
-        return { fog: get('--fog-dm', 'rgba(43, 33, 24, 0.45)'), accent: get('--accent-on-wood', '#C9A24A') };
+        return { fog: get('--fog-dm', 'rgba(43, 33, 24, 0.45)'), npc: get('--fog-npc-dm', 'rgba(74, 52, 110, 0.45)'), accent: get('--accent-on-wood', '#C9A24A') };
+    }
+
+    function fillFor(zone, palette) {
+        return zone.type === 'npc' ? palette.npc : palette.fog;
     }
 
     // Tapadas: velo semitransparente encima de los tokens. Destapadas: contorno discontinuo, solo en modo Niebla.
@@ -30,7 +38,7 @@
         const palette = colors(inst.host);
         for (const zone of inst.dto.fog || []) {
             const base = { points: zone.points, closed: true, listening: false, perfectDrawEnabled: false };
-            if (!zone.revealed) layer.add(new Konva.Line({ ...base, fill: palette.fog }));
+            if (!zone.revealed) layer.add(new Konva.Line({ ...base, fill: fillFor(zone, palette) }));
             else if (inst.fogActive) {
                 layer.add(new Konva.Line({ ...base, stroke: palette.accent, strokeWidth: 2, dash: REVEALED_DASH.slice(), strokeScaleEnabled: false }));
             }
@@ -119,13 +127,69 @@
     // Toque del lápiz (o del ratón en el PC) en coordenadas del mapa, según la herramienta elegida.
     function onPenDown(inst, worldPoint) {
         const tool = inst.fogTool || 'Reveal';
+        if (tool === 'Freehand') return;
         if (tool === 'Trace') { trace(inst, worldPoint); return; }
         const zone = root.fogGeometry.zoneAt(inst.dto.fog, worldPoint.x, worldPoint.y);
         if (!zone) return;
-        notify(inst, tool === 'Erase' ? 'OnFogZoneErased' : 'OnFogZoneToggled', zone.id);
+        const method = { Erase: 'OnFogZoneErased', Retype: 'OnFogZoneRetyped' }[tool] || 'OnFogZoneToggled';
+        notify(inst, method, zone.id);
     }
 
-    const api = { draw, onPenDown, clearDraft, undoCorner, FOG_CLOSE_RADIUS_PX };
+    // Mano alzada: añade el punto salvo que quede a menos de FREEHAND_MIN_SPACING_PX de pantalla del anterior.
+    // No recorta al mapa: un trazo que sale de él se entrega tal cual y la validez la decide Core.
+    function addFreehandPoint(gesture, point, scale) {
+        const last = gesture.pts[gesture.pts.length - 1];
+        if (last && Math.hypot(point.x - last.x, point.y - last.y) * scale < FREEHAND_MIN_SPACING_PX) return;
+        gesture.pts.push({ x: point.x, y: point.y });
+    }
+
+    function flat(pts) { return pts.flatMap(p => [p.x, p.y]); }
+
+    function clearFreehandDraft(inst) {
+        inst.layers.draft.destroyChildren();
+        inst.layers.draft.batchDraw();
+    }
+
+    // Trazo a mano alzada: contorno mientras dura el gesto, más una línea discontinua provisional de cierre.
+    // Al soltar se simplifica y se cierra; el cierre sigue llegando si el lápiz sale del lienzo (captura del puntero).
+    const freehandGesture = {
+        start(inst, gesture, event) {
+            gesture.pts = [];
+            const color = colors(inst.host).accent;
+            const line = extra => new Konva.Line({ stroke: color, strokeWidth: DRAFT_LINE_PX, strokeScaleEnabled: false, listening: false, ...extra });
+            gesture.outline = line({ points: [], lineCap: 'round', lineJoin: 'round' });
+            gesture.closing = line({ points: [], dash: REVEALED_DASH.slice() });
+            inst.layers.draft.add(gesture.outline, gesture.closing);
+            freehandGesture.move(inst, gesture, event);
+        },
+        move(inst, gesture, event) {
+            const core = root.mapCore;
+            const scale = inst.stage.scaleX();
+            for (const e of core.eventPoints(event)) addFreehandPoint(gesture, core.worldPoint(inst, core.containerPoint(inst, e)), scale);
+            const pts = gesture.pts;
+            gesture.outline.points(flat(pts));
+            gesture.closing.points(pts.length > 1 ? [pts[pts.length - 1].x, pts[pts.length - 1].y, pts[0].x, pts[0].y] : []);
+            inst.layers.draft.batchDraw();
+        },
+        end(inst, gesture) {
+            const points = root.fogGeometry.closeFreehand(gesture.pts, FREEHAND_TOLERANCE_PX / inst.stage.scaleX());
+            clearFreehandDraft(inst);
+            if (points) notify(inst, 'OnFogZoneAdded', points);
+        },
+        cancel(inst) { clearFreehandDraft(inst); },
+    };
+
+    // Cambiar de herramienta descarta la zona en curso y, si hay un trazo a mano alzada sin soltar, cancela el gesto.
+    function setTool(inst, name, cancelGesture) {
+        if (inst.gesture && inst.gesture.kind === 'fogFreehand') cancelGesture(inst);
+        inst.fogTool = name;
+        clearDraft(inst);
+    }
+
+    const api = {
+        draw, onPenDown, clearDraft, setTool, undoCorner, fillFor, addFreehandPoint, freehandGesture,
+        FOG_CLOSE_RADIUS_PX, FREEHAND_TOLERANCE_PX, FREEHAND_MIN_SPACING_PX,
+    };
     root.fogMode = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

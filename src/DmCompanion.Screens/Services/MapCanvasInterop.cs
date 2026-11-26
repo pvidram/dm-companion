@@ -11,7 +11,7 @@ namespace DmCompanion.Screens.Services;
 public enum MapMode { Navigate, Draw, Measure, Fog }
 
 /// <summary>Herramientas del modo Niebla: «Destapar», «Trazar» y «Goma».</summary>
-public enum FogTool { Reveal, Trace, Erase }
+public enum FogTool { Reveal, Trace, Erase, Freehand, Retype }
 
 public sealed record DrawTool(string Color, double Width, bool Eraser)
 {
@@ -417,7 +417,7 @@ public sealed partial class MapCanvasInterop(
             unitLabel = unit.Name,
             tokens,
             strokes = state.Strokes,
-            fog = state.FogZones.Select(z => new { id = z.Id, points = z.Points, revealed = z.IsRevealed }),
+            fog = state.FogZones.Select(z => new { id = z.Id, points = z.Points, revealed = z.IsRevealed, type = z.IsNpc ? "npc" : "total" }),
             readOnly,
             maxImageSide = MaxImageSide,
         };

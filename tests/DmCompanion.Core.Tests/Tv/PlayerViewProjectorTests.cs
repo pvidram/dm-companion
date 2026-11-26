@@ -37,11 +37,78 @@ public class PlayerViewProjectorTests
     [Theory]
     [InlineData(50, false)]
     [InlineData(100, false)]
+    [InlineData(134, false)]
     [InlineData(150, true)]
     public void Token_under_covered_fog_is_hidden_including_its_border(double x, bool visible)
     {
         var view = Project(Fogged([Tok("a") with { X = x, Y = 50 }], [Square("z")]));
         view.Tokens.Any().Should().Be(visible);
+    }
+
+    private static MapFogZone NpcSquare(string id, bool? revealed = null) =>
+        new(id, [0, 0, 100, 0, 100, 100, 0, 100], revealed, FogType.Npc);
+
+    [Theory]
+    [InlineData(TokenSide.Enemy, false)]
+    [InlineData(TokenSide.Ally, false)]
+    [InlineData(TokenSide.Pc, true)]
+    public void Npc_fog_hides_non_pc_tokens_but_never_pcs(TokenSide side, bool visible)
+    {
+        var view = Project(Fogged([Tok("a", side) with { X = 50, Y = 50 }], [NpcSquare("z")]));
+        view.Tokens.Any().Should().Be(visible);
+    }
+
+    [Theory]
+    [InlineData(135, false)]
+    [InlineData(136, true)]
+    public void Npc_fog_hides_a_token_that_only_touches_the_zone(double x, bool visible)
+    {
+        var view = Project(Fogged([Tok("a") with { X = x, Y = 50 }], [NpcSquare("z")]));
+        view.Tokens.Any().Should().Be(visible);
+    }
+
+    [Fact]
+    public void The_token_radius_follows_its_size_and_the_grid_cell_size()
+    {
+        var state = Fogged([Tok("a") with { X = 190, Y = 50, Size = 2 }], [NpcSquare("z")]) with
+            { Grid = GridSettings.Default with { CellSize = 100 } };
+        Project(state).Tokens.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_pc_that_touches_the_edge_of_total_fog_stays_visible_but_one_on_the_border_does_not()
+    {
+        var view = Project(Fogged([Tok("a", TokenSide.Pc) with { X = 120, Y = 50 }, Tok("b", TokenSide.Pc) with { X = 100, Y = 50 }], [Square("z")]));
+        view.Tokens.Select(t => t.Id).Should().Equal("a");
+    }
+
+    [Fact]
+    public void A_revealed_npc_zone_hides_nothing()
+    {
+        var view = Project(Fogged([Tok("a") with { X = 50, Y = 50 }], [NpcSquare("z", true)]));
+        view.Tokens.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Npc_zones_never_travel_to_the_tv_while_total_ones_do()
+    {
+        var view = Project(Fogged([], [Square("t"), NpcSquare("n")]));
+        view.Fog.Select(f => string.Join(",", f)).Should().Equal("0,0,100,0,100,100,0,100");
+    }
+
+    [Fact]
+    public void An_npc_hidden_by_npc_fog_on_its_turn_leaves_no_strip_entry_and_highlights_nobody()
+    {
+        var view = Project(Fogged([Tok("a") with { X = 50, Y = 50 }, Tok("b") with { X = 500, Y = 50 }], [NpcSquare("z")], Combat("a", "a", "b")));
+        (string.Join(",", view.Combat!.Entries.Select(e => e.TokenId)), view.Combat.Entries.Any(e => e.Current), view.Tokens.Any(t => t.Current))
+            .Should().Be(("b", false, false));
+    }
+
+    [Fact]
+    public void A_pc_inside_npc_fog_keeps_its_strip_entry_and_its_turn()
+    {
+        var view = Project(Fogged([Tok("p", TokenSide.Pc) with { X = 50, Y = 50 }], [NpcSquare("z")], Combat("p", "p")));
+        view.Combat!.Entries.Single().Current.Should().BeTrue();
     }
 
     [Fact]

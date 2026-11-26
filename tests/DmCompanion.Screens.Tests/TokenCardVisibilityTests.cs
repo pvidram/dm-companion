@@ -64,8 +64,8 @@ public sealed class TokenCardVisibilityTests : TokenTestBase
     public async Task Read_only_map_has_no_hide_button()
     {
         await OpenMapAsync();
-        // Un estado futuro (versión 3) abre el mapa en solo lectura con sus tokens a la vista.
-        var json = "{\"version\":4,\"tokens\":[{\"id\":\"t\",\"name\":\"Orco\",\"side\":\"enemy\",\"size\":1,\"x\":35,\"y\":35}],\"strokes\":[]}";
+        // Un estado futuro (versión futura) abre el mapa en solo lectura con sus tokens a la vista.
+        var json = "{\"version\":5,\"tokens\":[{\"id\":\"t\",\"name\":\"Orco\",\"side\":\"enemy\",\"size\":1,\"x\":35,\"y\":35}],\"strokes\":[]}";
         await Session.CloseAsync();
         File.WriteAllText(PathOf(MapPaths.StatePathFor(MapTestVault.MapNote)), json);
         await Session.OpenAsync(MapTestVault.MapNote);
