@@ -17,7 +17,7 @@ public sealed class DmShellJournalTests : JournalUiTestBase
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
         Services.AddVaultBrowsingForTests();
         Services.AddSingleton<JournalStore>();
     }

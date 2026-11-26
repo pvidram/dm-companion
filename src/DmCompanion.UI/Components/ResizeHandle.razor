@@ -1,0 +1,6 @@
+<div class="ds-resize-handle ds-resize-handle--@Edge" data-resize-handle="@Edge" aria-hidden="true"></div>
+
+@code {
+    /// <summary>Borde que arrastra: "e" (derecho), "s" (inferior) o "se" (esquina inferior derecha). Lo recoge window-frame.js.</summary>
+    [Parameter, EditorRequired] public string Edge { get; set; } = "se";
+}

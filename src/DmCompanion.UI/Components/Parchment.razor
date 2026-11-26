@@ -1,4 +1,5 @@
-@inherits OverlayBase
+@inherits ResizableOverlayBase
+@using DmCompanion.UI.Interop
 
 <section @attributes="AdditionalAttributes" @ref="Element" class="@CssClass"
          hidden="@(!IsOpen)" tabindex="-1" aria-labelledby="@_titleId" @onkeydown="HandleKeyDownAsync" @onkeydown:stopPropagation="true">
@@ -10,6 +11,12 @@
         }
     </header>
     <div class="ds-parchment__body">@ChildContent</div>
+    @if (FrameActive)
+    {
+        <ResizeHandle Edge="e" />
+        <ResizeHandle Edge="s" />
+        <ResizeHandle Edge="se" />
+    }
     @if (Actions is not null)
     {
         <footer class="ds-parchment__actions">@Actions</footer>
@@ -24,6 +31,10 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     /// <summary>Pie con acciones; la vista TV lo oculta.</summary>
     [Parameter] public RenderFragment? Actions { get; set; }
+
+    protected override bool FrameActive => Resizable && Size != ParchmentSize.Full;
+    protected override WindowFrameOptions FrameOptions =>
+        new(Movable: false, ResizeEdges.Sides, new WindowSize(320, 240), FrameSize);
 
     private readonly string _titleId = $"ds-parchment-{Guid.NewGuid():N}";
     private string CssClass => AttributeMerge.Class(

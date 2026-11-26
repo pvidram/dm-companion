@@ -1,11 +1,12 @@
 @inherits DmComponentBase
+@inject PanelLayoutStore LayoutStore
 @using DmCompanion.Core.Maps
 @using Microsoft.Extensions.Logging
 @inject MapLibrary Library
 @inject MapSession Session
 @inject ILogger<MapsPanel> Log
 
-<Parchment Title="Mapas" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Maps)"
+<Parchment Title="Mapas" Resizable="@(true)" FrameSize="@Rail.FrameSize(LayoutKeys.Maps)" OnFrameChanged="@(c => Rail.OnChanged(LayoutKeys.Maps, c))" OnFrameReset="@(() => Rail.OnReset(LayoutKeys.Maps))" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Maps)"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Maps))">
     <ChildContent>
         @if (_catalog.Maps.Count == 0 && _catalog.OrphanImages.Count == 0)
@@ -46,6 +47,8 @@
 </Parchment>
 
 @code {
+    private RailPanelLayout? _rail;
+    private RailPanelLayout Rail => _rail ??= new(LayoutStore, () => _ = InvokeAsync(StateHasChanged));
     private MapCatalog _catalog = new([], []);
     private string? _notice;
     private int _loadSequence;

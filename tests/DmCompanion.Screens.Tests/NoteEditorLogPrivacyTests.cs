@@ -43,7 +43,7 @@ public sealed class NoteEditorLogPrivacyTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
         Services.AddScoped<WikilinkInterop>();
         Services.AddSingleton<ILogger<NoteEditor>>(_logger);
     }

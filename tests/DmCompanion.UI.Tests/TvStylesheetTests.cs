@@ -34,4 +34,18 @@ public class TvStylesheetTests
         var rule = new Regex(@"\.tv\s+\." + cssClass + @"\b[^{]*\{[^}]*display:\s*none");
         rule.IsMatch(css).Should().BeTrue();
     }
+
+    [Fact]
+    public void Tv_stylesheet_hides_resize_handles()
+    {
+        var css = UiAssets.Read("css/tv.css");
+        new Regex(@"\.tv\s+\.ds-resize-handle\b[^{]*\{[^}]*display:\s*none").IsMatch(css).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Tv_stylesheet_hides_header_buttons_such_as_the_pin()
+    {
+        var css = UiAssets.Read("css/tv.css");
+        new Regex(@"\.tv\s+\.ds-parchment__header\s+\.ds-icon-button\b[^{]*\{[^}]*display:\s*none").IsMatch(css).Should().BeTrue();
+    }
 }

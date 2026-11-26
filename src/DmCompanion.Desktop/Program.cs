@@ -97,12 +97,13 @@ try
     builder.Services.AddScoped<AudioMixer>();
     builder.Services.AddSingleton<AudioStore>();
     builder.Services.AddScoped<ShellState>();
+    builder.Services.AddScoped<PanelLayoutStore>();
+    builder.Services.AddScoped<WindowManager>();
     builder.Services.AddScoped<WikilinkInterop>();
     builder.Services.AddScoped<MapCanvasInterop>();
     builder.Services.AddScoped<PlayerPreview>();
     builder.Services.AddScoped<PlayerPreviewInterop>();
     builder.Services.AddScoped<TurnStripInterop>();
-    builder.Services.AddScoped<DragPanelInterop>();
     builder.Services.AddScoped<IAudioPlayer, WebAudioPlayer>();
     builder.Services.AddScoped<BackNavigation>();
     builder.Services.AddSingleton<VaultFileUrls>();

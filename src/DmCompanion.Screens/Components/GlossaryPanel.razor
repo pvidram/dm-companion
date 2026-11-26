@@ -1,8 +1,9 @@
 @inherits DmComponentBase
+@inject PanelLayoutStore LayoutStore
 @using DmCompanion.Core.Glossary
 @inject GlossaryService Glossary
 
-<Parchment Title="Glosario" Size="@PanelSize" class="glossary-panel" IsOpen="@IsOpen"
+<Parchment Title="Glosario" Resizable="@(true)" FrameSize="@Rail.FrameSize(GlossaryKey)" OnFrameChanged="@(c => Rail.OnChanged(GlossaryKey, c))" OnFrameReset="@(() => Rail.OnReset(GlossaryKey))" Size="@PanelSize" class="glossary-panel" IsOpen="@IsOpen"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Glossary))">
     @if (IsOpen)
     {
@@ -70,6 +71,10 @@
 </Parchment>
 
 @code {
+    private string GlossaryKey => PanelSize == ParchmentSize.Wide ? LayoutKeys.GlossaryWide : LayoutKeys.GlossarySide;
+
+    private RailPanelLayout? _rail;
+    private RailPanelLayout Rail => _rail ??= new(LayoutStore, () => _ = InvokeAsync(StateHasChanged));
     // «Ampliar» del visor lleva el panel a casi toda la pantalla, solo mientras se ve un manual.
     private ParchmentSize PanelSize =>
         Shell.ManualViewerExpanded && Shell.GlossaryTab == GlossaryTab.Manuals && Shell.OpenManualPath is not null

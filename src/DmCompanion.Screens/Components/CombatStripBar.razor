@@ -3,6 +3,7 @@
 @inject CombatController Combat
 @inject MapSession Session
 @inject MapCanvasInterop Canvas
+@inject WindowManager Windows
 @inject ILogger<CombatStripBar> Log
 
 @* Tira retraída: va en la franja superior del marco (slot Strip), no sobre el mapa. La expandida es CombatStrip. *@
@@ -49,7 +50,7 @@
                 var (x, y) = area is { } a
                     ? TokenPlacement.CardPositionNear(tap.ClientX - a.Left, tap.ClientY - a.Top, a.Width, a.Height)
                     : (Math.Max(TokenPlacement.CardMargin, tap.ClientX), TokenPlacement.CardMargin);
-                Shell.OpenTokenCard(new TokenCardRequest(entry.TokenId, x, y));
+                Windows.OpenTokenCard(entry.TokenId, x, y);
             });
         }
         catch (ObjectDisposedException)

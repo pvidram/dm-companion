@@ -41,7 +41,7 @@ public abstract class SoundTestContext : BunitContext, IAsyncLifetime
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
         Services.AddScoped<WikilinkInterop>();
         Services.AddSingleton<FakeAudioPlayer>();
         Services.AddSingleton<IAudioPlayer>(sp => sp.GetRequiredService<FakeAudioPlayer>());

@@ -24,9 +24,6 @@ public enum JournalFormMode { New, Edit, Shared }
 /// <param name="EntryPath">Entrada que se edita (solo con Edit).</param>
 public sealed record JournalFormRequest(JournalFormMode Mode, string? PcPath = null, string? EntryPath = null);
 
-/// <summary>Tarjeta rápida de un token. X e Y son px relativos al área del mapa, ya ajustados a sus bordes.</summary>
-public sealed record TokenCardRequest(string TokenId, double X, double Y);
-
 public enum MapNameMode { NewBlank, NewFromImport, Rename }
 
 /// <summary>Petición del diálogo de nombre de mapa. <c>NotePath</c> solo se usa al renombrar.</summary>
@@ -77,7 +74,6 @@ public sealed class ShellState
     public NewNoteRequest? NewNote { get; private set; }
     public bool ConflictsOpen { get; private set; }
     public bool AddTokenOpen { get; private set; }
-    public TokenCardRequest? TokenCard { get; private set; }
 
     /// <summary>Panel flotante del historial de la tira retraída.</summary>
     public bool HistoryOpen { get; private set; }
@@ -517,19 +513,6 @@ public sealed class ShellState
         Notify();
     }
 
-    public void OpenTokenCard(TokenCardRequest request)
-    {
-        HistoryOpen = false;
-        TokenCard = request;
-        Notify();
-    }
-
-    public void CloseTokenCard()
-    {
-        TokenCard = null;
-        Notify();
-    }
-
     public void ToggleHistory()
     {
         HistoryOpen = !HistoryOpen;
@@ -610,7 +593,6 @@ public sealed class ShellState
         ConflictsOpen = false;
         AddTokenOpen = false;
         AddTokenPrefill = null;
-        TokenCard = null;
         HistoryOpen = false;
         SoundQuickOpen = false;
         StartCombatOpen = false;

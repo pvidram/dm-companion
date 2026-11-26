@@ -1,6 +1,7 @@
 @inherits DmComponentBase
+@inject PanelLayoutStore LayoutStore
 
-<Parchment Title="Sonido" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Sound)"
+<Parchment Title="Sonido" Resizable="@(true)" FrameSize="@Rail.FrameSize(LayoutKeys.Sound)" OnFrameChanged="@(c => Rail.OnChanged(LayoutKeys.Sound, c))" OnFrameReset="@(() => Rail.OnReset(LayoutKeys.Sound))" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Sound)"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Sound))">
     <ChildContent>
         @* Los bloques solo existen con el panel abierto: no escuchan el audio ni pintan la biblioteca mientras tanto. *@
@@ -12,3 +13,8 @@
         }
     </ChildContent>
 </Parchment>
+
+@code {
+    private RailPanelLayout? _rail;
+    private RailPanelLayout Rail => _rail ??= new(LayoutStore, () => _ = InvokeAsync(StateHasChanged));
+}

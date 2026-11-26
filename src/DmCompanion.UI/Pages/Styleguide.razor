@@ -40,8 +40,8 @@
                 <IconButton Icon="IconName.Maximize" Label="Ajustar a la vista" />
             </MapToolbarGroup>
         </MapToolbar>
-        <Parchment Title="Controles" IsOpen="@(_open == Sample.Controls)" OnClose="Close"><ControlsSample OnOpenDialog="() => _confirm = true" /></Parchment>
-        <Parchment Title="Combate" Size="ParchmentSize.Wide" IsOpen="@(_open == Sample.Combat)" OnClose="Close"><CombatSample /></Parchment>
+        <Parchment Title="Controles" Resizable="true" IsOpen="@(_open == Sample.Controls)" OnClose="Close"><ControlsSample OnOpenDialog="() => _confirm = true" /></Parchment>
+        <Parchment Title="Combate" Resizable="true" Size="ParchmentSize.Wide" IsOpen="@(_open == Sample.Combat)" OnClose="Close"><CombatSample /></Parchment>
         <Parchment Title="Listas" IsOpen="@(_open == Sample.Lists)" OnClose="Close"><ListsSample /></Parchment>
         <Parchment Title="Contenido" Size="ParchmentSize.Wide" IsOpen="@(_open == Sample.Content)" OnClose="Close">
             <ChildContent><ContentSample /></ChildContent>
@@ -49,6 +49,9 @@
         </Parchment>
         <Parchment Title="Mapa" IsOpen="@(_open == Sample.Map)" OnClose="Close"><MapSample OnRemove="ShowRemoved" /></Parchment>
         <Toast Message="_toast" OnAction="_ => _toast = null" OnDismissed="_ => _toast = null" />
+        <QuickCard Title="Tarjeta anclable" Draggable="true" Resizable="true" X="320" Y="80" IsPinned="_cardPinned" OnPinnedChanged="@(pinned => _cardPinned = pinned)">
+            <p>Arrastra la cabecera, redimensiona desde la esquina y ancla la tarjeta con la chincheta.</p>
+        </QuickCard>
     </Overlays>
     <Dialogs>
         <ConfirmDialog Title="Conflicto de escritura" Message="La nota ha cambiado en disco. ¿Sobrescribir?"
@@ -62,6 +65,7 @@
     private enum Tool { None, Ruler, Calibrate }
 
     private Sample _open = Sample.Controls;
+    private bool _cardPinned;
     private bool _tv;
     private bool _confirm;
     private Tool _tool;

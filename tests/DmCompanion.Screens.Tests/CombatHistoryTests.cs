@@ -1,6 +1,10 @@
 using Bunit;
 using DmCompanion.Core.Combat;
 using DmCompanion.Screens.Components;
+using DmCompanion.Screens.Services;
+using DmCompanion.Screens.Tests.Support;
+using DmCompanion.UI.Interop;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DmCompanion.Screens.Tests;
 
@@ -236,15 +240,15 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     }
 
     [Theory]
-    [InlineData("history-close")]
-    [InlineData("history-backdrop")]
-    public async Task Popover_closes_with_its_close_button_and_by_tapping_outside(string testId)
+    [InlineData("[data-testid=history-popover] button[aria-label=Cerrar]")]
+    [InlineData("[data-testid=history-backdrop]")]
+    public async Task Popover_closes_with_its_close_button_and_by_tapping_outside(string selector)
     {
         var cut = await RenderAsync();
         await Collapse(cut);
         await cut.InvokeAsync(() => cut.Find("[data-testid=history-toggle]").Click());
 
-        await cut.InvokeAsync(() => cut.Find($"[data-testid={testId}]").Click());
+        await cut.InvokeAsync(() => cut.Find(selector).Click());
 
         cut.FindAll("[data-testid=history-popover]").Should().BeEmpty();
     }
@@ -296,7 +300,7 @@ public sealed class CombatHistoryTests : CombatUiTestBase
         await Collapse(cut);
         await cut.InvokeAsync(() => cut.Find("[data-testid=history-toggle]").Click());
 
-        await cut.InvokeAsync(() => Shell.OpenTokenCard(new Screens.Services.TokenCardRequest("a", 100, 100)));
+        await cut.InvokeAsync(() => Windows.OpenTokenCard("a", 100, 100));
 
         cut.FindAll("[data-testid=history-popover]").Should().BeEmpty();
     }
@@ -306,11 +310,12 @@ public sealed class CombatHistoryTests : CombatUiTestBase
     {
         var cut = await RenderAsync();
         await Collapse(cut);
+        await cut.InvokeAsync(() => Windows.OpenTokenCard("a", 100, 100));
         await cut.InvokeAsync(() => cut.Find("[data-testid=history-toggle]").Click());
 
-        var order = cut.FindAll("[data-testid=history-popover], .ds-quick-card").Select(e => e.ClassList.Contains("ds-quick-card")).ToArray();
+        var order = cut.FindAll(".ds-quick-card").Select(e => e.GetAttribute("data-testid") == "history-popover").ToArray();
 
-        order.Should().Equal(false, true);
+        order.Should().Equal(true, false);
     }
 
     [Fact]
@@ -342,6 +347,103 @@ public sealed class CombatHistoryTests : CombatUiTestBase
         await Collapse(cut);
         await cut.InvokeAsync(() => cut.Find("[data-testid=history-toggle]").Click());
 
-        JSInterop.Invocations.Should().Contain(i => i.Identifier == "Blazor._internal.domWrapper.focus");
+        JSInterop.Invocations.Should().Contain(i => i.Identifier == "enter");
+    }
+
+    private PanelLayoutStore Layout => Services.GetRequiredService<PanelLayoutStore>();
+    private FakeWindowFrameInterop Frames => Services.GetRequiredService<FakeWindowFrameInterop>();
+
+    private async Task<IRenderedComponent<DmShell>> OpenCollapsedHistoryAsync()
+    {
+        var cut = await RenderAsync();
+        await Collapse(cut);
+        await cut.InvokeAsync(() => cut.Find("[data-testid=history-toggle]").Click());
+        return cut;
+    }
+
+    private static Task TogglePinAsync(IRenderedComponent<DmShell> cut) => cut.InvokeAsync(() => cut.Find("[data-testid=history-popover] button[aria-label=Anclar]").Click());
+
+    [Fact]
+    public async Task Pinned_history_has_no_backdrop()
+    {
+        var cut = await OpenCollapsedHistoryAsync();
+
+        await TogglePinAsync(cut);
+
+        (Layout.IsPinned(LayoutKeys.History), cut.FindAll("[data-testid=history-backdrop]").Count).Should().Be((true, 0));
+    }
+
+    [Fact]
+    public async Task Pinned_history_reopens_at_its_anchor()
+    {
+        var anchor = new WindowAnchor(WindowCorner.BottomRight, 30, 40);
+        Layout.SetPinned(LayoutKeys.History, true);
+        Layout.SetAnchor(LayoutKeys.History, anchor);
+
+        await OpenCollapsedHistoryAsync();
+
+        Frames.Attached.Last().Anchor.Should().Be(anchor);
+    }
+
+    [Fact]
+    public async Task Unpinning_forgets_the_anchor()
+    {
+        Layout.SetPinned(LayoutKeys.History, true);
+        Layout.SetAnchor(LayoutKeys.History, new WindowAnchor(WindowCorner.TopLeft, 5, 6));
+        var cut = await OpenCollapsedHistoryAsync();
+
+        await cut.InvokeAsync(() => cut.Find("[data-testid=history-popover] button[aria-label=Desanclar]").Click());
+
+        (Layout.IsPinned(LayoutKeys.History), Layout.GetAnchor(LayoutKeys.History)).Should().Be((false, null));
+    }
+
+    [Fact]
+    public async Task Closing_the_history_also_unpins_it()
+    {
+        Layout.SetPinned(LayoutKeys.History, true);
+        var cut = await OpenCollapsedHistoryAsync();
+
+        await cut.InvokeAsync(() => cut.Find("[data-testid=history-popover] button[aria-label=Cerrar]").Click());
+
+        (Layout.IsPinned(LayoutKeys.History), Shell.HistoryOpen).Should().Be((false, false));
+    }
+
+    [Fact]
+    public async Task Moving_the_pinned_history_stores_its_anchor_and_size()
+    {
+        Layout.SetPinned(LayoutKeys.History, true);
+        var cut = await OpenCollapsedHistoryAsync();
+        var anchor = new WindowAnchor(WindowCorner.TopRight, 12, 20);
+
+        await cut.InvokeAsync(() => Frames.Listener!.OnFrameChangedAsync(new WindowFrameChange(1, 2, new WindowSize(300, 200), anchor)));
+
+        (Layout.GetAnchor(LayoutKeys.History), Layout.GetSize(LayoutKeys.History)).Should().Be((anchor, new WindowSize(300, 200)));
+    }
+
+    [Fact]
+    public async Task History_header_keeps_undo_and_redo()
+    {
+        var cut = await OpenCollapsedHistoryAsync();
+
+        cut.FindAll("[data-testid=history-popover] header [data-testid=history-undo], [data-testid=history-popover] header [data-testid=history-redo]")
+            .Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task History_without_a_stored_size_carries_the_unsized_cap_class()
+    {
+        var cut = await OpenCollapsedHistoryAsync();
+
+        cut.Find("[data-testid=history-popover]").ClassList.Should().Contain("combat-history-popover--unsized");
+    }
+
+    [Fact]
+    public async Task History_with_a_stored_size_has_no_cap_class()
+    {
+        Layout.SetSize(LayoutKeys.History, new WindowSize(500, 600));
+
+        var cut = await OpenCollapsedHistoryAsync();
+
+        cut.Find("[data-testid=history-popover]").ClassList.Should().NotContain("combat-history-popover--unsized");
     }
 }

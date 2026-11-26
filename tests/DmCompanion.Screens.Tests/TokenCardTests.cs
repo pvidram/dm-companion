@@ -4,6 +4,8 @@ using DmCompanion.Core.Maps;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Screens.Components;
 using DmCompanion.Screens.Services;
+using DmCompanion.Screens.Tests.Support;
+using DmCompanion.UI.Interop;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,7 +18,7 @@ public sealed class TokenCardTests : TokenTestBase
 
     private static MapState StateOf(params MapToken[] tokens) => MapState.Empty with { Tokens = tokens };
 
-    private async Task<IRenderedComponent<TokenCard>> CardAsync(MapToken token, string? lyra = null, Action? extraNotes = null, string? rawState = null)
+    private async Task<IRenderedComponent<TokenCardLayer>> CardAsync(MapToken token, string? lyra = null, Action? extraNotes = null, string? rawState = null)
     {
         await OpenMapAsync(StateOf(token), rawState, () =>
         {
@@ -24,21 +26,21 @@ public sealed class TokenCardTests : TokenTestBase
             WriteNote(GoblinNote, "---\ntype: npc\nname: Goblin\nstats:\n  ac: 15\n  hp: 7\n  speed: 30\n---\n");
             extraNotes?.Invoke();
         });
-        Shell.OpenTokenCard(new TokenCardRequest(token.Id, 100, 100));
-        return Render<TokenCard>();
+        Windows.OpenTokenCard(token.Id, 100, 100);
+        return Render<TokenCardLayer>();
     }
 
-    private static string Stat(IRenderedComponent<TokenCard> cut, string label) =>
+    private static string Stat(IRenderedComponent<TokenCardLayer> cut, string label) =>
         cut.FindAll(".ds-stat").First(s => s.QuerySelector(".ds-stat__label")!.TextContent == label)
             .QuerySelector(".ds-stat__value")!.TextContent;
 
-    private static string HitPointsRow(IRenderedComponent<TokenCard> cut) =>
+    private static string HitPointsRow(IRenderedComponent<TokenCardLayer> cut) =>
         string.Join(' ', cut.Find("[data-testid=token-hp]").TextContent.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
-    private static AngleSharp.Dom.IElement ButtonText(IRenderedComponent<TokenCard> cut, string text) =>
+    private static AngleSharp.Dom.IElement ButtonText(IRenderedComponent<TokenCardLayer> cut, string text) =>
         cut.FindAll("button").First(b => b.TextContent.Trim() == text);
 
-    private static bool HasButton(IRenderedComponent<TokenCard> cut, string text) =>
+    private static bool HasButton(IRenderedComponent<TokenCardLayer> cut, string text) =>
         cut.FindAll("button").Any(b => b.TextContent.Trim() == text);
 
     [Fact]
@@ -216,7 +218,7 @@ public sealed class TokenCardTests : TokenTestBase
 
         ButtonText(cut, "Ver más").Click();
 
-        Shell.TokenCard.Should().BeNull();
+        Windows.TokenCards.Should().BeEmpty();
     }
 
     // --- Criaturas del SRD ---
@@ -249,7 +251,7 @@ public sealed class TokenCardTests : TokenTestBase
 
     // --- Edición ---
 
-    private static IEnumerable<string> FieldLabels(IRenderedComponent<TokenCard> cut) =>
+    private static IEnumerable<string> FieldLabels(IRenderedComponent<TokenCardLayer> cut) =>
         cut.FindAll("label.ds-field .ds-field__label").Select(l => l.TextContent);
 
     [Fact]
@@ -368,7 +370,7 @@ public sealed class TokenCardTests : TokenTestBase
 
         ButtonText(cut, "Quitar del mapa").Click();
 
-        Shell.TokenCard.Should().BeNull();
+        Windows.TokenCards.Should().BeEmpty();
     }
 
     // --- Solo lectura y cierre ---
@@ -383,7 +385,7 @@ public sealed class TokenCardTests : TokenTestBase
         HasButton(cut, text).Should().BeFalse();
     }
 
-    private async Task<IRenderedComponent<TokenCard>> ReadOnlyCardAsync()
+    private async Task<IRenderedComponent<TokenCardLayer>> ReadOnlyCardAsync()
     {
         await OpenMapAsync();
         // Un estado futuro (versión 3) abre el mapa en solo lectura con sus tokens a la vista.
@@ -392,25 +394,25 @@ public sealed class TokenCardTests : TokenTestBase
         File.WriteAllText(PathOf(MapPaths.StatePathFor(MapTestVault.MapNote)), json);
         await Session.OpenAsync(MapTestVault.MapNote);
         Session.IsReadOnly.Should().BeTrue();
-        Shell.OpenTokenCard(new TokenCardRequest("t", 100, 100));
-        return Render<TokenCard>();
+        Windows.OpenTokenCard("t", 100, 100);
+        return Render<TokenCardLayer>();
     }
 
     [Fact]
-    public async Task Card_is_hidden_when_there_is_no_request()
+    public async Task Nothing_renders_when_there_is_no_card()
     {
         await OpenMapAsync();
 
-        Render<TokenCard>().Find("section").HasAttribute("hidden").Should().BeTrue();
+        Render<TokenCardLayer>().FindAll("section").Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Card_is_hidden_when_the_token_no_longer_exists()
+    public async Task Card_closes_when_the_token_no_longer_exists()
     {
         var cut = await CardAsync(GenericToken("t", "Orco"));
         Session.Mutate(e => e.RemoveToken("t"));
 
-        cut.WaitForAssertion(() => cut.Find("section").HasAttribute("hidden").Should().BeTrue(), Timeout);
+        cut.WaitForAssertion(() => cut.FindAll("section").Should().BeEmpty(), Timeout);
     }
 
     [Fact]
@@ -420,7 +422,7 @@ public sealed class TokenCardTests : TokenTestBase
 
         cut.Find("button[aria-label='Cerrar']").Click();
 
-        Shell.TokenCard.Should().BeNull();
+        Windows.TokenCards.Should().BeEmpty();
     }
 
     [Fact]
@@ -428,16 +430,16 @@ public sealed class TokenCardTests : TokenTestBase
     {
         var cut = await CardAsync(GenericToken("t", "Orco"));
 
-        cut.Find("section").GetAttribute("style").Should().Be("left: 100px; top: 100px;");
+        cut.Find("section").GetAttribute("style").Should().StartWith("left: 100px; top: 100px;");
     }
 
     // --- Toque en un token ---
 
-    private async Task<(IRenderedComponent<TokenCard> Cut, MapCanvasInterop Interop)> TappableAsync(double[]? hostRect)
+    private async Task<(IRenderedComponent<TokenCardLayer> Cut, MapCanvasInterop Interop)> TappableAsync(double[]? hostRect)
     {
         JSInterop.Setup<double[]>("mapCanvas.hostRect").SetResult(hostRect!);
         var cut = await CardAsync(GenericToken("t", "Orco"));
-        Shell.CloseTokenCard();
+        Windows.CloseAll();
         var interop = Services.GetRequiredService<MapCanvasInterop>();
         await interop.LoadAsync(default);
         return (cut, interop);
@@ -450,7 +452,7 @@ public sealed class TokenCardTests : TokenTestBase
 
         interop.OnTokenTapped("t", 600, 450); // en el área del mapa: (500, 400)
 
-        Shell.TokenCard.Should().Be(new TokenCardRequest("t", 532, 240));
+        Windows.TokenCards.Should().ContainSingle().Which.Should().Match<TokenCardWindow>(c => c.TokenId == "t" && c.X == 532 && c.Y == 240);
     }
 
     [Fact]
@@ -460,7 +462,7 @@ public sealed class TokenCardTests : TokenTestBase
 
         interop.OnTokenTapped("otro", 600, 450);
 
-        Shell.TokenCard.Should().BeNull();
+        Windows.TokenCards.Should().BeEmpty();
     }
 
     [Fact]
@@ -472,29 +474,20 @@ public sealed class TokenCardTests : TokenTestBase
     }
 
     [Fact]
-    public async Task Opening_the_card_places_it_next_to_the_token_through_the_drag_service()
+    public async Task Opening_the_card_attaches_a_movable_resizable_frame_at_its_position()
     {
         await CardAsync(GenericToken("g", "Goblin", hp: 7));
 
-        JSInterop.Invocations["dragPanel.attach"].Single().Arguments.Skip(1).Should().Equal(100d, 100d);
+        Services.GetRequiredService<FakeWindowFrameInterop>().Attached.Should().ContainSingle()
+            .Which.Should().Match<WindowFrameOptions>(o => o.Movable && o.Edges == ResizeEdges.Corner && o.X == 100 && o.Y == 100);
     }
 
     [Fact]
-    public async Task Opening_the_card_again_places_it_again()
-    {
-        var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7));
-        Shell.OpenTokenCard(new TokenCardRequest("g", 100, 100));
-        cut.Render();
-
-        JSInterop.Invocations["dragPanel.attach"].Should().HaveCount(2);
-    }
-
-    [Fact]
-    public async Task Rerendering_the_same_open_card_does_not_reset_a_dragged_position()
+    public async Task Rerendering_the_same_open_card_does_not_update_the_frame()
     {
         var cut = await CardAsync(GenericToken("g", "Goblin", hp: 7));
         cut.Render();
 
-        JSInterop.Invocations["dragPanel.attach"].Should().HaveCount(1);
+        Services.GetRequiredService<FakeWindowFrameInterop>().Updated.Should().BeEmpty();
     }
 }

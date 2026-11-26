@@ -43,12 +43,13 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IShareInbox, AndroidShareInbox>();
 		builder.Services.AddSingleton<IncomingShare>();
 		builder.Services.AddScoped<ShellState>();
+		builder.Services.AddScoped<PanelLayoutStore>();
+		builder.Services.AddScoped<WindowManager>();
 		builder.Services.AddScoped<WikilinkInterop>();
 		builder.Services.AddScoped<MapCanvasInterop>();
 		builder.Services.AddScoped<PlayerPreview>();
 		builder.Services.AddScoped<PlayerPreviewInterop>();
 		builder.Services.AddScoped<TurnStripInterop>();
-		builder.Services.AddScoped<DragPanelInterop>();
 		builder.Services.AddScoped<BackNavigation>();
 		builder.Services.AddSingleton<VaultFileUrls>();
 		builder.Services.AddSingleton<NoteImageResolver>();

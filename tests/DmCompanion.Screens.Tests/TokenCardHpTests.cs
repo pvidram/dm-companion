@@ -17,26 +17,26 @@ public sealed partial class TokenCardHpTests : TokenTestBase
 
     private static readonly string Lyra11 = Lyra("  hp: 11\n");
 
-    private async Task<IRenderedComponent<TokenCard>> CardAsync(MapToken token, string? lyra = null, string? campaign = null)
+    private async Task<IRenderedComponent<TokenCardLayer>> CardAsync(MapToken token, string? lyra = null, string? campaign = null)
     {
         await OpenMapAsync(MapState.Empty with { Tokens = [token] }, extraNotes: () =>
         {
             WriteNote(MapTestVault.LyraNote, lyra ?? Lyra11);
             if (campaign is not null) WriteNote("Campana.md", campaign);
         });
-        Shell.OpenTokenCard(new TokenCardRequest(token.Id, 100, 100));
-        return Render<TokenCard>();
+        Windows.OpenTokenCard(token.Id, 100, 100);
+        return Render<TokenCardLayer>();
     }
 
     private static MapToken LyraToken(int? hpCurrent = null) => NoteToken("t", "Lyra", MapTestVault.LyraNote) with { HpCurrent = hpCurrent };
 
-    private static string Row(IRenderedComponent<TokenCard> cut) =>
+    private static string Row(IRenderedComponent<TokenCardLayer> cut) =>
         Whitespace().Replace(cut.Find("[data-testid=token-hp]").TextContent, " ").Trim();
 
-    private static AngleSharp.Dom.IElement? ValueButton(IRenderedComponent<TokenCard> cut) =>
+    private static AngleSharp.Dom.IElement? ValueButton(IRenderedComponent<TokenCardLayer> cut) =>
         cut.FindAll("button[data-testid=token-hp-value]").FirstOrDefault();
 
-    private static void Enter(IRenderedComponent<TokenCard> cut, string text)
+    private static void Enter(IRenderedComponent<TokenCardLayer> cut, string text)
     {
         ValueButton(cut)!.Click();
         var input = cut.Find("[data-testid=token-hp-input]");
@@ -246,9 +246,9 @@ public sealed partial class TokenCardHpTests : TokenTestBase
         File.WriteAllText(PathOf(MapPaths.StatePathFor(MapTestVault.MapNote)),
             "{\"version\":4,\"tokens\":[{\"id\":\"t\",\"name\":\"Orco\",\"side\":\"enemy\",\"size\":1,\"x\":35,\"y\":35,\"hp\":11}],\"strokes\":[]}");
         await Session.OpenAsync(MapTestVault.MapNote);
-        Shell.OpenTokenCard(new TokenCardRequest("t", 100, 100));
+        Windows.OpenTokenCard("t", 100, 100);
 
-        var cut = Render<TokenCard>();
+        var cut = Render<TokenCardLayer>();
 
         (Session.IsReadOnly, Row(cut), ValueButton(cut)).Should().Be((true, "HP 11 / 11", null));
     }
@@ -335,8 +335,8 @@ public sealed partial class TokenCardHpTests : TokenTestBase
     {
         await OpenMapAsync(MapState.Empty with { Tokens = [LyraToken(), NoteToken("u", "Lyra 2", MapTestVault.LyraNote)] },
             extraNotes: () => WriteNote(MapTestVault.LyraNote, Lyra11));
-        Shell.OpenTokenCard(new TokenCardRequest("t", 100, 100));
-        var cut = Render<TokenCard>();
+        Windows.OpenTokenCard("t", 100, 100);
+        var cut = Render<TokenCardLayer>();
 
         Enter(cut, "-5");
 
@@ -353,7 +353,7 @@ public sealed partial class TokenCardHpTests : TokenTestBase
 
         input.KeyDown(new KeyboardEventArgs { Key = "Escape" });
 
-        (Shell.TokenCard, ValueButton(cut)).Should().Match<(TokenCardRequest?, AngleSharp.Dom.IElement?)>(t => t.Item1 != null && t.Item2 != null);
+        (Windows.TokenCards.Count, ValueButton(cut)).Should().Match<(int, AngleSharp.Dom.IElement?)>(t => t.Item1 == 1 && t.Item2 != null);
     }
 
     [Fact]

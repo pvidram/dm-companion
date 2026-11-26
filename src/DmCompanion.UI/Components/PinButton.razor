@@ -1,0 +1,10 @@
+<IconButton Icon="@(IsPinned ? IconName.PinOff : IconName.Pin)" Label="@(IsPinned ? "Desanclar" : "Anclar")"
+            IsPressed="IsPinned" OnClick="Toggle" />
+
+@code {
+    [Parameter] public bool IsPinned { get; set; }
+    /// <summary>Recibe el valor nuevo (true = anclar).</summary>
+    [Parameter] public EventCallback<bool> OnToggle { get; set; }
+
+    private Task Toggle() => OnToggle.InvokeAsync(!IsPinned);
+}

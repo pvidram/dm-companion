@@ -42,7 +42,7 @@ public sealed class ShowOnTvTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<MapLibrary>();
         Services.AddScoped<MapCanvasInterop>();
         Services.AddScoped<TurnStripInterop>();
-        Services.AddScoped<DragPanelInterop>();
+        Services.AddWindowingForTests();
         Services.AddVaultBrowsingForTests();
         Services.AddSingleton<ITvServer>(_server);
         Services.AddSingleton<TvMapFeed>();
