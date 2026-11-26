@@ -12,6 +12,7 @@ App Android para tablet que ayuda a dirigir partidas de D&D 5e (2024). Funcional
 - Vista de jugadores en una TV.
 - Visor de manuales en PDF con lectura continua.
 - Diario de jugadores.
+- App de escritorio para Windows y Linux.
 
 Es un proyecto personal: funciona sin conexión, sin cuentas y sin nube. La sincronización del vault entre el PC y la tablet la hace Syncthing, por fuera de la app.
 
@@ -34,6 +35,15 @@ Novedades:
 
 > Se desarrolló en un repositorio privado y se publica con el historial condensado. Incluye las instrucciones para el agente (`CLAUDE.md` y `.claude/rules/`), porque enseñan cómo se trabaja con IA en el proyecto; los traspasos y las checklists manuales quedan fuera.
 
+## Descarga
+
+Las versiones están en <https://github.com/pvidram/dm-companion/releases/latest>.
+
+- **Windows:** ejecuta el instalador (`dm-companion-<versión>-win-x64-setup.exe`; es por usuario y no pide permisos de administrador) o descomprime el zip portable `dm-companion-<versión>-win-x64.zip` y abre `DMCompanion.exe`. No está firmado, así que la primera vez SmartScreen avisa: «Más información → Ejecutar de todas formas». Necesita Microsoft Edge WebView2 Runtime, que ya traen Windows 11 y Windows 10 actualizado; si falta, la app muestra un aviso con el enlace de descarga.
+- **Linux:** descarga `dm-companion-<versión>-x86_64.AppImage`, ejecuta `chmod +x dm-companion-*.AppImage` y ábrelo. Necesita WebKitGTK y libnotify: `sudo apt install libwebkit2gtk-4.1-0 libnotify4` en Debian/Ubuntu, `sudo dnf install webkit2gtk4.1 libnotify` en Fedora.
+
+La app se abre en su propia ventana (sin consola ni navegador), recuerda su tamaño y posición y guarda el mapa al cerrarla. Al arrancar comprueba si hay una versión nueva (petición anónima a la API de GitHub, que solo envía un User-Agent genérico) y muestra un aviso con el enlace de descarga. Se puede desactivar con «Buscar versiones nuevas al arrancar» en la pantalla «Diagnóstico del vault».
+
 ## Stack
 
 - .NET 10, .NET MAUI y Blazor Hybrid (`net10.0-android`, Android 11 o superior).
@@ -50,7 +60,7 @@ Novedades:
 | `src/DmCompanion.Screens` | Pantallas Razor compartidas entre la app y el DevHost |
 | `src/DmCompanion.App` | Aplicación MAUI para Android, que solo contiene la UI y el puente con la plataforma |
 | `src/DmCompanion.DevHost` | Host Blazor para probar las pantallas en el navegador, solo para desarrollo ([README](src/DmCompanion.DevHost/README.md)) |
-| `src/DmCompanion.Desktop` | Versión de PC para Windows: host Blazor Server que abre el navegador, se publica como `.exe` autocontenido (guía en [docs/guia-version-pc.md](docs/guia-version-pc.md)) |
+| `src/DmCompanion.Desktop` | App de escritorio para Windows y Linux: Blazor Server en loopback mostrado en una ventana nativa (Photino), empaquetada como instalador, zip portable y AppImage (guía en [docs/guia-version-pc.md](docs/guia-version-pc.md)) |
 | `samples/vault-demo` | Vault de ejemplo para los tests y las pruebas manuales (notas, dos mapas, una imagen suelta y la nota de campaña) |
 
 ## Entorno
@@ -135,11 +145,13 @@ adb install -r src/DmCompanion.App/bin/Release/net10.0-android/publish/es.pauvid
 
 Cada equipo firma los APK con su propia clave de depuración. Si la app ya está instalada desde otro equipo, `adb install -r` falla con `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Para instalarla, desinstálala antes con `adb uninstall es.pauvidal.dmcompanion`. Las notas no se pierden, porque el vault está fuera de la app, pero sí las preferencias de la app.
 
-### Versión de PC (Windows)
+### App de escritorio (Windows y Linux)
 
 ```bash
-scripts/publish-desktop.sh   # genera dist/dm_companion_pc.zip (win-x64, autocontenido)
+scripts/publish-desktop.sh <win-x64|linux-x64> <versión>   # genera en dist/ el zip (Windows) o el AppImage (Linux)
 ```
+
+El instalador de Windows lo genera la CI con Inno Setup. El workflow `.github/workflows/release.yml` se lanza al subir una etiqueta `v*`: compila instalador, zip y AppImage y deja un borrador de release en GitHub. También se puede ejecutar a mano (`workflow_dispatch`) para obtener los paquetes como artefactos, sin release.
 
 `dist/` no se commitea.
 

@@ -1,14 +1,22 @@
 # DM Companion para PC (Windows)
 
-Es la misma app de la tablet, pero en el PC: se abre en el navegador y trabaja sobre una carpeta de notas (vault de Obsidian). No necesita instalación ni conexión a internet.
+Es la misma app de la tablet, pero en el PC: se abre en su propia ventana y trabaja sobre una carpeta de notas (vault de Obsidian). No necesita conexión a internet.
 
 ## Abrirla
 
-1. Descomprime el zip entero (clic derecho, **Extraer todo**): Windows crea una carpeta con el nombre del zip (`dm_companion_pc`) con todos los ficheros dentro. No abras `DMCompanion.exe` desde dentro del zip: sin descomprimir no funciona y avisa de ello.
-2. Haz doble clic en `DMCompanion.exe`. Se abre una consola y, enseguida, el navegador normalmente en `http://localhost:5190/` (si ese puerto está ocupado, usa otro y lo muestra en la consola).
-3. La primera vez Windows muestra el aviso de SmartScreen («Windows protegió su PC»): pulsa **Más información** y después **Ejecutar de todas formas**. Es normal, el programa no está firmado.
-4. Si el navegador no se abre solo, copia la dirección que aparece en la consola y pégala en el navegador.
-5. Si lo abres dos veces, la segunda vez no arranca otra copia: abre la misma dirección.
+Descarga la última versión en https://github.com/pvidram/dm-companion/releases/latest y elige una de las dos formas:
+
+- **Instalador:** haz doble clic en `dm-companion-<versión>-win-x64-setup.exe`. La primera vez Windows muestra el aviso de SmartScreen («Windows protegió su PC»): pulsa **Más información** y después **Ejecutar de todas formas**. Es normal, el programa no está firmado. Después, siguiente → instalar (no pide permisos de administrador). Se abre desde el menú Inicio.
+- **Zip portable:** clic derecho en `dm-companion-<versión>-win-x64.zip` y **Extraer todo**; luego doble clic en `DMCompanion.exe` de la carpeta que se crea. No lo abras desde dentro del zip: sin descomprimir no funciona y avisa de ello. Aquí también sale el aviso de SmartScreen la primera vez.
+
+Qué pasa al abrirla:
+
+- Se abre la ventana de DM Companion. No hay consola ni navegador.
+- Si ya está abierta, abrirla otra vez trae la ventana al frente, sin arrancar otra copia.
+- Al cerrar la ventana, la app se cierra y guarda el mapa.
+- La app recuerda el tamaño y la posición de la ventana.
+- Necesita Microsoft Edge WebView2 Runtime, que ya traen Windows 11 y Windows 10 actualizado. Si falta, la app muestra un aviso con el enlace para descargarlo.
+- Al arrancar busca si hay una versión nueva (pide a GitHub solo cuál es la última, sin enviar datos tuyos) y, si la hay, muestra un aviso con **Descargar**, **Ahora no** y **No avisar de esta versión**. Para que no busque, desmarca **Buscar versiones nuevas al arrancar** en **Diagnóstico del vault**.
 
 ## La primera vez
 
@@ -53,7 +61,7 @@ Aviso: un mapa con niebla guarda el `.state.json` en la versión 3; una versión
 
 ## Cerrarla
 
-Cierra la consola con la X o con Ctrl+C. Los cambios se guardan solos; espera un segundo antes de cerrar. Cerrar la pestaña del navegador no cierra la app.
+Cierra la ventana con la X. Los cambios se guardan solos y el mapa se guarda al cerrar.
 
 ## Si algo falla: mándame los registros
 
@@ -61,4 +69,4 @@ En la app, pulsa **Abrir carpeta de registros** (o abre `%LOCALAPPDATA%\DmCompan
 
 ## Actualizar a una versión nueva
 
-Cierra la app, borra la carpeta antigua y descomprime el zip nuevo en una carpeta nueva. Tus preferencias (`%APPDATA%\DmCompanion`) y el ejemplo copiado viven fuera de esa carpeta, así que se conservan.
+Cierra la app y descarga la versión nueva. Con el instalador, ejecútalo encima y se actualiza. Con el zip, borra la carpeta antigua y descomprime el zip nuevo en una carpeta nueva. Tus preferencias (`%APPDATA%\DmCompanion`) y el ejemplo copiado viven fuera de esa carpeta, así que se conservan.

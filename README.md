@@ -2,7 +2,7 @@
 
 [English](README.md) · [Español](README.es.md)
 
-An offline Android tablet app (plus a Windows desktop host) that helps a Dungeon Master run **D&D 5e (2024)** sessions: campaign notes, a map with tokens, combat and initiative, an offline rules glossary, ambient sound and a players' view on a TV.
+An offline Android tablet app (plus a desktop app for Windows and Linux) that helps a Dungeon Master run **D&D 5e (2024)** sessions: campaign notes, a map with tokens, combat and initiative, an offline rules glossary, ambient sound and a players' view on a TV.
 
 <!-- SCREENSHOT docs/screenshots/hero-map-combat.png
      Show: full-screen map on a tablet in landscape, mid-combat: PC and enemy tokens, the turn strip at the top, one token with reduced HP.
@@ -74,9 +74,18 @@ I run my games from a tablet at the table and keep my campaign in an [Obsidian](
      Show: the scenes and effects panel.
      Then replace this comment with: ![Ambient sound panel with scenes and effects](docs/screenshots/ambient-sound.png) -->
 
-- **Desktop version:** the same screens as a self-contained Windows executable.
+- **Desktop app:** the same screens in a native window on Windows and Linux.
 
 The UI language of the app and the bundled rules content is Spanish.
+
+## Download
+
+Get the latest release from <https://github.com/pvidram/dm-companion/releases/latest>.
+
+- **Windows:** run the installer (`dm-companion-<version>-win-x64-setup.exe`; per-user, no admin rights needed) or unzip the portable `dm-companion-<version>-win-x64.zip` and run `DMCompanion.exe`. The app is not signed, so the first time SmartScreen warns you: "More info → Run anyway". It needs the Microsoft Edge WebView2 Runtime, which Windows 11 and an updated Windows 10 already have; if it is missing, the app shows a dialog with the download link.
+- **Linux:** download `dm-companion-<version>-x86_64.AppImage`, then `chmod +x dm-companion-*.AppImage` and run it. It needs WebKitGTK and libnotify: `sudo apt install libwebkit2gtk-4.1-0 libnotify4` on Debian/Ubuntu, `sudo dnf install webkit2gtk4.1 libnotify` on Fedora.
+
+The app opens in its own window (no console, no browser), remembers its size and position, and saves the map when you close it. At startup it checks whether there is a newer version (an anonymous request to the GitHub API, sending only a generic User-Agent) and shows a banner with a link to download it. You can turn the check off with "Buscar versiones nuevas al arrancar" on the vault diagnostics screen.
 
 ## Architecture
 
@@ -90,7 +99,7 @@ The solution (`DmCompanion.slnx`) separates rules and domain logic from presenta
 | `src/DmCompanion.Screens` | Razor screens and JS interop shared by every host. |
 | `src/DmCompanion.App` | .NET MAUI Android app (Blazor Hybrid): only the shell and the platform bridge (audio, files, TV server). |
 | `src/DmCompanion.DevHost` | Blazor host to run the screens in a browser during development. |
-| `src/DmCompanion.Desktop` | Windows desktop host (Blazor Server that opens the browser), published as a self-contained `.exe`. |
+| `src/DmCompanion.Desktop` | Desktop app for Windows and Linux: Blazor Server on loopback shown in a native window (Photino), packaged as an installer, a portable zip and an AppImage. |
 | `tools/DmCompanion.SrdImport` | Tool that turns the compendio-srd data into the glossary JSON packs. |
 | `tests/*` | xUnit test projects for each of the above, plus JS tests in `tests/js`. |
 | `samples/vault-demo` | Demo vault used by tests and manual checks. |
@@ -99,7 +108,7 @@ Why this split: the MAUI project is the slowest to build and the hardest to test
 
 ## Stack
 
-- .NET 10, .NET MAUI and Blazor Hybrid (`net10.0-android`, Android 11 or later), Blazor Server for the DevHost and desktop hosts.
+- .NET 10, .NET MAUI and Blazor Hybrid (`net10.0-android`, Android 11 or later), Blazor Server for the DevHost and desktop hosts (the desktop one inside a Photino window).
 - Konva.js for the map, pdf.js for manuals, YamlDotNet and Markdig for vault content.
 - xUnit, AwesomeAssertions and bUnit for tests; `node --test` for the JS modules.
 
@@ -126,9 +135,10 @@ Requirements: the .NET SDK from `global.json`. The Android build also needs the 
 # Screens in the browser (DevHost): http://localhost:5180
 dotnet watch --project src/DmCompanion.DevHost
 
-# Desktop version (Windows host)
+# Desktop app (native window)
 dotnet run --project src/DmCompanion.Desktop
-scripts/publish-desktop.sh        # dist/dm_companion_pc.zip (win-x64, self-contained)
+scripts/publish-desktop.sh <win-x64|linux-x64> <version>   # dist/ (zip or AppImage)
+# .github/workflows/release.yml: pushing a v* tag builds the installer, zip and AppImage and drafts a GitHub release
 
 # Android (tablet connected through adb)
 dotnet workload install maui-android
