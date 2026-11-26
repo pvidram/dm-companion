@@ -17,7 +17,7 @@ public sealed class BrowserLauncher(ILogger<BrowserLauncher> logger) : IBrowserL
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or PlatformNotSupportedException)
         {
-            logger.LogWarning("No se pudo abrir el navegador ({Error}). Abre {Url} a mano.", ex.GetType().Name, url);
+            logger.LogWarning("No se pudo abrir el navegador ({ExceptionType}).", ex.GetType().Name);
         }
     }
 }
