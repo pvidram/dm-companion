@@ -1,6 +1,7 @@
 @inherits DmComponentBase
 @using System.Reflection
 @using DmCompanion.Screens.Platform
+@using DmCompanion.Screens.Services
 @using Microsoft.Extensions.DependencyInjection
 @inject IServiceProvider Services
 @inject GlossaryService Glossary
@@ -23,6 +24,12 @@
                 {
                     <InlineNotice Kind="NoticeKind.Warning">@logsNotice</InlineNotice>
                 }
+            }
+
+            @if (Services.GetService<UpdateNotice>() is { IsAvailable: true } updates)
+            {
+                <Checkbox Label="Buscar versiones nuevas al arrancar" Value="updates.Enabled"
+                          ValueChanged="(bool value) => updates.Enabled = value" />
             }
 
             @if (Host.Current is { } vault)
