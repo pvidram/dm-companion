@@ -1,20 +1,22 @@
-// Página visible del visor de manuales: libera (cleanup) las páginas de pdf.js que se dejan de usar,
-// para que hojear o buscar no acumule bitmaps hasta el destroy() final. Puro; se prueba con `node --test` (tests/js).
+// Páginas de pdf.js que el visor de manuales tiene pintadas: al sacarlas de la ventana se liberan (cleanup),
+// para que desplazarse o buscar no acumule bitmaps hasta el destroy() final. Puro; se prueba con `node --test` (tests/js).
 (function (root) {
     'use strict';
 
     function createPageTracker() {
-        var visible = null;
+        var visible = new Set();
         return {
-            // Nueva página visible: la anterior, si es otra, se libera.
-            show: function (page) {
-                var previous = visible;
-                visible = page;
-                if (previous && previous !== page) previous.cleanup();
+            // La página entra en la ventana de pintado.
+            add: function (page) {
+                visible.add(page);
             },
-            // Página usada de paso (búsqueda, PNG para la TV): se libera salvo que sea la visible.
+            // La página sale de la ventana: se libera (una sola vez).
+            remove: function (page) {
+                if (visible.delete(page)) page.cleanup();
+            },
+            // Página usada de paso (búsqueda, PNG para la TV): se libera salvo que esté pintada.
             release: function (page) {
-                if (page && page !== visible) page.cleanup();
+                if (page && !visible.has(page)) page.cleanup();
             }
         };
     }

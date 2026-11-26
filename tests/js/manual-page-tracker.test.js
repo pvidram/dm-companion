@@ -6,36 +6,56 @@ function fakePage(name, log) {
     return { name, cleanup: () => log.push(name) };
 }
 
-test('showing another page cleans up the previous one', () => {
-    const log = [];
-    const tracker = createPageTracker();
-    tracker.show(fakePage('p1', log));
-    tracker.show(fakePage('p2', log));
-    assert.deepStrictEqual(log, ['p1']);
-});
-
-test('showing the same page again does not clean it up', () => {
+test('removing a tracked page cleans it up', () => {
     const log = [];
     const tracker = createPageTracker();
     const page = fakePage('p1', log);
-    tracker.show(page);
-    tracker.show(page);
+    tracker.add(page);
+    tracker.remove(page);
+    assert.deepStrictEqual(log, ['p1']);
+});
+
+test('several visible pages are kept until each one leaves', () => {
+    const log = [];
+    const tracker = createPageTracker();
+    const [p1, p2, p3] = ['p1', 'p2', 'p3'].map(name => fakePage(name, log));
+    [p1, p2, p3].forEach(page => tracker.add(page));
+    tracker.remove(p1);
+    tracker.remove(p3);
+    assert.deepStrictEqual(log, ['p1', 'p3']);
+});
+
+test('removing a page that was never tracked does nothing', () => {
+    const log = [];
+    const tracker = createPageTracker();
+    tracker.remove(fakePage('other', log));
     assert.deepStrictEqual(log, []);
+});
+
+test('adding the same page twice and removing it cleans it up once', () => {
+    const log = [];
+    const tracker = createPageTracker();
+    const page = fakePage('p1', log);
+    tracker.add(page);
+    tracker.add(page);
+    tracker.remove(page);
+    tracker.remove(page);
+    assert.deepStrictEqual(log, ['p1']);
 });
 
 test('releasing a page that is not visible cleans it up', () => {
     const log = [];
     const tracker = createPageTracker();
-    tracker.show(fakePage('visible', log));
+    tracker.add(fakePage('visible', log));
     tracker.release(fakePage('searched', log));
     assert.deepStrictEqual(log, ['searched']);
 });
 
-test('releasing the visible page keeps it', () => {
+test('releasing a visible page keeps it', () => {
     const log = [];
     const tracker = createPageTracker();
     const page = fakePage('visible', log);
-    tracker.show(page);
+    tracker.add(page);
     tracker.release(page);
     assert.deepStrictEqual(log, []);
 });

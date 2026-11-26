@@ -21,10 +21,10 @@ public sealed class ManualViewerInterop(IJSRuntime js, ILogger<ManualViewerInter
     private const string VaultUrlPrefix = "/_vault/";
 
     /// <summary>
-    /// El usuario deslizó en horizontal: 1 pide la página siguiente y -1 la anterior.
+    /// La página que se está leyendo cambió al desplazarse por el manual.
     /// Se dispara desde el interop JS, fuera del dispatcher de Blazor: el componente debe usar <c>InvokeAsync</c> para tocar su estado.
     /// </summary>
-    public event Action<int>? PageTurnRequested;
+    public event Action<int>? PageChanged;
 
     /// <summary>Abre el PDF en el host (un div) y pinta la página; null si no se pudo abrir (y loguea el tipo de error).</summary>
     public async Task<ManualDocInfo?> OpenAsync(ElementReference host, string vaultUrl, int page)
@@ -32,7 +32,9 @@ public sealed class ManualViewerInterop(IJSRuntime js, ILogger<ManualViewerInter
         // Solo ficheros del vault: el visor nunca abre otra URL.
         if (!vaultUrl.StartsWith(VaultUrlPrefix, StringComparison.Ordinal)) return null;
         _callbacks?.Dispose();
-        _callbacks = DotNetObjectReference.Create(new ManualViewerCallbacks(direction => PageTurnRequested?.Invoke(direction)));
+        _callbacks = DotNetObjectReference.Create(new ManualViewerCallbacks(
+            page => PageChanged?.Invoke(page),
+            errorType => logger.LogWarning("No se pudo pintar una página del manual ({ErrorType}).", errorType)));
         try
         {
             var module = await LoadModuleAsync();

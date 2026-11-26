@@ -37,6 +37,10 @@ public sealed class ManualViewerTests : ManualsUiTestBase
     private static string[] OutlineRows(IRenderedComponent<ManualViewer> cut) =>
         cut.FindAll(".manual-outline button.ds-list-row").Select(b => b.TextContent.Trim()).ToArray();
 
+    // El objeto que el visor entrega al JS: con él se simula lo que el JS avisa al desplazarse.
+    private ManualViewerCallbacks Callbacks() =>
+        ((Microsoft.JSInterop.DotNetObjectReference<ManualViewerCallbacks>)Module.VerifyInvoke("open").Arguments[3]!).Value;
+
     [Fact]
     public void Opens_at_last_page()
     {
@@ -266,19 +270,6 @@ public sealed class ManualViewerTests : ManualsUiTestBase
     }
 
     [Fact]
-    public async Task Swipe_is_ignored_while_cropping()
-    {
-        var cut = OpenViewer(lastPage: 5);
-        await cut.InvokeAsync(() => cut.FindComponent<ManualTvActions>().Instance.Context!.SetCropping!.Invoke(true));
-
-        var callbacks = (Microsoft.JSInterop.DotNetObjectReference<ManualViewerCallbacks>)Module.VerifyInvoke("open").Arguments[3]!;
-
-        callbacks.Value.OnSwipe(1);
-
-        new { Page = CurrentPage(cut), Shown = Module.Invocations["showPage"].Count }.Should().Be(new { Page = "5", Shown = 0 });
-    }
-
-    [Fact]
     public void Outline_tree_is_built_once_and_kept_across_pages()
     {
         var cut = OpenViewer();
@@ -287,5 +278,110 @@ public sealed class ManualViewerTests : ManualsUiTestBase
         Button(cut, "Siguiente").Click();
 
         cut.FindComponent<ManualTvActions>().Instance.Context!.Outline.Should().BeSameAs(before);
+    }
+
+    [Fact]
+    public void Page_changed_updates_the_counter_without_asking_the_viewer_to_scroll()
+    {
+        var cut = OpenViewer(lastPage: 5);
+
+        Callbacks().OnPageChanged(8);
+
+        cut.WaitForAssertion(() => new { Page = CurrentPage(cut), Shown = Module.Invocations["showPage"].Count }
+            .Should().Be(new { Page = "8", Shown = 0 }));
+    }
+
+    [Fact]
+    public void Page_changed_remembers_the_last_page_read()
+    {
+        var cut = OpenViewer(lastPage: 5);
+
+        Callbacks().OnPageChanged(8);
+
+        cut.WaitForAssertion(() => Prefs.Get(PageKey).Should().Be("8"));
+    }
+
+    [Fact]
+    public void Page_changed_beyond_the_last_page_is_clamped()
+    {
+        var cut = OpenViewer(lastPage: 5);
+
+        Callbacks().OnPageChanged(99);
+
+        cut.WaitForAssertion(() => CurrentPage(cut).Should().Be("12"));
+    }
+
+    [Fact]
+    public void Page_changed_clears_the_page_notice()
+    {
+        PageFailsToPaint = true;
+        var cut = OpenViewer();
+        Button(cut, "Siguiente").Click();
+        cut.WaitForAssertion(() => cut.FindAll(".manual-viewer .ds-notice").Should().HaveCount(1));
+
+        Callbacks().OnPageChanged(4);
+
+        cut.WaitForAssertion(() => cut.FindAll(".manual-viewer .ds-notice").Should().BeEmpty());
+    }
+
+    [Fact]
+    public void Page_changed_with_the_same_page_does_not_save_it_again()
+    {
+        var cut = OpenViewer(lastPage: 5);
+        Prefs.Set(PageKey, "marca");
+
+        Callbacks().OnPageChanged(5);
+
+        cut.WaitForAssertion(() => Prefs.Get(PageKey).Should().Be("marca"));
+    }
+
+    [Fact]
+    public void Page_changed_after_closing_does_nothing()
+    {
+        var cut = OpenViewer(lastPage: 5);
+        var callbacks = Callbacks();
+        Button(cut, "Atrás").Click();
+        cut.WaitForAssertion(() => Module.Invocations["close"].Count.Should().Be(1));
+
+        callbacks.OnPageChanged(8);
+
+        cut.WaitForAssertion(() => Prefs.Get(PageKey).Should().Be("5"));
+    }
+
+    [Fact]
+    public void Page_changed_in_flight_does_not_override_a_navigation_still_pending()
+    {
+        var cut = OpenViewer(lastPage: 5);
+        HoldShowPage = true;
+        cut.Find("input[aria-label='Página']").Change("10");
+        Button(cut, "Ir").Click();
+
+        Callbacks().OnPageChanged(8);
+        HeldShowPage(true);
+
+        cut.WaitForAssertion(() => new { Page = CurrentPage(cut), Saved = Prefs.Get(PageKey) }
+            .Should().Be(new { Page = "10", Saved = "10" }));
+    }
+
+    [Fact]
+    public void Go_to_page_asks_the_viewer_to_scroll_to_the_typed_page()
+    {
+        var cut = OpenViewer(lastPage: 5);
+        cut.Find("input[aria-label='Página']").Change("8");
+
+        Button(cut, "Ir").Click();
+
+        Module.Invocations["showPage"].Select(i => i.Arguments[0]).Should().Equal(8);
+    }
+
+    [Fact]
+    public void Outline_entry_asks_the_viewer_to_scroll_to_its_page()
+    {
+        var cut = OpenViewer();
+        Button(cut, "Índice").Click();
+
+        cut.FindAll(".manual-outline button.ds-list-row").First(b => b.TextContent.Trim() == "Combate").Click();
+
+        Module.Invocations["showPage"].Select(i => i.Arguments[0]).Should().Equal(3);
     }
 }
