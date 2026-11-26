@@ -4,15 +4,15 @@ namespace DmCompanion.Core.Maps;
 
 /// <summary>
 /// Operaciones sobre un mapa. El estado es inmutable: cada operación lo sustituye.
-/// Solo los trazos, las zonas de niebla y ocultar/revelar tokens entran en la pila de deshacer. Con width o height &lt;= 0 (tamaño de imagen aún
+/// Solo los trazos, las zonas de niebla (crear, borrar, tapar/destapar y cambiar de tipo) y ocultar/revelar tokens entran en la pila de deshacer. Con width o height &lt;= 0 (tamaño de imagen aún
 /// desconocido) no se recortan las coordenadas.
 /// </summary>
 public sealed partial class MapEditor(MapState initial, double width, double height, Func<string> newId)
 {
-    private enum Kind { Added, Erased, Hidden, FogAdded, FogErased, FogRevealed }
+    private enum Kind { Added, Erased, Hidden, FogAdded, FogErased, FogRevealed, FogTyped }
 
     private sealed record Op(Kind Kind, MapStroke? Stroke = null, int Index = 0, string? TokenId = null, bool? HiddenAfter = null,
-        MapFogZone? Zone = null, bool? RevealedAfter = null);
+        MapFogZone? Zone = null, bool? RevealedAfter = null, FogType? TypeAfter = null);
 
     private readonly Stack<Op> _undo = new();
     private readonly Stack<Op> _redo = new();
@@ -132,7 +132,7 @@ public sealed partial class MapEditor(MapState initial, double width, double hei
 
     private void Apply(Op op, bool reverse)
     {
-        if (op.Kind is Kind.FogAdded or Kind.FogErased or Kind.FogRevealed)
+        if (op.Kind is Kind.FogAdded or Kind.FogErased or Kind.FogRevealed or Kind.FogTyped)
         {
             ApplyFog(op, reverse);
             return;

@@ -70,8 +70,8 @@ public static class MapStateSerializer
 
     private static MapState Rounded(MapState state) => state with
     {
-        Version = state.FogZones.Count > 0 ? 3 : 2,
-        Fog = state.Fog is { Count: > 0 } fog ? [.. fog.Select(z => z with { Points = [.. z.Points.Select(v => Round(v, 1))] })] : null,
+        Version = state.FogZones.Any(z => z.IsNpc) ? 4 : state.FogZones.Count > 0 ? 3 : 2,
+        Fog = state.Fog is { Count: > 0 } fog ? [.. fog.Select(z => z with { Points = [.. z.Points.Select(v => Round(v, 1))], Type = z.Type == FogType.Total ? null : z.Type })] : null,
         Tokens = [.. state.Tokens.Select(t => t with { X = Round(t.X, 1), Y = Round(t.Y, 1) })],
         Strokes = [.. state.Strokes.Select(s => s with { Points = [.. s.Points.Select((v, i) => Round(v, i % 3 == 2 ? 2 : 1))] })],
     };

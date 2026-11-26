@@ -102,11 +102,10 @@
         applyMode(core.current());
     }
 
-    // Herramienta del modo Niebla: 'Reveal', 'Trace' o 'Erase'. Cambiarla descarta la zona en curso.
+    // Herramienta del modo Niebla: 'Reveal', 'Trace', 'Erase', 'Freehand' o 'Retype'. Cambiarla descarta la zona en curso.
     function setFogTool(name) {
         if (!core.current()) return;
-        core.current().fogTool = name;
-        window.fogMode.clearDraft(core.current());
+        window.fogMode.setTool(core.current(), name, cancelGesture);
     }
 
     // Botones «Deshacer esquina» ('undo') y «Cancelar» ('cancel') de Trazar.

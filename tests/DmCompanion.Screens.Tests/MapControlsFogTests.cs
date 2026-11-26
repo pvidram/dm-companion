@@ -248,4 +248,123 @@ public sealed class MapControlsFogTests : BunitContext, IAsyncLifetime
 
         Button(cut, "Deshacer esquina").InnerHtml.Should().Contain(IconFiles.Url(IconName.Delete));
     }
+
+    private static AngleSharp.Dom.IElement FogGroupButton(IRenderedComponent<MapControls> cut, string label) =>
+        cut.Find($"[role='group'][aria-label='Niebla'] [aria-label='{label}']");
+
+    [Fact]
+    public async Task Fog_mode_shows_Mano_alzada_and_Cambiar_tipo()
+    {
+        var cut = await FogModeAsync();
+
+        cut.FindAll("[role='group'][aria-label='Niebla'] [aria-label='Mano alzada'], [role='group'][aria-label='Niebla'] [aria-label='Cambiar tipo']")
+            .Count.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Mano_alzada_comes_right_after_Trazar_in_the_fog_group()
+    {
+        var cut = await FogModeAsync();
+
+        var names = cut.FindAll("[role='group'][aria-label='Niebla'] button").Select(b => b.GetAttribute("aria-label")).ToList();
+
+        names.IndexOf("Mano alzada").Should().Be(names.IndexOf("Trazar") + 1);
+    }
+
+    [Fact]
+    public async Task Pressing_Mano_alzada_selects_the_freehand_tool()
+    {
+        var cut = await FogModeAsync();
+
+        await cut.InvokeAsync(() => FogGroupButton(cut, "Mano alzada").Click());
+
+        JSInterop.Invocations.Should().Contain(i => i.Identifier == "mapCanvas.setFogTool" && (string)i.Arguments[0]! == "Freehand");
+    }
+
+    [Fact]
+    public async Task Pressing_Cambiar_tipo_selects_the_retype_tool()
+    {
+        var cut = await FogModeAsync();
+
+        await cut.InvokeAsync(() => FogGroupButton(cut, "Cambiar tipo").Click());
+
+        JSInterop.Invocations.Should().Contain(i => i.Identifier == "mapCanvas.setFogTool" && (string)i.Arguments[0]! == "Retype");
+    }
+
+    [Fact]
+    public async Task Mano_alzada_and_Trazar_use_different_icons()
+    {
+        var cut = await FogModeAsync();
+
+        FogGroupButton(cut, "Mano alzada").InnerHtml.Should().Contain(IconFiles.Url(IconName.Spline))
+            .And.NotContain(IconFiles.Url(IconName.Pencil));
+    }
+
+    [Fact]
+    public async Task Cambiar_tipo_uses_its_own_icon_different_from_Destapar()
+    {
+        var cut = await FogModeAsync();
+
+        FogGroupButton(cut, "Cambiar tipo").InnerHtml.Should().Contain(IconFiles.Url(IconName.ArrowLeftRight));
+    }
+
+    [Fact]
+    public async Task Mano_alzada_is_pressed_when_it_is_the_active_tool()
+    {
+        var cut = await FogModeAsync();
+
+        await cut.InvokeAsync(() => FogGroupButton(cut, "Mano alzada").Click());
+
+        FogGroupButton(cut, "Mano alzada").GetAttribute("aria-pressed").Should().Be("true");
+    }
+
+    [Fact]
+    public async Task Cambiar_tipo_is_pressed_when_it_is_the_active_tool()
+    {
+        var cut = await FogModeAsync();
+
+        await cut.InvokeAsync(() => FogGroupButton(cut, "Cambiar tipo").Click());
+
+        FogGroupButton(cut, "Cambiar tipo").GetAttribute("aria-pressed").Should().Be("true");
+    }
+
+    [Fact]
+    public async Task Total_is_the_default_zone_type()
+    {
+        var cut = await FogModeAsync();
+
+        (Pressed(cut, "Total"), Pressed(cut, "PNJ")).Should().Be((true, false));
+    }
+
+    [Fact]
+    public async Task Pressing_PNJ_sets_the_type_of_new_zones_and_presses_the_button()
+    {
+        var cut = await FogModeAsync();
+
+        await cut.InvokeAsync(() => Button(cut, "PNJ").Click());
+
+        (Canvas.FogType, Pressed(cut, "PNJ")).Should().Be((FogType.Npc, true));
+    }
+
+    [Fact]
+    public async Task The_chosen_type_survives_leaving_and_returning_to_fog_mode()
+    {
+        var cut = await FogModeAsync();
+        await cut.InvokeAsync(() => Button(cut, "PNJ").Click());
+
+        await cut.InvokeAsync(() => Button(cut, "Navegar").Click());
+        await cut.InvokeAsync(() => Button(cut, "Niebla").Click());
+
+        Pressed(cut, "PNJ").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task The_corner_draft_buttons_do_not_appear_with_the_freehand_tool()
+    {
+        var cut = await FogModeAsync();
+
+        await cut.InvokeAsync(() => FogGroupButton(cut, "Mano alzada").Click());
+
+        Has(cut, "Deshacer esquina").Should().BeFalse();
+    }
 }

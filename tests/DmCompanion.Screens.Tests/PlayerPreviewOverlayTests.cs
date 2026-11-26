@@ -173,7 +173,21 @@ public sealed class PlayerPreviewOverlayTests : BunitContext, IAsyncLifetime
         cut.WaitForAssertion(() =>
         {
             var fogTools = cut.FindAll("[role='group'][aria-label='Niebla'] button");
-            (fogTools.Count, fogTools.Count(b => !b.HasAttribute("disabled"))).Should().Be((5, 0));
+            (fogTools.Count, fogTools.Count(b => !b.HasAttribute("disabled"))).Should().Be((7, 0));
+        }, Timeout);
+    }
+
+    [Fact]
+    public async Task While_active_the_fog_type_buttons_are_disabled()
+    {
+        var cut = await RenderMapAsync();
+        await cut.InvokeAsync(() => Button(cut, "Niebla").Click());
+        await cut.InvokeAsync(() => Button(cut, "Vista de jugadores").Click());
+
+        cut.WaitForAssertion(() =>
+        {
+            var typeButtons = cut.FindAll("[role='group'][aria-label='Tipo de niebla'] button");
+            (typeButtons.Count, typeButtons.Count(b => !b.HasAttribute("disabled"))).Should().Be((2, 0));
         }, Timeout);
     }
 

@@ -65,15 +65,15 @@ public class MapStateSerializerTests
     [Fact]
     public void Read_flags_future_version_and_keeps_content()
     {
-        var result = MapStateSerializer.Read(Example.Replace("\"version\": 1", "\"version\": 4"));
+        var result = MapStateSerializer.Read(Example.Replace("\"version\": 1", "\"version\": 5"));
 
         result.Status.Should().Be(MapStateReadStatus.FutureVersion);
-        result.State.Version.Should().Be(4);
+        result.State.Version.Should().Be(5);
         result.State.Tokens.Should().HaveCount(2);
     }
 
     private const string FutureShape =
-        "{\"version\": 4, \"tokens\": [{\"id\": \"a\", \"name\": \"A\", \"size\": 1, \"x\": 0, \"y\": 0, "
+        "{\"version\": 5, \"tokens\": [{\"id\": \"a\", \"name\": \"A\", \"size\": 1, \"x\": 0, \"y\": 0, "
         + "\"conditions\": [null, {\"id\": null, \"label\": \"X\"}, {\"id\": \"c\", \"label\": \"Y\"}]}], \"combat\": {\"round\": 1}}";
 
     [Fact]
@@ -290,9 +290,9 @@ public class MapStateSerializerTests
     }
 
     [Fact]
-    public void Version_4_is_future_version()
+    public void Version_5_is_future_version()
     {
-        MapStateSerializer.Read("{\"version\": 4}").Status.Should().Be(MapStateReadStatus.FutureVersion);
+        MapStateSerializer.Read("{\"version\": 5}").Status.Should().Be(MapStateReadStatus.FutureVersion);
     }
 
     private static CombatSnapshot Snapshot(CombatState? combat, params TokenCombatFields[] tokens) => new(combat, tokens);
@@ -405,10 +405,53 @@ public class MapStateSerializerTests
         result.State.FogZones.Should().BeEmpty();
     }
 
-    [Fact]
-    public void Version_4_file_with_fog_is_future_version()
+    [Fact] public void Written_json_with_an_npc_zone_has_type_npc_and_version_4()
     {
-        MapStateSerializer.Read("""{"version":4,"fog":[{"id":"z","points":[0,0,1,0,1,1]}]}""").Status
+        var json = MapStateSerializer.Write(MapState.Empty with { Fog = [new MapFogZone("z1", Square, null, FogType.Npc)] });
+        json.Should().Contain("\"type\":\"npc\"").And.Contain("\"version\":4");
+    }
+
+    [Fact] public void Total_zone_is_written_without_type_even_when_explicit()
+    {
+        var json = MapStateSerializer.Write(MapState.Empty with { Fog = [new MapFogZone("z1", Square, null, FogType.Total)] });
+        json.Should().NotContain("\"type\"");
+    }
+
+    [Fact] public void Only_total_zones_keep_writing_version_3()
+    {
+        var json = MapStateSerializer.Write(MapState.Empty with { Fog = [new MapFogZone("z1", Square)] });
+        json.Should().Contain("\"version\":3");
+    }
+
+    [Fact] public void Npc_zone_round_trips_next_to_a_total_one()
+    {
+        var state = MapState.Empty with { Fog = [new MapFogZone("a", Square, null, FogType.Npc), new MapFogZone("b", Square, true)] };
+        var read = MapStateSerializer.Read(MapStateSerializer.Write(state));
+        read.State.FogZones.Select(z => z.EffectiveType).Should().Equal(FogType.Npc, FogType.Total);
+    }
+
+    [Fact] public void Zone_without_type_reads_as_total()
+    {
+        var read = MapStateSerializer.Read("""{"version":3,"fog":[{"id":"z","points":[0,0,1,0,1,1]}]}""");
+        read.State.FogZones.Single().EffectiveType.Should().Be(FogType.Total);
+    }
+
+    [Fact] public void Version_4_file_with_an_npc_zone_reads_ok()
+    {
+        MapStateSerializer.Read("""{"version":4,"fog":[{"id":"z","points":[0,0,1,0,1,1],"type":"npc"}]}""").Status
+            .Should().Be(MapStateReadStatus.Ok);
+    }
+
+    [Fact] public void Zone_with_an_unknown_type_is_invalid()
+    {
+        MapStateSerializer.Read("""{"version":4,"fog":[{"id":"z","points":[0,0,1,0,1,1],"type":"muro"}]}""").Status
+            .Should().Be(MapStateReadStatus.Invalid);
+    }
+
+    [Fact]
+    public void Version_5_file_with_fog_is_future_version()
+    {
+        MapStateSerializer.Read("""{"version":5,"fog":[{"id":"z","points":[0,0,1,0,1,1]}]}""").Status
             .Should().Be(MapStateReadStatus.FutureVersion);
     }
 

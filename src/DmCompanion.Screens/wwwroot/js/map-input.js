@@ -48,7 +48,11 @@
         } else if (mode === 'Fog' && drawsWith(event)) {
             if (event.pointerType === 'pen') inst.lastPenAt = performance.now();
             cancelTouchGestures(inst);
-            window.fogMode.onPenDown(inst, worldPoint(inst, containerPoint(inst, event)));
+            if (inst.fogTool === 'Freehand') {
+                if (!inst.gesture) beginGesture(inst, event, 'fogFreehand', window.fogMode.freehandGesture);
+            } else {
+                window.fogMode.onPenDown(inst, worldPoint(inst, containerPoint(inst, event)));
+            }
         } else if (mode === 'Measure') {
             // Un segundo dedo no mide: cancela la medición y el pellizco de Konva hace zoom.
             if (inst.touches.size > 1) cancelGesture(inst);

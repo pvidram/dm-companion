@@ -1,12 +1,16 @@
+using DmCompanion.Core.Maps;
 using Microsoft.JSInterop;
 
 namespace DmCompanion.Screens.Services;
 
-// Modo Niebla: herramienta elegida, borrador de Trazar y avisos del lienzo (zona añadida, alternada o borrada).
+// Modo Niebla: herramienta elegida, tipo de las zonas nuevas, borrador de Trazar y avisos del lienzo (zona añadida, alternada o borrada).
 public sealed partial class MapCanvasInterop
 {
     /// <summary>Última herramienta elegida; se usa al volver al modo Niebla. La primera vez, Destapar.</summary>
     public FogTool FogTool { get; private set; } = FogTool.Reveal;
+
+    /// <summary>Tipo de las zonas nuevas y al usar «Cambiar tipo». Por defecto, Total.</summary>
+    public FogType FogType { get; private set; } = FogType.Total;
 
     /// <summary>Esquinas de la zona que se está trazando (0 sin trazado en curso).</summary>
     public int FogDraftCorners { get; private set; }
@@ -20,6 +24,8 @@ public sealed partial class MapCanvasInterop
         return InvokeLoadedAsync("mapCanvas.setFogTool", tool.ToString());
     }
 
+    public void SetFogType(FogType type) => FogType = type;
+
     public Task UndoFogCornerAsync() => InvokeLoadedAsync("mapCanvas.fogDraft", "undo");
 
     public Task CancelFogDraftAsync() => InvokeLoadedAsync("mapCanvas.fogDraft", "cancel");
@@ -30,13 +36,16 @@ public sealed partial class MapCanvasInterop
     {
         if (points is null) return false;
         var accepted = false;
-        session.Mutate(editor => accepted = editor.AddFogZone(points) is not null);
+        session.Mutate(editor => accepted = editor.AddFogZone(points, FogType) is not null);
         return accepted;
     }
 
     [JSInvokable]
     public void OnFogZoneToggled(string id) => session.Mutate(editor =>
         editor.State.FogZones.FirstOrDefault(z => z.Id == id) is { } zone && editor.SetFogRevealed(id, !zone.IsRevealed));
+
+    [JSInvokable]
+    public void OnFogZoneRetyped(string id) => session.Mutate(editor => editor.SetFogType(id, FogType));
 
     [JSInvokable]
     public void OnFogZoneErased(string id) => session.Mutate(editor => editor.EraseFogZone(id));
