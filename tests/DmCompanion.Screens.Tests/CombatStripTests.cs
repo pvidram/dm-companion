@@ -80,7 +80,7 @@ public sealed class CombatStripTests : TokenTestBase
     public async Task Current_entry_is_highlighted()
     {
         var cut = await RenderCombatAsync();
-        Combat.NextTurn();
+        await cut.InvokeAsync(() => Combat.NextTurn());
 
         cut.WaitForAssertion(() => Rows(cut).Select(r => r.ClassList.Contains("combat-strip__row--current")).Should().Equal(false, true, false));
     }
@@ -98,7 +98,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=next-turn]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=next-turn]").Click());
 
         Combat.State!.CurrentEntryId.Should().Be(EntryOf("b"));
     }
@@ -108,7 +108,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.FindAll("header.ds-frame__strip .combat-strip--collapsed").Should().ContainSingle();
     }
@@ -118,7 +118,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.FindAll(".map-layout .combat-strip--collapsed").Should().BeEmpty();
     }
@@ -144,7 +144,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.Find("[data-testid=next-turn]").ClassList.Should().Contain("ds-icon-button");
     }
@@ -154,7 +154,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.Find("[data-testid=next-turn]").GetAttribute("aria-label").Should().Be("Siguiente turno");
     }
@@ -163,11 +163,11 @@ public sealed class CombatStripTests : TokenTestBase
     public async Task Toggle_collapses_and_expands_without_losing_state()
     {
         var cut = await RenderCombatAsync();
-        Combat.NextTurn();
+        await cut.InvokeAsync(() => Combat.NextTurn());
 
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
         var collapsed = cut.FindAll("[data-testid=strip-cell]").Count;
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         (collapsed, Rows(cut).Count, Combat.State!.CurrentEntryId).Should().Be((3, 3, EntryOf("b")));
     }
@@ -178,7 +178,7 @@ public sealed class CombatStripTests : TokenTestBase
         var expired = new TokenCondition("k1", null, "Bendición", null, null, true);
         var cut = await RenderCombatAsync(Tokens3(GenericToken("a", "Ana", hp: 20) with { Conditions = [expired] }));
 
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.FindAll("[data-testid=strip-cell] [data-testid=expired-dot]").Should().ContainSingle();
     }
@@ -187,9 +187,9 @@ public sealed class CombatStripTests : TokenTestBase
     public async Task Tapping_compact_cell_opens_the_token_card()
     {
         var cut = await RenderCombatAsync();
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
-        cut.FindAll("[data-testid=strip-cell]")[1].Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=strip-cell]")[1].Click());
 
         Shell.TokenCard!.TokenId.Should().Be("b");
     }
@@ -202,7 +202,7 @@ public sealed class CombatStripTests : TokenTestBase
         await OpenMapAsync(state);
         Combat.Start([.. Enumerable.Range(0, 12).Select(i => new InitiativeEntry("t" + i, 20 - i))]);
         var cut = Render<DmShell>();
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.WaitForAssertion(() =>
         {
@@ -224,7 +224,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.FindAll("[data-testid=strip-select]")[2].Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=strip-select]")[2].Click());
 
         Shell.SelectedCombatTokenId.Should().Be("c");
     }
@@ -234,8 +234,8 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.FindAll("[data-testid=strip-menu]")[2].Click();
-        cut.Find("[data-testid=menu-set-current]").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=strip-menu]")[2].Click());
+        await cut.InvokeAsync(() => cut.Find("[data-testid=menu-set-current]").Click());
 
         Combat.State!.CurrentEntryId.Should().Be(EntryOf("c"));
     }
@@ -245,8 +245,8 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.FindAll("[data-testid=strip-menu]")[1].Click();
-        cut.Find("[data-testid=menu-remove]").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=strip-menu]")[1].Click());
+        await cut.InvokeAsync(() => cut.Find("[data-testid=menu-remove]").Click());
 
         Names(cut).Should().Equal("Ana", "Cora");
     }
@@ -256,8 +256,8 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.FindAll("[data-testid=strip-menu]")[0].Click();
-        cut.Find("[data-testid=menu-down]").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=strip-menu]")[0].Click());
+        await cut.InvokeAsync(() => cut.Find("[data-testid=menu-down]").Click());
 
         Names(cut).Should().Equal("Bruno", "Ana", "Cora");
     }
@@ -267,9 +267,9 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=strip-add]").Click();
-        cut.Find("[data-testid=add-initiative]").Input("12");
-        cut.Find("[data-testid=add-token-d]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-add]").Click());
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-initiative]").Input("12"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-token-d]").Click());
 
         Names(cut).Should().Equal("Ana", "Dani", "Bruno", "Cora");
     }
@@ -279,7 +279,7 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=strip-add]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-add]").Click());
 
         cut.FindAll("[data-testid^=add-token-]").Select(b => b.GetAttribute("data-testid")).Should().Equal("add-token-d");
     }
@@ -289,9 +289,9 @@ public sealed class CombatStripTests : TokenTestBase
     {
         var cut = await RenderCombatAsync();
 
-        cut.Find("[data-testid=strip-end]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-end]").Click());
         var stillActive = Combat.IsActive;
-        cut.FindAll(".ds-dialog-backdrop:not([hidden]) .ds-button--damage").Single().Click();
+        await cut.InvokeAsync(() => cut.FindAll(".ds-dialog-backdrop:not([hidden]) .ds-button--damage").Single().Click());
 
         (stillActive, Combat.IsActive, cut.FindAll("[data-testid=combat-strip]")).Should().Be((true, false, Array.Empty<IElement>()));
     }

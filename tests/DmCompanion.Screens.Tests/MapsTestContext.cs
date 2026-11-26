@@ -10,6 +10,7 @@ using DmCompanion.UI;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace DmCompanion.Screens.Tests;
 
@@ -31,7 +32,7 @@ public abstract class MapsTestContext : BunitContext, IAsyncLifetime
         Services.AddScoped<ShellState>();
         Services.AddGlossaryForTests();
         Services.AddSoundForTests();
-        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<TimeProvider>(new FakeTimeProvider());
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
         Services.AddSingleton<CombatController>();

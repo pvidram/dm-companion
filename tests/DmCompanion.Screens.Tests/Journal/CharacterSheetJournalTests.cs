@@ -56,7 +56,7 @@ public sealed class CharacterSheetJournalTests : JournalUiTestBase
     {
         var cut = await RenderSheetAsync();
 
-        cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Diario").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Diario").Click());
 
         (Shell.PlayerTab, cut.FindAll(".ds-stat").Count, cut.FindAll(".journal-row").Count, Tab(cut, "Diario")).Should().Be((PlayerTab.Journal, 0, 1, "true"));
     }
@@ -65,7 +65,7 @@ public sealed class CharacterSheetJournalTests : JournalUiTestBase
     public async Task The_portrait_and_the_name_stay_above_both_tabs()
     {
         var cut = await RenderSheetAsync();
-        cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Diario").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Diario").Click());
 
         cut.Find("[data-testid=pc-title]").TextContent.Should().Be("Lyra Vientoalto");
     }
@@ -74,9 +74,9 @@ public sealed class CharacterSheetJournalTests : JournalUiTestBase
     public async Task Going_back_to_Ficha_shows_the_stats_again()
     {
         var cut = await RenderSheetAsync();
-        cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Diario").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Diario").Click());
 
-        cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Ficha").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[role=tab]").First(t => t.TextContent.Trim() == "Ficha").Click());
 
         (cut.FindAll(".ds-stat").Count > 0, cut.FindAll(".journal-tab").Count).Should().Be((true, 0));
     }

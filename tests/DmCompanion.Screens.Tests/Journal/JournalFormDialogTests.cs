@@ -127,10 +127,10 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
     {
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Lyra));
         await UploadAsync(cut, ("uno.png", 1), ("dos.JPG", 2));
-        cut.Find("input[type=text]").Input("Ankheg");
-        cut.Find("textarea").Input("Salió del suelo.");
+        await cut.InvokeAsync(() => cut.Find("input[type=text]").Input("Ankheg"));
+        await cut.InvokeAsync(() => cut.Find("textarea").Input("Salió del suelo."));
 
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         var entry = Journal.ForPc(Lyra).Single();
@@ -143,9 +143,9 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
     {
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Torvald));
         await UploadAsync(cut, ("uno.png", 1));
-        cut.Find("input[type=text]").Input("Faro");
+        await cut.InvokeAsync(() => cut.Find("input[type=text]").Input("Faro"));
 
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.SelectedJournalPath.Should().NotBeNull(), Wait);
         (Shell.ActivePanel, Shell.SelectedPcPath, Shell.PlayerTab, Shell.SelectedJournalPath!.EndsWith(" Faro.md", StringComparison.Ordinal), Shell.LastJournalPcPath)
@@ -159,7 +159,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         await UploadAsync(cut, ("nota.pdf", 1), ("uno.png", 2));
         var warning = cut.Markup.Contains("No se pudo leer 1 imagen(es)", StringComparison.Ordinal);
 
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         (warning, ImageCount(), Shell.JournalNotice).Should().Be((true, 1, "No se pudo leer 1 imagen(es)"));
@@ -173,10 +173,10 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Lyra));
         await UploadAsync(cut, ("a.png", 1), ("b.png", 2), ("c.png", 3));
 
-        cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Bajar").Click();
-        cut.FindAll("li.journal-form__image")[2].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Quitar").Click();
+        await cut.InvokeAsync(() => cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Bajar").Click());
+        await cut.InvokeAsync(() => cut.FindAll("li.journal-form__image")[2].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Quitar").Click());
         var order = string.Join(",", ImageNames(cut));
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         var saved = Journal.ForPc(Lyra).Single();
@@ -200,7 +200,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Lyra));
         await UploadAsync(cut, ("a.png", 1));
 
-        ButtonLabeled(cut, "Descartar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Descartar").Click());
 
         cut.WaitForAssertion(() => (Shell.JournalForm, Directory.Exists(Vault.PathOf(LyraDiary))).Should().Be((null, false)), Wait);
     }
@@ -210,7 +210,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
     {
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Lyra));
         await UploadAsync(cut, ("a.png", 1));
-        cut.Find("input[type=text]").Input("Borrador");
+        await cut.InvokeAsync(() => cut.Find("input[type=text]").Input("Borrador"));
 
         await cut.InvokeAsync(Shell.CloseJournalForm);
         await cut.InvokeAsync(() => Shell.OpenJournalForm(new JournalFormRequest(JournalFormMode.New, Lyra)));
@@ -224,11 +224,11 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Lyra));
         await UploadAsync(cut, ("a.png", 1));
 
-        cut.Find("input[type=search]").Input("Lobo");
+        await cut.InvokeAsync(() => cut.Find("input[type=search]").Input("Lobo"));
         cut.WaitForAssertion(() => cut.FindAll("button.ds-list-row").Count.Should().BeGreaterThan(0), Wait);
-        cut.FindAll("button.ds-list-row").First(b => b.TextContent.Contains("Lobo", StringComparison.Ordinal)).Click();
+        await cut.InvokeAsync(() => cut.FindAll("button.ds-list-row").First(b => b.TextContent.Contains("Lobo", StringComparison.Ordinal)).Click());
         var chip = cut.Markup.Contains("Quitar criatura", StringComparison.Ordinal);
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         (chip, Journal.ForPc(Lyra).Single().Creature).Should().Be((true, "[[Lobo]]"));
@@ -238,11 +238,11 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
     public async Task Removing_the_creature_goes_back_to_the_search()
     {
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Lyra));
-        cut.Find("input[type=search]").Input("Lobo");
+        await cut.InvokeAsync(() => cut.Find("input[type=search]").Input("Lobo"));
         cut.WaitForAssertion(() => cut.FindAll("button.ds-list-row").Count.Should().BeGreaterThan(0), Wait);
-        cut.FindAll("button.ds-list-row").First(b => b.TextContent.Contains("Lobo", StringComparison.Ordinal)).Click();
+        await cut.InvokeAsync(() => cut.FindAll("button.ds-list-row").First(b => b.TextContent.Contains("Lobo", StringComparison.Ordinal)).Click());
 
-        ButtonLabeled(cut, "Quitar criatura").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Quitar criatura").Click());
 
         cut.FindAll("input[type=search]").Count.Should().Be(1);
     }
@@ -274,8 +274,8 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var path = await SeedEntryAsync();
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, path));
 
-        cut.Find("input[type=text]").Input("Dragón");
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => cut.Find("input[type=text]").Input("Dragón"));
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         (Notes(LyraDiary).Single().EndsWith(" Dragón.md", StringComparison.Ordinal), Shell.SelectedJournalPath!.EndsWith(" Dragón.md", StringComparison.Ordinal),
@@ -290,13 +290,13 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var removed = Journal.Get(path)!.Images[0];
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, path));
 
-        cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Quitar").Click();
+        await cut.InvokeAsync(() => cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Quitar").Click());
         var asked = cut.Markup.Contains($"¿Quitar la imagen «{removed.Name}»?", StringComparison.Ordinal);
         var rowsWhileAsking = ImageNames(cut).Count;
-        cut.FindAll(".ds-notice button").First(b => b.TextContent.Trim() == "Quitar").Click();
+        await cut.InvokeAsync(() => cut.FindAll(".ds-notice button").First(b => b.TextContent.Trim() == "Quitar").Click());
         var rowsAfterConfirming = ImageNames(cut).Count;
         var fileBeforeSaving = File.Exists(Vault.PathOf(removed.Path));
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         (asked, rowsWhileAsking, rowsAfterConfirming, fileBeforeSaving, File.Exists(Vault.PathOf(removed.Path))).Should().Be((true, 2, 1, true, false));
@@ -307,9 +307,9 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
     {
         var path = await SeedEntryAsync();
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, path));
-        cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Quitar").Click();
+        await cut.InvokeAsync(() => cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Quitar").Click());
 
-        cut.FindAll(".ds-notice button").First(b => b.TextContent.Trim() == "Cancelar").Click();
+        await cut.InvokeAsync(() => cut.FindAll(".ds-notice button").First(b => b.TextContent.Trim() == "Cancelar").Click());
 
         (ImageNames(cut).Count, cut.FindAll(".ds-notice").Count).Should().Be((2, 0));
     }
@@ -321,9 +321,9 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, path));
         File.WriteAllText(Vault.PathOf(path), File.ReadAllText(Vault.PathOf(path)).Replace("Nota.", "Cambiada fuera.", StringComparison.Ordinal));
         File.SetLastWriteTimeUtc(Vault.PathOf(path), DateTime.UtcNow.AddMinutes(5));
-        cut.Find("textarea").Input("Mi cambio");
+        await cut.InvokeAsync(() => cut.Find("textarea").Input("Mi cambio"));
 
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("La entrada cambió fuera de la app. Se ha vuelto a cargar"), Wait);
         (Shell.JournalForm is not null, File.ReadAllText(Vault.PathOf(path)).Contains("Cambiada fuera.", StringComparison.Ordinal)).Should().Be((true, true));
@@ -354,11 +354,11 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, path));
         File.WriteAllText(Vault.PathOf(path), File.ReadAllText(Vault.PathOf(path)).Replace("Nota.", "Cambiada fuera.", StringComparison.Ordinal));
         File.SetLastWriteTimeUtc(Vault.PathOf(path), DateTime.UtcNow.AddMinutes(5));
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("La entrada cambió fuera de la app"), Wait);
         var reloaded = cut.Find("textarea").GetAttribute("value");
 
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         (reloaded, File.ReadAllText(Vault.PathOf(Shell.SelectedJournalPath!)).Contains("Cambiada fuera.", StringComparison.Ordinal)).Should().Be(("Cambiada fuera.", true));
@@ -381,11 +381,11 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
     public async Task Escape_with_text_asks_before_discarding_and_Seguir_editando_keeps_everything()
     {
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.New, Lyra));
-        cut.Find("input[type=text]").Input("Borrador");
+        await cut.InvokeAsync(() => cut.Find("input[type=text]").Input("Borrador"));
 
         await EscapeAsync(cut);
         var asked = (Shell.JournalForm is not null, Shell.ConfirmingJournalDiscard);
-        cut.FindAll(".ds-dialog__footer button").First(b => b.TextContent.Trim() == "Seguir editando").Click();
+        await cut.InvokeAsync(() => cut.FindAll(".ds-dialog__footer button").First(b => b.TextContent.Trim() == "Seguir editando").Click());
 
         (asked, Shell.JournalForm is not null, Shell.ConfirmingJournalDiscard, cut.Find("input[type=text]").GetAttribute("value"))
             .Should().Be(((true, true), true, false, "Borrador"));
@@ -398,7 +398,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         await UploadAsync(cut, ("a.png", 1));
         await EscapeAsync(cut);
 
-        cut.FindAll(".ds-dialog__footer button").First(b => b.TextContent.Trim() == "Descartar cambios").Click();
+        await cut.InvokeAsync(() => cut.FindAll(".ds-dialog__footer button").First(b => b.TextContent.Trim() == "Descartar cambios").Click());
 
         cut.WaitForAssertion(() => (Shell.JournalForm, Shell.ConfirmingJournalDiscard, Directory.Exists(Vault.PathOf(LyraDiary))).Should().Be((null, false, false)), Wait);
     }
@@ -410,7 +410,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, path));
         var untouched = Shell.IsJournalFormDirty;
 
-        cut.Find("textarea").Input("Otra nota");
+        await cut.InvokeAsync(() => cut.Find("textarea").Input("Otra nota"));
 
         (untouched, Shell.IsJournalFormDirty).Should().Be((false, true));
     }
@@ -421,7 +421,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var path = await SeedEntryAsync();
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, path));
 
-        cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Bajar").Click();
+        await cut.InvokeAsync(() => cut.FindAll("li.journal-form__image")[0].QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Bajar").Click());
 
         Shell.IsJournalFormDirty.Should().BeTrue();
     }
@@ -433,7 +433,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         var cut = await OpenAsync(new JournalFormRequest(JournalFormMode.Edit, null, Rara));
         var shown = (ImageNames(cut).Count, cut.Markup.Contains("nombre no admitido o repetido", StringComparison.Ordinal));
 
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         (shown, Journal.Get(Rara)?.Images.Count ?? Journal.Get(Shell.SelectedJournalPath!)!.Images.Count).Should().Be(((1, true), 1));
@@ -446,7 +446,7 @@ public sealed class JournalFormDialogTests : JournalUiTestBase
         await UploadAsync(cut, ("uno.png", 1));
         await UploadAsync(cut, ("dos.png", 2));
 
-        ButtonLabeled(cut, "Guardar").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Guardar").Click());
 
         cut.WaitForAssertion(() => Shell.JournalForm.Should().BeNull(), Wait);
         Journal.ForPc(Lyra).Single().Images.Count.Should().Be(2);

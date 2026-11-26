@@ -73,12 +73,12 @@ public sealed class JournalThumbnailTests : JournalUiTestBase
         RenderThumb(Ankheg).Find("button").HasAttribute("disabled").Should().BeTrue();
 
     [Fact]
-    public void Clicking_it_raises_OnSelect()
+    public async Task Clicking_it_raises_OnSelect()
     {
         var clicks = 0;
         var cut = RenderThumb(Ankheg, p => p.Add(c => c.OnSelect, () => clicks++));
 
-        cut.Find("button").Click();
+        await cut.InvokeAsync(() => cut.Find("button").Click());
 
         clicks.Should().Be(1);
     }

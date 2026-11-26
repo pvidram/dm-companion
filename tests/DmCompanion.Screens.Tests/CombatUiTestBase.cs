@@ -27,7 +27,6 @@ public abstract class CombatUiTestBase : TokenTestBase
         if (start)
         {
             Combat.Start([new InitiativeEntry("a", 15), new InitiativeEntry("b", 10)]);
-            // Sin esto el guardado diferido (750 ms) dispara un re-render a mitad de la prueba y retira manejadores ya encontrados.
             await Session.FlushAsync();
         }
 

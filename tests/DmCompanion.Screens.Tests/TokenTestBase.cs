@@ -1,7 +1,6 @@
 using DmCompanion.Screens.Tests.Support;
 using Bunit;
 using DmCompanion.Core.Maps;
-using DmCompanion.Screens.Components;
 using DmCompanion.Core.Vault.Storage;
 using DmCompanion.Infrastructure;
 using DmCompanion.Screens.Platform;
@@ -20,7 +19,11 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
 
     private readonly TempVault _vault = TempVault.Empty();
 
-    protected FakeTimeProvider Clock { get; } = new();
+    /// <summary>
+    /// Reloj manual: el guardado diferido del mapa (750 ms) y el aviso de fin de combate no deben dispararse solos a mitad de una
+    /// prueba, porque repintan desde otro hilo entre un Find y su Click y retiran el manejador. Se guarda con <c>Session.FlushAsync()</c>.
+    /// </summary>
+    protected FakeTimeProvider Time { get; } = new();
 
     protected TokenTestBase()
     {
@@ -30,9 +33,7 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(new InMemoryAppPreferences());
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
-        // Reloj falso: con el real, el guardado diferido de MapSession (750 ms) dispara solo en las pruebas lentas y su re-render
-        // desde el pool ocupa el dispatcher de bUnit a mitad de la prueba. Los guardados se hacen con Session.FlushAsync().
-        Services.AddSingleton<TimeProvider>(Clock);
+        Services.AddSingleton<TimeProvider>(Time);
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
         Services.AddSingleton<CombatController>();
@@ -61,25 +62,6 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
     protected VaultHost Host => Services.GetRequiredService<VaultHost>();
     protected IReadOnlyList<MapToken> Tokens => Session.Editor!.State.Tokens;
 
-    /// <summary>
-    /// Renderiza el shell y espera a que se drene el trabajo que el dispatcher tenía encolado hasta ese momento (una barrera: no
-    /// garantiza que quede ocioso). El primer render deja trabajo encolado (renders en cascada, continuaciones asíncronas) que
-    /// sigue corriendo en otro hilo cuando Render ya ha devuelto; una prueba que cambia el estado a continuación desde su propio
-    /// hilo encola el re-render detrás y lee el DOM antes de que se pinte.
-    /// </summary>
-    protected async Task<IRenderedComponent<DmShell>> RenderShellAsync()
-    {
-        var cut = Render<DmShell>();
-        await cut.InvokeAsync(() => { });
-        return cut;
-    }
-
-    /// <summary>
-    /// Cambia el estado de la app desde la prueba por el dispatcher del renderizador (como indica bUnit para cambios externos):
-    /// el re-render que dispara el cambio queda hecho al volver, aunque otro hilo esté pintando en ese momento.
-    /// </summary>
-    protected Task OnDispatcherAsync(Action change) => Renderer.Dispatcher.InvokeAsync(change);
-
     /// <summary>El input o select de un campo del design system, localizado por su etiqueta visible.</summary>
     protected static AngleSharp.Dom.IElement Field(IRenderedComponent<Microsoft.AspNetCore.Components.IComponent> cut, string label) =>
         cut.FindAll("label.ds-field").First(l => l.QuerySelector(".ds-field__label")!.TextContent == label).QuerySelector("input,select")!;
@@ -99,7 +81,6 @@ public abstract class TokenTestBase : BunitContext, IAsyncLifetime
         extraNotes?.Invoke();
         await Host.OpenAsync(_vault.Root);
         await Session.OpenAsync(MapTestVault.MapNote);
-        await Services.WaitForAudioLibraryAsync(Timeout);
     }
 
     protected static MapToken NoteToken(string id, string name, string source, TokenSide side = TokenSide.Pc, double x = 35, double y = 35) =>

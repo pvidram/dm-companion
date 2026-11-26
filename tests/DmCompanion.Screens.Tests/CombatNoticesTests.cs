@@ -16,12 +16,12 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     private async Task<IRenderedComponent<DmShell>> RenderWithExpiredAsync()
     {
         await OpenMapAsync(MapState.Empty with { Tokens = [GenericToken("a", "Ana", hp: 20), GenericToken("g", "Goblin 2", hp: 40)] });
-        await OnDispatcherAsync(() => Combat.Start([new InitiativeEntry("a", 15), new InitiativeEntry("g", 10)]));
-        await OnDispatcherAsync(() => Combat.AddCondition("g", new ConditionDraft("frightened", "Asustado", null, 1, EntryOf("g"))));
-        await OnDispatcherAsync(() => Combat.NextTurn());
-        await OnDispatcherAsync(() => Combat.NextTurn());
-        await OnDispatcherAsync(() => Combat.NextTurn());
-        return await RenderShellAsync();
+        Combat.Start([new InitiativeEntry("a", 15), new InitiativeEntry("g", 10)]);
+        Combat.AddCondition("g", new ConditionDraft("frightened", "Asustado", null, 1, EntryOf("g")));
+        Combat.NextTurn();
+        Combat.NextTurn();
+        Combat.NextTurn();
+        return Render<DmShell>();
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     {
         var cut = await RenderWithExpiredAsync();
 
-        cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Quitar").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Quitar").Click());
 
         Goblin.ConditionList.Should().BeEmpty();
     }
@@ -55,7 +55,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     {
         var cut = await RenderWithExpiredAsync();
 
-        cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Quitar").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Quitar").Click());
 
         cut.FindAll("[data-testid=notice-expired]").Should().BeEmpty();
     }
@@ -64,9 +64,9 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Keep_without_duration_clears_the_expired_mark()
     {
         var cut = await RenderWithExpiredAsync();
-        cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Mantener").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Mantener").Click());
 
-        cut.Find("[data-testid=keep-forever]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=keep-forever]").Click());
 
         Goblin.ConditionList.Single().Should().Match<TokenCondition>(c => !c.Expired && c.Duration == null);
     }
@@ -75,10 +75,10 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Keep_with_rounds_restarts_the_duration()
     {
         var cut = await RenderWithExpiredAsync();
-        cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Mantener").Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=notice-expired] button").First(b => b.TextContent.Trim() == "Mantener").Click());
 
-        cut.Find("[data-testid=keep-rounds]").Input("2");
-        cut.Find("[data-testid=keep-apply]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=keep-rounds]").Input("2"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=keep-apply]").Click());
 
         Goblin.ConditionList.Single().Duration.Should().Be(new ConditionDuration(EntryOf("g"), 2));
     }
@@ -88,7 +88,8 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     {
         await RenderWithExpiredAsync();
 
-        await OnDispatcherAsync(() => Combat.Dismiss(Combat.Notices.Single()));
+        Combat.Dismiss(Combat.Notices.Single());
+
         Goblin.ConditionList.Single().Expired.Should().BeTrue();
     }
 
@@ -97,7 +98,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     {
         var cut = await RenderWithExpiredAsync();
 
-        cut.Find("[data-testid=notice-expired]").Closest(".ds-notice")!.QuerySelector("button[aria-label='Cerrar aviso']")!.Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=notice-expired]").Closest(".ds-notice")!.QuerySelector("button[aria-label='Cerrar aviso']")!.Click());
 
         (cut.FindAll("[data-testid=notice-expired]").Count, Goblin.ConditionList.Single().Expired).Should().Be((0, true));
     }
@@ -106,10 +107,10 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Ended_notice_close_button_dismisses_it()
     {
         var cut = await RenderWithExpiredAsync();
-        await OnDispatcherAsync(() => Combat.End());
+        await cut.InvokeAsync(() => Combat.End());
         cut.WaitForAssertion(() => cut.FindAll("[data-testid=notice-ended]").Should().ContainSingle());
 
-        cut.Find("[data-testid=notice-ended]").Closest(".ds-notice")!.QuerySelector("button[aria-label='Cerrar aviso']")!.Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=notice-ended]").Closest(".ds-notice")!.QuerySelector("button[aria-label='Cerrar aviso']")!.Click());
 
         cut.FindAll("[data-testid=notice-ended]").Should().BeEmpty();
     }
@@ -118,8 +119,9 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Notices_with_their_own_dismiss_button_get_no_extra_close_button()
     {
         var cut = await RenderWithExpiredAsync();
-        await OnDispatcherAsync(() => Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null)));
-        await OnDispatcherAsync(() => Combat.Damage("g", 22));
+        await cut.InvokeAsync(() => Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null)));
+        await cut.InvokeAsync(() => Combat.Damage("g", 22));
+
         cut.WaitForAssertion(() => cut.Find("[data-testid=notice-concentration]"));
 
         cut.Find("[data-testid=notice-concentration]").Closest(".ds-notice")!.QuerySelectorAll("button[aria-label='Cerrar aviso']").Should().BeEmpty();
@@ -129,8 +131,10 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Concentration_notice_shows_the_dc()
     {
         var cut = await RenderWithExpiredAsync();
-        await OnDispatcherAsync(() => Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null)));
-        await OnDispatcherAsync(() => Combat.Damage("g", 22));
+        await cut.InvokeAsync(() => Combat.AddCondition("g", new ConditionDraft("concentration", "Concentración", null, null, null)));
+
+        await cut.InvokeAsync(() => Combat.Damage("g", 22));
+
         cut.WaitForAssertion(() => cut.Find("[data-testid=notice-concentration]").TextContent
             .Should().Contain("Goblin 2: Salvación de Constitución para mantener la concentración: CD 11"));
     }
@@ -140,7 +144,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     {
         var cut = await RenderWithExpiredAsync();
 
-        Session.Mutate(e => e.ReplaceState(s => s with { Tokens = s.Tokens.Where(t => t.Id != "g").ToList() }));
+        await cut.InvokeAsync(() => Session.Mutate(e => e.ReplaceState(s => s with { Tokens = s.Tokens.Where(t => t.Id != "g").ToList() })));
 
         cut.WaitForAssertion(() => Combat.Notices.Should().BeEmpty());
     }
@@ -162,7 +166,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
     public async Task Collapsed_strip_notices_go_to_the_map_notices_stack()
     {
         var cut = await RenderWithExpiredAsync();
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.WaitForAssertion(() => cut.FindAll(".map-layout .map-notices [data-testid=combat-notices]").Should().HaveCount(1));
     }
@@ -192,7 +196,7 @@ public sealed class CombatNoticesTests : CombatUiTestBase
         MakeReadOnly();
         var cut = Render<DmShell>();
 
-        cut.FindAll("[data-testid=notice-expired] button")[0].Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=notice-expired] button")[0].Click());
 
         Combat.Notices.Should().ContainSingle();
     }

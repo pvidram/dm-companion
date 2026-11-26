@@ -10,7 +10,7 @@ namespace DmCompanion.Screens.Tests;
 
 public sealed class CombatActionsTests : CombatUiTestBase
 {
-    private static void Amount(IRenderedComponent<DmShell> cut, string text) => cut.Find("[data-testid=hp-amount]").Input(text);
+    private static Task Amount(IRenderedComponent<DmShell> cut, string text) => cut.InvokeAsync(() => cut.Find("[data-testid=hp-amount]").Input(text));
 
     // --- HP ---
 
@@ -19,8 +19,8 @@ public sealed class CombatActionsTests : CombatUiTestBase
     {
         var cut = await RenderAsync();
 
-        Amount(cut, "0");
-        cut.Find("[data-testid=hp-damage]").Click();
+        await Amount(cut, "0");
+        await cut.InvokeAsync(() => cut.Find("[data-testid=hp-damage]").Click());
 
         cut.Find("[data-testid=hp-error]").TextContent.Should().Contain("Escribe un número entero positivo");
     }
@@ -30,8 +30,8 @@ public sealed class CombatActionsTests : CombatUiTestBase
     {
         var cut = await RenderAsync();
 
-        Amount(cut, "6");
-        cut.Find("[data-testid=hp-damage]").Click();
+        await Amount(cut, "6");
+        await cut.InvokeAsync(() => cut.Find("[data-testid=hp-damage]").Click());
 
         Ana.HpCurrent.Should().Be(14);
     }
@@ -40,10 +40,10 @@ public sealed class CombatActionsTests : CombatUiTestBase
     public async Task Damage_acts_on_the_selected_token()
     {
         var cut = await RenderAsync();
-        cut.FindAll("[data-testid=strip-select]")[1].Click();
+        await cut.InvokeAsync(() => cut.FindAll("[data-testid=strip-select]")[1].Click());
 
-        Amount(cut, "6");
-        cut.Find("[data-testid=hp-damage]").Click();
+        await Amount(cut, "6");
+        await cut.InvokeAsync(() => cut.Find("[data-testid=hp-damage]").Click());
 
         Tokens.First(t => t.Id == "b").HpCurrent.Should().Be(14);
     }
@@ -53,8 +53,8 @@ public sealed class CombatActionsTests : CombatUiTestBase
     {
         var cut = await RenderAsync(GenericToken("a", "Ana", hp: 20) with { HpCurrent = 15 });
 
-        Amount(cut, "50");
-        cut.Find("[data-testid=hp-heal]").Click();
+        await Amount(cut, "50");
+        await cut.InvokeAsync(() => cut.Find("[data-testid=hp-heal]").Click());
 
         Ana.HpCurrent.Should().Be(20);
     }
@@ -72,8 +72,8 @@ public sealed class CombatActionsTests : CombatUiTestBase
     {
         var cut = await RenderAsync(GenericToken("a", "Ana", hp: 20) with { HpTemp = 5 });
 
-        cut.Find("[data-testid=temp-input]").Input("3");
-        cut.Find("[data-testid=temp-set]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-input]").Input("3"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-set]").Click());
 
         cut.Find("[data-testid=temp-confirm]").GetAttribute("value").Should().Be("5");
     }
@@ -82,11 +82,11 @@ public sealed class CombatActionsTests : CombatUiTestBase
     public async Task Temp_hp_confirmed_value_replaces_the_current_one()
     {
         var cut = await RenderAsync(GenericToken("a", "Ana", hp: 20) with { HpTemp = 5 });
-        cut.Find("[data-testid=temp-input]").Input("3");
-        cut.Find("[data-testid=temp-set]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-input]").Input("3"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-set]").Click());
 
-        cut.Find("[data-testid=temp-confirm]").Input("3");
-        cut.Find("[data-testid=temp-accept]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-confirm]").Input("3"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-accept]").Click());
 
         Ana.HpTemp.Should().Be(3);
     }
@@ -96,8 +96,8 @@ public sealed class CombatActionsTests : CombatUiTestBase
     {
         var cut = await RenderAsync();
 
-        cut.Find("[data-testid=temp-input]").Input("8");
-        cut.Find("[data-testid=temp-set]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-input]").Input("8"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=temp-set]").Click());
 
         Ana.HpTemp.Should().Be(8);
     }
@@ -120,7 +120,7 @@ public sealed class CombatActionsTests : CombatUiTestBase
     public async Task Compact_cell_shows_the_name()
     {
         var cut = await RenderAsync();
-        cut.Find("[data-testid=strip-toggle]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-toggle]").Click());
 
         cut.WaitForAssertion(() => cut.FindAll("[data-testid=strip-cell-name]").Select(n => n.TextContent).Should().Equal("Ana", "Bruno"));
     }
@@ -129,10 +129,10 @@ public sealed class CombatActionsTests : CombatUiTestBase
     public async Task Initiative_field_keeps_the_value_when_typing_without_leaving_the_field()
     {
         var cut = await RenderAsync(start: true, more: GenericToken("c", "Cora", hp: 5));
-        cut.Find("[data-testid=strip-add]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=strip-add]").Click());
 
-        cut.Find("[data-testid=add-initiative]").Input("12");
-        cut.Find("[data-testid=add-token-c]").Click();
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-initiative]").Input("12"));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-token-c]").Click());
 
         Combat.State!.Entries.First(e => e.TokenId == "c").Initiative.Should().Be(12);
     }

@@ -60,10 +60,15 @@ public abstract class SoundTestContext : BunitContext, IAsyncLifetime
 
     async Task IAsyncLifetime.InitializeAsync()
     {
+        // La tienda lee escenas y favoritos al abrir el vault y avisa al terminar: si ese aviso llega con la prueba en marcha, repinta
+        // la biblioteca y descuadra cualquier recuento de renders. Se resuelve antes de abrir para que ya escuche al host.
+        var stored = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Services.GetRequiredService<AudioStore>().Changed += (_, _) => stored.TrySetResult();
         await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
         var library = Services.GetRequiredService<AudioLibraryService>();
         var deadline = DateTime.UtcNow + Wait;
         while (library.Current.Tracks.Count < 4 && DateTime.UtcNow < deadline) await Task.Delay(25);
+        await stored.Task.WaitAsync(Wait);
     }
 
     async Task IAsyncLifetime.DisposeAsync()

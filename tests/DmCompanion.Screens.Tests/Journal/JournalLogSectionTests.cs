@@ -53,20 +53,20 @@ public sealed class JournalLogSectionTests : JournalUiTestBase
     }
 
     [Fact]
-    public void Generar_reports_the_number_of_entries()
+    public async Task Generar_reports_the_number_of_entries()
     {
         var cut = Render<JournalLogSection>();
 
-        ButtonLabeled(cut, "Generar bitácora común").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Generar bitácora común").Click());
 
         cut.WaitForAssertion(() => cut.Find(".ds-notice").TextContent.Trim().Should().Be("Bitácora generada: 3 entradas"), Wait);
     }
 
     [Fact]
-    public void After_generating_the_note_can_be_opened()
+    public async Task After_generating_the_note_can_be_opened()
     {
         var cut = Render<JournalLogSection>();
-        ButtonLabeled(cut, "Generar bitácora común").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Generar bitácora común").Click());
 
         cut.WaitForAssertion(() => Buttons(cut).Should().Contain("Abrir nota de la bitácora"), Wait);
     }
@@ -78,32 +78,32 @@ public sealed class JournalLogSectionTests : JournalUiTestBase
         await Host.OpenAsync(Vault.Root);
         var cut = Render<JournalLogSection>();
 
-        ButtonLabeled(cut, "Abrir nota de la bitácora").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Abrir nota de la bitácora").Click());
 
         cut.WaitForAssertion(() => (Shell.ActivePanel, Shell.SelectedNotePath).Should().Be((OverlayPanel.Notes, (string?)JournalPaths.LogPath)), Wait);
     }
 
     [Fact]
-    public void A_foreign_note_gets_the_warning_and_stays_untouched()
+    public async Task A_foreign_note_gets_the_warning_and_stays_untouched()
     {
         const string mine = "---\ntype: note\n---\nMi propia bitácora.\n";
         WriteFile(JournalPaths.LogPath, mine);
         var cut = Render<JournalLogSection>();
 
-        ButtonLabeled(cut, "Generar bitácora común").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Generar bitácora común").Click());
 
         cut.WaitForAssertion(() => cut.Find(".ds-notice").TextContent.Trim().Should().Be(JournalLogService.ForeignNoteText), Wait);
         File.ReadAllText(Vault.PathOf(JournalPaths.LogPath)).Should().Be(mine);
     }
 
     [Fact]
-    public void The_notice_can_be_closed()
+    public async Task The_notice_can_be_closed()
     {
         var cut = Render<JournalLogSection>();
-        ButtonLabeled(cut, "Generar bitácora común").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Generar bitácora común").Click());
         cut.WaitForAssertion(() => cut.FindAll(".ds-notice").Count.Should().Be(1), Wait);
 
-        cut.Find("button[aria-label='Cerrar aviso']").Click();
+        await cut.InvokeAsync(() => cut.Find("button[aria-label='Cerrar aviso']").Click());
 
         cut.FindAll(".ds-notice").Count.Should().Be(0);
     }
@@ -129,7 +129,7 @@ public sealed class JournalLogSectionTests : JournalUiTestBase
         await Journal.RefreshImagesAsync();
         var cut = Render<JournalLogSection>();
 
-        ButtonLabeled(cut, "Ver bitácora en TV").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Ver bitácora en TV").Click());
 
         cut.WaitForAssertion(() => (Tv.Mode, Tv.Journal?.IsLog, Tv.Journal?.Title, Tv.Journal?.Slides.Count, Tv.Journal?.Current.Title)
             .Should().Be((TvMode.Content, (bool?)true, "Bitácora", (int?)2, "Lobo")), Wait);
@@ -141,7 +141,7 @@ public sealed class JournalLogSectionTests : JournalUiTestBase
         await Tv.EnableAsync();
         var cut = Render<JournalLogSection>();
 
-        ButtonLabeled(cut, "Ver bitácora en TV").Click();
+        await cut.InvokeAsync(() => ButtonLabeled(cut, "Ver bitácora en TV").Click());
 
         cut.WaitForAssertion(() => (Tv.Journal is not null, File.Exists(Vault.PathOf(JournalPaths.LogPath))).Should().Be((true, false)), Wait);
     }

@@ -7,6 +7,7 @@ using DmCompanion.Screens.Platform;
 using DmCompanion.Screens.Services;
 using DmCompanion.UI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace DmCompanion.Screens.Tests;
 
@@ -25,7 +26,7 @@ public sealed class MapCanvasTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IAppPreferences>(_preferences);
         Services.AddSingleton<IVaultServiceFactory>(_factory);
         Services.AddSingleton<VaultHost>();
-        Services.AddSingleton(TimeProvider.System);
+        Services.AddSingleton<TimeProvider>(new FakeTimeProvider());
         Services.AddSingleton<MapSession>();
         Services.AddSingleton<TokenHitPoints>();
         Services.AddSingleton<CombatController>();

@@ -126,8 +126,7 @@ public sealed class TvJournalTests : TvSessionTestBase
         var entry = Ankheg();
         entry = entry with { Images = [.. entry.Images, new JournalImage("2026-11-16 Tres-3.png", $"{Diary}/2026-11-16 Tres-3.png", true, true)] };
         await Tv.ShowJournalEntryAsync(entry);
-        await Host.Current!.DeleteAsync($"{Diary}/2026-11-16 Ankheg-2.jpg");
-        await Task.Delay(300);
+        await DeleteAndAwaitWatcherAsync($"{Diary}/2026-11-16 Ankheg-2.jpg");
 
         await Tv.JournalNextAsync();
 
@@ -139,8 +138,7 @@ public sealed class TvJournalTests : TvSessionTestBase
     {
         await Tv.ShowJournalEntryAsync(Ankheg());
         await Host.Current!.DeleteAsync($"{Diary}/2026-11-16 Ankheg-1.png");
-        await Host.Current!.DeleteAsync($"{Diary}/2026-11-16 Ankheg-2.jpg");
-        await Task.Delay(300);
+        await DeleteAndAwaitWatcherAsync($"{Diary}/2026-11-16 Ankheg-2.jpg");
 
         await Tv.JournalNextAsync();
 
@@ -205,7 +203,9 @@ public sealed class TvJournalTests : TvSessionTestBase
         var published = Server.Published.Count;
 
         await SaveNoteAsync("Lugares/Faro Viejo.md", "---\ntype: location\n---\nOtro texto.\n");
-        await Task.Delay(300);
+        // Ya en la última diapositiva, «siguiente» no cambia nada pero pasa por el mismo gate que el repintado del vault: cuando
+        // vuelve, la TV ha procesado el cambio de la nota.
+        await Tv.JournalNextAsync();
 
         (Tv.Mode, Tv.Journal!.Position, Server.Published.Count).Should().Be((TvMode.Content, 1, published));
     }

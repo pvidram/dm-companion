@@ -26,6 +26,10 @@ internal sealed class CountingFactory : IVaultServiceFactory
     public TimeSpan WriteResultSkew;
     public int StateStats;
     public int FileListings;
+    // Completa ListFilesAsync antes de devolver la tarea: reproduce un listado que acaba antes de que el llamador llegue a su await.
+    public volatile bool ListSynchronously;
+    // Retrasa solo el listado de la tienda de audio (escenas y favoritos), para que su aviso llegue con la prueba ya en marcha.
+    public TimeSpan ListDelay;
     public List<WriteMode> StatePreconditions { get; } = [];
 
     public VaultService Create(string rootPath) => new(

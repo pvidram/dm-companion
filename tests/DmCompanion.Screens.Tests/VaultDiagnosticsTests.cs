@@ -49,9 +49,16 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
             await File.WriteAllTextAsync(_vault.PathOf(path), $"---\ntype: campaign\nname: C\nsystem: {system}\n---\n");
         }
         await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
+        // Con el listado ya hecho, el único aviso que queda es el del relistado de OnInitializedAsync: no hay listado perezoso que lo confunda.
+        var journal = Services.GetRequiredService<JournalIndex>();
+        await journal.RefreshImagesAsync();
+        var relisted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        journal.Changed += (_, _) => relisted.TrySetResult();
         var cut = Render<VaultDiagnostics>();
-        // OnInitializedAsync relista las imágenes del diario y repinta al acabar: hasta entonces los manejadores de los botones aún cambian.
-        cut.WaitForState(() => cut.RenderCount >= 2, TimeSpan.FromSeconds(10));
+        // OnInitializedAsync relista las imágenes y repinta al acabar: hasta entonces los manejadores de los botones aún cambian. Esperar
+        // a «dos renders» no sirve: si el listado acaba antes del primer await solo hay uno.
+        await relisted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await cut.InvokeAsync(() => { });
         return cut;
     }
 
@@ -102,7 +109,7 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<ILogFolder>(logs);
         var cut = await RenderAsync();
 
-        cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click();
+        await cut.InvokeAsync(() => cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click());
 
         logs.Opens.Should().Be(1);
     }
@@ -113,7 +120,7 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<ILogFolder>(new FakeLogFolder { Succeeds = false });
         var cut = await RenderAsync();
 
-        cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click();
+        await cut.InvokeAsync(() => cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click());
 
         cut.Markup.Should().Contain("No se pudo abrir la carpeta de registros");
     }
@@ -124,7 +131,7 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<ILogFolder>(new FakeLogFolder());
         var cut = await RenderAsync();
 
-        cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click();
+        await cut.InvokeAsync(() => cut.FindAll("button").First(b => b.TextContent.Contains("Abrir carpeta de registros")).Click());
 
         cut.Markup.Should().NotContain("No se pudo abrir la carpeta de registros");
     }

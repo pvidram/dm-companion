@@ -138,8 +138,12 @@ public sealed class JournalIndex(VaultHost host, VaultFileUrls urls, ILogger<Jou
         {
             // Una sola vez por versión del índice; mientras se lista, todo se da por existente.
             (_relistedFor, _listing) = (index, true);
-            _ = RelistAsync(vault, _generation);
             entries = ReadEntries(index, _ => true);
+            (_entries, _builtFor) = (entries, index);
+            // Va después de guardar la caché: si el listado acaba antes del primer await, RelistAsync entra en el lock (reentrante)
+            // y suelta _builtFor aquí mismo; guardarlo después dejaría las entradas optimistas fijadas para siempre.
+            _ = RelistAsync(vault, _generation);
+            return entries;
         }
         (_entries, _builtFor) = (entries, index);
         return entries;

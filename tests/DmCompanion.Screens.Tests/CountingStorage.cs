@@ -26,7 +26,13 @@ internal sealed class CountingStorage(IVaultStorage inner, CountingFactory owner
     {
         Interlocked.Increment(ref owner.FileListings);
         if (owner.ListFailure is { } failure) throw failure;
-        return inner.ListFilesAsync(f, ct);
+        if (owner.ListDelay > TimeSpan.Zero && f(DmCompanion.Core.Audio.AudioPaths.AppFolder + "/favorites.json")) return DelayedListAsync(f, ct);
+        return owner.ListSynchronously ? Task.FromResult(inner.ListFilesAsync(f, ct).GetAwaiter().GetResult()) : inner.ListFilesAsync(f, ct);
+    }
+    private async Task<IReadOnlyList<VaultFile>> DelayedListAsync(Func<string, bool> f, CancellationToken ct)
+    {
+        await Task.Delay(owner.ListDelay, ct);
+        return await inner.ListFilesAsync(f, ct);
     }
     public Task<Stream> OpenReadAsync(string p, CancellationToken ct = default) => inner.OpenReadAsync(p, ct);
     public async Task<VaultFileInfo?> StatAsync(string p, CancellationToken ct = default)
