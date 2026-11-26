@@ -114,7 +114,7 @@ public sealed class DailyFileLoggerTests : IDisposable
         using var provider = new DailyFileLoggerProvider(_folder.Root, _time);
 
         provider.CreateLogger("Microsoft.AspNetCore.Components.Server.Circuits.CircuitHost")
-            .LogWarning(new IOException("x"), "Unhandled exception rendering component: {Message}", "C:\\Users\\pau\\secreto");
+            .LogWarning(new IOException("x"), "Unhandled exception rendering component: {Message}", "C:\\Users\\jane\\secreto");
 
         ReadAll().Should().NotContain("secreto");
     }
