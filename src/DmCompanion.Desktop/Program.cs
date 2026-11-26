@@ -4,6 +4,7 @@ using DmCompanion.Desktop;
 using DmCompanion.Desktop.Components;
 using DmCompanion.Desktop.Logging;
 using DmCompanion.Desktop.Platform;
+using DmCompanion.Desktop.Updates;
 using DmCompanion.DevHost;
 using DmCompanion.DevHost.Platform;
 using DmCompanion.Core.Tv;
@@ -119,6 +120,13 @@ try
     builder.Services.AddSingleton<JournalIndex>();
     builder.Services.AddSingleton<JournalLogService>();
     builder.Services.AddHostedService<MapFlushOnStop>();
+    if (desktopMode)
+    {
+        // El cliente tipado es transitorio, pero UpdateNotice es singleton y solo consulta una vez por arranque: la instancia única es aceptable.
+        builder.Services.AddHttpClient<IUpdateCheck, GitHubUpdateCheck>(client => client.Timeout = TimeSpan.FromSeconds(5));
+        builder.Services.AddSingleton(sp => new UpdateNotice(sp.GetRequiredService<IAppPreferences>(), sp.GetRequiredService<IUpdateCheck>()));
+        builder.Services.AddHostedService<UpdateCheckOnStart>();
+    }
 
     var app = builder.Build();
 
