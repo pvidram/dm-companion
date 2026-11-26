@@ -81,16 +81,36 @@ public sealed class CosmereSystem : IGameSystem
         return new StatValues(values, warnings);
     }
 
-    public string StatsTemplate(EntityType type)
+    public string StatsTemplate(EntityType type) => PcStatsYaml(CreationField.Defaults(PcCreationFields));
+
+    private static readonly IReadOnlyList<CreationField> CreationFields =
+    [
+        .. AttributeIds.Select((id, i) => new CreationField(id, AttributeLabels[i], 0, 0, 10, "Atributos")),
+        new("health", "Salud (máx.)", 0, 0, 999, "Recursos"),
+        new("focus", "Concentración (máx.)", 0, 0, 999, "Recursos"),
+        new("investiture", "Investidura (máx.)", 0, 0, 999, "Recursos"),
+    ];
+
+    public IReadOnlyList<CreationField> PcCreationFields => CreationFields;
+
+    public string PcStatsYaml(IReadOnlyDictionary<string, int> values)
     {
+        int V(string id) => values.TryGetValue(id, out var v) ? v : CreationFields.First(f => f.Id == id).Default;
         var sb = new StringBuilder();
         sb.Append("stats:\n");
-        sb.Append("  attributes: { ").Append(string.Join(", ", AttributeIds.Select(a => a + ": 0"))).Append(" }\n");
+        sb.Append("  attributes: { ").Append(string.Join(", ", AttributeIds.Select(a => $"{a}: {V(a)}"))).Append(" }\n");
         sb.Append("  defenses: {}\n");
-        foreach (var id in ResourceIds) sb.Append("  ").Append(id).Append(": { current: 0, max: 0 }\n");
-        sb.Append("  deflect: 0\n  movement: 0\n  skills:\n");
-        foreach (var skill in Skills) sb.Append("    ").Append(skill.Key).Append(": 0\n");
+        foreach (var id in ResourceIds)
+            sb.Append("  ").Append(id).Append(": { current: ").Append(V(id)).Append(", max: ").Append(V(id)).Append(" }\n");
+        sb.Append("  deflect: 0\n  movement: 0\n");
+        AppendSkills(sb);
         return sb.ToString();
+    }
+
+    private static void AppendSkills(StringBuilder sb)
+    {
+        sb.Append("  skills:\n");
+        foreach (var skill in Skills) sb.Append("    ").Append(skill.Key).Append(": 0\n");
     }
 
     private static StatValue Missing(string id, string reason) =>

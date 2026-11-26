@@ -17,6 +17,8 @@ public sealed record VaultEntity(
     public bool IsSecret => ParseError is not null || SecretFilter.IsSecret(Frontmatter);
 
     public string? Portrait => FrontmatterReader.GetString(Frontmatter, "portrait");
+    public string? Alias => FrontmatterReader.GetString(Frontmatter, "alias");
+    public string? Player => FrontmatterReader.GetString(Frontmatter, "player");
     public string Initial => Title.Length > 0 ? char.ToUpperInvariant(Title[0]).ToString() : "?";
 }
 

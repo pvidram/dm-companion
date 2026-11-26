@@ -31,6 +31,14 @@ public static class NoteTemplates
         return header + extra.Replace("\r\n", "\n") + "---\n" + body;
     }
 
+    public static string CreatePc(PcDraft draft, IGameSystem system)
+    {
+        var header = $"---\ntype: pc\nname: {Quote(OneLine(draft.Name))}\n";
+        if (!string.IsNullOrWhiteSpace(draft.Alias)) header += $"alias: {Quote(OneLine(draft.Alias))}\n";
+        if (!string.IsNullOrWhiteSpace(draft.Player)) header += $"player: {Quote(OneLine(draft.Player))}\n";
+        return header + system.PcStatsYaml(draft.Stats).Replace("\r\n", "\n") + "---\n## Trasfondo\n\n## Notas\n";
+    }
+
     public static string DefaultFolder(EntityType type) => type switch
     {
         EntityType.Campaign => string.Empty,
@@ -40,6 +48,9 @@ public static class NoteTemplates
         EntityType.Rule or EntityType.Monster => "Glosario",
         _ => "Historia",
     };
+
+    private static string OneLine(string value) =>
+        new string(value.Select(c => char.IsControl(c) ? ' ' : c).ToArray()).Trim();
 
     private static string Quote(string value) => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 }

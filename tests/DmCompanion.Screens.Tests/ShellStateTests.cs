@@ -47,6 +47,31 @@ public sealed class ShellStateTests
     }
 
     [Fact]
+    public void OpenAddPlayer_sets_the_flag_and_CloseAddPlayer_clears_it()
+    {
+        var shell = new ShellState();
+        var raised = 0;
+        shell.Changed += (_, _) => raised++;
+
+        shell.OpenAddPlayer();
+        var opened = shell.AddPlayerOpen;
+        shell.CloseAddPlayer();
+
+        (opened, shell.AddPlayerOpen, raised).Should().Be((true, false, 2));
+    }
+
+    [Fact]
+    public void Reset_closes_the_add_player_dialog()
+    {
+        var shell = new ShellState();
+        shell.OpenAddPlayer();
+
+        shell.Reset();
+
+        shell.AddPlayerOpen.Should().BeFalse();
+    }
+
+    [Fact]
     public void Reset_closes_the_add_token_dialog()
     {
         var shell = new ShellState();

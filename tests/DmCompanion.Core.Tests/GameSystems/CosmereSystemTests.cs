@@ -126,4 +126,24 @@ public class CosmereSystemTests
     [Fact] public void HitPoints_label_is_Salud() => System.HitPoints.Label.Should().Be("Salud");
 
     [Fact] public void Cosmere_uses_no_srd_pack() => System.GlossaryPacks.Should().BeEmpty();
+
+    // --- Creación de PJ ---
+    [Fact]
+    public void Pc_creation_fields_are_six_attributes_and_three_resource_maxima() =>
+        System.PcCreationFields.Select(f => f.Id).Should().Equal("str", "spd", "int", "wil", "awa", "pre", "health", "focus", "investiture");
+
+    [Fact]
+    public void Pc_stats_yaml_with_defaults_equals_the_template() =>
+        System.PcStatsYaml(CreationField.Defaults(System.PcCreationFields)).Should().Be(System.StatsTemplate(EntityType.Pc));
+
+    private static StatValues EvalCreated() => Eval(System.PcStatsYaml(new Dictionary<string, int>
+        { ["str"] = 2, ["spd"] = 3, ["health"] = 12 }));
+
+    [Fact] public void Pc_stats_yaml_writes_attributes() => EvalCreated().ById["physical"].Display.Should().Be("15");
+    [Fact] public void Pc_stats_yaml_writes_resources() => EvalCreated().ById["health"].Display.Should().Be("12/12");
+    [Fact] public void Pc_stats_yaml_evaluates_without_warnings() => EvalCreated().Warnings.Should().BeEmpty();
+
+    [Fact]
+    public void Pc_stats_yaml_uses_the_default_for_a_missing_id() =>
+        Eval(System.PcStatsYaml(new Dictionary<string, int>())).ById["str"].Display.Should().Be("0");
 }

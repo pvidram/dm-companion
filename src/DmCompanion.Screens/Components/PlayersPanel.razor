@@ -14,7 +14,7 @@
         }
         @if (pcs.Count == 0)
         {
-            <EmptyState Icon="IconName.Users" Title="Sin jugadores">Crea una nota con <code>type: pc</code> para añadir un personaje.</EmptyState>
+            <EmptyState Icon="IconName.Users" Title="Sin jugadores">Pulsa «Añadir jugador» o crea una nota con <code>type: pc</code>.</EmptyState>
         }
         else
         {
@@ -39,6 +39,7 @@
         }
     </ChildContent>
     <Actions>
+        <Button Icon="IconName.UserPlus" data-testid="add-player" OnClick="Shell.OpenAddPlayer">Añadir jugador</Button>
         @if (Shell.SelectedPcPath is { } path && Index.Get(path) is not null)
         {
             <Button Icon="IconName.ScrollText" OnClick="@(() => Shell.RequestOpenNote(path))">Abrir nota</Button>

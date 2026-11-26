@@ -25,6 +25,10 @@ public sealed class GenericSystem(string id) : IGameSystem
 
     public string StatsTemplate(EntityType type) => "stats: {}\n";
 
+    public IReadOnlyList<CreationField> PcCreationFields => [];
+
+    public string PcStatsYaml(IReadOnlyDictionary<string, int> values) => "stats: {}\n";
+
     private static void AddLeaves(string path, IReadOnlyDictionary<string, object?> map, Dictionary<string, StatValue> values)
     {
         foreach (var (key, value) in map)

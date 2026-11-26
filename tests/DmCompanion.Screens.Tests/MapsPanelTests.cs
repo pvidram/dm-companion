@@ -156,7 +156,7 @@ public sealed class MapsPanelTests : MapsTestContext
     public async Task New_map_dialog_creates_a_blank_map_and_opens_it()
     {
         var cut = RenderOpenMaps();
-        await cut.InvokeAsync(() => cut.Find("section.ds-parchment .ds-parchment__actions button").Click());
+        await cut.InvokeAsync(() => cut.Find("section.ds-parchment:not([hidden]) .ds-parchment__actions button").Click());
         cut.WaitForAssertion(() => OpenDialogText(cut).Should().Contain("Nuevo mapa"), Wait);
         await cut.InvokeAsync(() => OpenDialog(cut).QuerySelector("input[type=text]")!.Input("Mazmorra"));
 
@@ -170,7 +170,7 @@ public sealed class MapsPanelTests : MapsTestContext
     {
         var cut = RenderOpenMaps();
 
-        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment .ds-parchment__actions button")[1].Click());
+        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment:not([hidden]) .ds-parchment__actions button")[1].Click());
 
         cut.WaitForAssertion(() => OpenDialog(cut).QuerySelector("input[type=file]")!.GetAttribute("accept").Should().Be("image/*"), Wait);
     }
@@ -179,7 +179,7 @@ public sealed class MapsPanelTests : MapsTestContext
     public async Task Import_dialog_suggests_the_file_name_without_extension()
     {
         var cut = RenderOpenMaps();
-        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment .ds-parchment__actions button")[1].Click());
+        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment:not([hidden]) .ds-parchment__actions button")[1].Click());
         cut.WaitForAssertion(() => cut.FindComponent<InputFile>(), Wait);
 
         cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromBinary(new byte[] { 1, 2, 3 }, "Isla Perdida.png"));
@@ -191,7 +191,7 @@ public sealed class MapsPanelTests : MapsTestContext
     public async Task Import_dialog_writes_the_image_and_the_map_note()
     {
         var cut = RenderOpenMaps();
-        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment .ds-parchment__actions button")[1].Click());
+        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment:not([hidden]) .ds-parchment__actions button")[1].Click());
         cut.WaitForAssertion(() => cut.FindComponent<InputFile>(), Wait);
         cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromBinary(new byte[] { 1, 2, 3 }, "Isla.png"));
         cut.WaitForAssertion(() => OpenDialog(cut).QuerySelector("[data-testid=picked-image]").Should().NotBeNull(), Wait);
@@ -205,7 +205,7 @@ public sealed class MapsPanelTests : MapsTestContext
     public async Task Import_dialog_without_an_image_asks_to_choose_one()
     {
         var cut = RenderOpenMaps();
-        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment .ds-parchment__actions button")[1].Click());
+        await cut.InvokeAsync(() => cut.FindAll("section.ds-parchment:not([hidden]) .ds-parchment__actions button")[1].Click());
         cut.WaitForAssertion(() => OpenDialogText(cut).Should().Contain("Importar imagen como mapa"), Wait);
 
         await cut.InvokeAsync(() => OpenDialog(cut).QuerySelector("button.ds-button--primary")!.Click());

@@ -99,6 +99,22 @@ public class PlayerViewProjectorTests
     public void Pc_hp_shows_temp() => Hp(Tok("p", TokenSide.Pc, 12, 3)).Should().Be("12/20 (+3)");
 
     [Fact]
+    public void Aliased_token_keeps_its_portrait_when_the_look_says_so()
+    {
+        var view = PlayerViewProjector.Project(Map, State([Tok("a", alias: "Sombra")]), Frame, Dnd5eCombatRules.Instance, _ => 20,
+            _ => new TokenLook("retratos/a.png", true));
+        view.Tokens.Single().Should().Match<PlayerToken>(t => t.PortraitPath == "retratos/a.png" && t.Name == "Sombra");
+    }
+
+    [Fact]
+    public void Aliased_token_still_hides_its_portrait_by_default()
+    {
+        var view = PlayerViewProjector.Project(Map, State([Tok("a", alias: "Sombra")]), Frame, Dnd5eCombatRules.Instance, _ => 20,
+            _ => new TokenLook("retratos/a.png"));
+        view.Tokens.Single().PortraitPath.Should().BeNull();
+    }
+
+    [Fact]
     public void Pc_hp_without_max_shows_current_only() => Hp(Tok("p", TokenSide.Pc, 12), null).Should().Be("12");
 
     [Theory]

@@ -19,7 +19,8 @@ public static class PlayerViewProjector
 
         var tokens = visible.Select(t =>
         {
-            var portrait = string.IsNullOrWhiteSpace(t.Alias) ? look(t).PortraitPath : null;
+            var tokenLook = look(t);
+            var portrait = string.IsNullOrWhiteSpace(t.Alias) || tokenLook.KeepsPortraitWithAlias ? tokenLook.PortraitPath : null;
             return new PlayerToken(t.Id, t.PlayerName, InitialOf(t.PlayerName), portrait, t.Side, t.Size, t.X, t.Y,
                 HitPointOps.IsDown(t) && !t.IsDead, currentTokenId == t.Id, t.IsDead, ActiveConditions(t).Count);
         }).ToList();

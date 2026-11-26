@@ -39,6 +39,63 @@ public sealed class VaultServiceTests : IAsyncLifetime
         await WaitUntilAsync(() => _service.ActiveSystem.Id == "cosmere");
     }
 
+    private static PcDraft Draft(string name, params (string Id, int Value)[] stats) =>
+        new(name, null, null, stats.ToDictionary(s => s.Id, s => s.Value));
+
+    [Fact]
+    public async Task CreatePlayerCharacter_writes_the_note_in_Personajes_and_indexes_it()
+    {
+        var draft = new PcDraft("Mira Cuervo", "Cuervo", "Ana", new Dictionary<string, int> { ["ac"] = 15 });
+
+        var result = await _service.CreatePlayerCharacterAsync(draft);
+
+        var entity = _service.Index.Get(result.RelativePath)!;
+        (result.Status, result.RelativePath, entity.Type, entity.Alias, entity.Player,
+            _service.ActiveSystem.Evaluate(entity.Frontmatter).ById["ac"].Display)
+            .Should().Be((WriteStatus.Written, "Personajes/Mira Cuervo.md", EntityType.Pc, "Cuervo", "Ana", "15"));
+    }
+
+    [Fact]
+    public async Task CreatePlayerCharacter_with_existing_file_name_reports_AlreadyExists_and_keeps_it()
+    {
+        var before = await File.ReadAllTextAsync(_vault.PathOf("Personajes/Torvald.md"));
+
+        var result = await _service.CreatePlayerCharacterAsync(Draft("Torvald?"));
+
+        (result.Status, await File.ReadAllTextAsync(_vault.PathOf("Personajes/Torvald.md")))
+            .Should().Be((WriteStatus.AlreadyExists, before));
+    }
+
+    [Fact]
+    public async Task CreatePlayerCharacter_with_blank_name_throws_ArgumentException()
+    {
+        var act = () => _service.CreatePlayerCharacterAsync(Draft("  "));
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task CreatePlayerCharacter_with_out_of_range_stat_throws_and_writes_nothing()
+    {
+        var act = () => _service.CreatePlayerCharacterAsync(Draft("Mira", ("str", 99)));
+
+        await act.Should().ThrowAsync<ArgumentException>();
+        File.Exists(_vault.PathOf("Personajes/Mira.md")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreatePlayerCharacter_uses_the_active_system_fields()
+    {
+        await File.WriteAllTextAsync(_vault.PathOf("Campaña.md"), "---\ntype: campaign\nsystem: cosmere\n---\n");
+        _changes.Raise("Campaña.md", VaultChangeKind.Upserted);
+        await WaitUntilAsync(() => _service.ActiveSystem.Id == "cosmere");
+
+        var result = await _service.CreatePlayerCharacterAsync(Draft("Kel", ("spd", 3), ("str", 2)));
+
+        var entity = _service.Index.Get(result.RelativePath)!;
+        _service.ActiveSystem.Evaluate(entity.Frontmatter).ById["physical"].Display.Should().Be("15");
+    }
+
     [Fact]
     public async Task Delete_of_a_note_removes_it_from_the_index_immediately()
     {

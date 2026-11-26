@@ -27,7 +27,8 @@ public sealed partial class MapEditor(MapState initial, double width, double hei
         if (string.IsNullOrWhiteSpace(draft.Name))
             throw new ArgumentException("El nombre del token no puede estar en blanco.", nameof(draft));
         var token = new MapToken(newId(), draft.Name, draft.Source, draft.Side, draft.Size,
-            ClampX(x), ClampY(y), draft.Ac, draft.Hp);
+            ClampX(x), ClampY(y), draft.Ac, draft.Hp,
+            Alias: string.IsNullOrWhiteSpace(draft.Alias) ? null : draft.Alias.Trim());
         State = State with { Tokens = [.. State.Tokens, token] };
         return token;
     }

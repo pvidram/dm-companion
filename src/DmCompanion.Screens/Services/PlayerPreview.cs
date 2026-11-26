@@ -41,7 +41,7 @@ public sealed class PlayerPreview : IDisposable
         if (_session.Current is not { } map || _session.Editor is not { } editor) return null;
         var tabletUrls = _images.TabletUrls();
         var view = PlayerViewProjector.Project(map, editor.State, new TvFrame(0, 0, map.Width, map.Height),
-            _hitPoints.Rules, _hitPoints.MaxFor, t => new TokenLook(TvMapFeed.PortraitOf(_host, t)));
+            _hitPoints.Rules, _hitPoints.MaxFor, t => TvMapFeed.LookOf(_host, t));
         return JsonSerializer.Serialize(PlayerMapJson.Map(view, p => p is null ? null : tabletUrls(p), wholeMap: true), Json);
     }
 

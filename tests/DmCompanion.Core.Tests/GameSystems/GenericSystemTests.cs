@@ -43,4 +43,12 @@ public class GenericSystemTests
     public void HitPoints_label_is_HP() => new GenericSystem("x").HitPoints.Label.Should().Be("HP");
 
     [Fact] public void Generic_uses_no_srd_pack() => new GenericSystem("x").GlossaryPacks.Should().BeEmpty();
+
+    [Fact]
+    public void Pc_creation_fields_are_empty() =>
+        new GenericSystem("pathfinder").PcCreationFields.Should().BeEmpty();
+
+    [Fact]
+    public void Pc_stats_yaml_is_empty_stats() =>
+        new GenericSystem("pathfinder").PcStatsYaml(new Dictionary<string, int>()).Should().Be("stats: {}\n");
 }

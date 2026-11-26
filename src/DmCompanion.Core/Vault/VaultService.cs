@@ -151,6 +151,17 @@ public sealed class VaultService(IVaultStorage storage, IVaultChangeSource chang
         return new CreateNoteResult(relativePath, result.Status);
     }
 
+    public async Task<CreateNoteResult> CreatePlayerCharacterAsync(PcDraft draft, CancellationToken ct = default)
+    {
+        var errors = draft.Validate(ActiveSystem);
+        if (errors.Count > 0) throw new ArgumentException(string.Join(" ", errors), nameof(draft));
+
+        var directory = NoteTemplates.DefaultFolder(EntityType.Pc);
+        var relativePath = $"{directory}/{NoteFileName.FromTitle(draft.Name)}.md";
+        var result = await SaveAsync(relativePath, NoteTemplates.CreatePc(draft, ActiveSystem), WritePrecondition.MustNotExist, ct);
+        return new CreateNoteResult(relativePath, result.Status);
+    }
+
     public async Task<ConflictResolution> ResolveConflictAsync(
         SyncConflict conflict, ConflictChoice choice, DateTime? originalLastWriteUtc, CancellationToken ct = default)
     {

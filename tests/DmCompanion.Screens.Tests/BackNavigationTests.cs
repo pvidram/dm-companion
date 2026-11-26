@@ -65,6 +65,16 @@ public sealed class BackNavigationTests
     }
 
     [Fact]
+    public async Task Back_closes_the_add_player_dialog()
+    {
+        _shell.OpenAddPlayer();
+
+        var handled = await Back.HandleBackAsync();
+
+        (handled, _shell.AddPlayerOpen).Should().Be((true, false));
+    }
+
+    [Fact]
     public async Task Conflicts_dialog_is_closed()
     {
         _shell.OpenConflicts();

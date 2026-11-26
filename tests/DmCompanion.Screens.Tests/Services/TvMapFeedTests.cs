@@ -145,6 +145,20 @@ public sealed class TvMapFeedTests : IAsyncLifetime
         (MapOf(message).GetProperty("tokens")[0].GetProperty("portraitUrl").ValueKind, message.Files.Count).Should().Be((JsonValueKind.Null, 0));
     }
 
+    [Theory]
+    [InlineData("pc", true)]
+    [InlineData("npc", false)]
+    public async Task Aliased_token_keeps_the_portrait_only_when_its_note_is_a_pc(string type, bool keeps)
+    {
+        var state = CaveState() with { Tokens = [CaveState().Tokens[0] with { Source = "Personajes/Sombra.md", Alias = "Sombra" }] };
+        await _host.Current!.SaveAsync("Personajes/Sombra.md", $"---\ntype: {type}\nname: Torvald\nportrait: _assets/x.png\n---\n",
+            Core.Vault.Storage.WritePrecondition.Overwrite);
+
+        var token = MapOf(_feed.Build(Map(Cave), state, Frame)).GetProperty("tokens")[0];
+
+        (token.GetProperty("portraitUrl").ValueKind != JsonValueKind.Null, token.GetProperty("name").GetString()).Should().Be((keeps, "Sombra"));
+    }
+
     [Fact]
     public async Task Whitelisted_file_is_not_opened_from_another_vault_after_a_switch()
     {

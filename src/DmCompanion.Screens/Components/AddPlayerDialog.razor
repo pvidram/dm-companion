@@ -1,0 +1,123 @@
+@using DmCompanion.Core.GameSystems
+@inherits DmComponentBase
+
+<Dialog Title="Añadir jugador" IsOpen="Shell.AddPlayerOpen" OnClose="Shell.CloseAddPlayer">
+    <ChildContent>
+        <TextField Label="Nombre" @bind-Value="_name" data-testid="add-player-name" />
+        <TextField Label="Alias" @bind-Value="_alias" data-testid="add-player-alias" />
+        <TextField Label="Jugador/a" @bind-Value="_player" data-testid="add-player-player" />
+        @if (Fields.Count == 0)
+        {
+            <InlineNotice Kind="NoticeKind.Info">Sistema desconocido: solo se guardan nombre, alias y jugador/a.</InlineNotice>
+        }
+        @foreach (var group in Fields.GroupBy(f => f.Group))
+        {
+            @if (group.Key is not null)
+            {
+                <h4>@group.Key</h4>
+            }
+            @foreach (var field in group)
+            {
+                var id = field.Id;
+                <NumberStepper Label="@field.Label" Value="ValueOf(field)" ValueChanged="v => _values[id] = (int)v" />
+            }
+        }
+        @if (Errors.Count > 0)
+        {
+            <ul data-testid="add-player-errors">
+                @foreach (var error in Errors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        }
+        @if (_notice is { } notice)
+        {
+            <div data-testid="add-player-notice"><InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice></div>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="@(_busy || string.IsNullOrWhiteSpace(_name) || Errors.Count > 0)" OnClick="CreateAsync">Crear</Button>
+        <Button OnClick="Shell.CloseAddPlayer">Cancelar</Button>
+    </Footer>
+</Dialog>
+
+@code {
+    private readonly Dictionary<string, int> _values = new();
+    private string _name = string.Empty;
+    private string _alias = string.Empty;
+    private string _player = string.Empty;
+    private string? _notice;
+    private bool _busy;
+    private bool _wasOpen;
+
+    private IGameSystem Rules => Host.Current?.ActiveSystem ?? GameSystemRegistry.Default.Get("dnd5e");
+    private IReadOnlyList<CreationField> Fields => Rules.PcCreationFields;
+    private IReadOnlyList<string> Errors => Draft().Validate(Rules).Where(e => e != PcDraft.NameRequiredMessage).ToList();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Sync();
+    }
+
+    protected override void OnVaultChanged() => Sync();
+
+    // Al pasar de cerrado a abierto el formulario vuelve a sus valores por defecto.
+    private void Sync()
+    {
+        var open = Shell.AddPlayerOpen;
+        if (open && !_wasOpen) Reset();
+        _wasOpen = open;
+    }
+
+    private void Reset()
+    {
+        _name = _alias = _player = string.Empty;
+        _notice = null;
+        _values.Clear();
+        foreach (var field in Fields) _values[field.Id] = field.Default;
+    }
+
+    private double ValueOf(CreationField field) => _values.TryGetValue(field.Id, out var v) ? v : field.Default;
+
+    private PcDraft Draft() => new(
+        _name.Trim(),
+        string.IsNullOrWhiteSpace(_alias) ? null : _alias.Trim(),
+        string.IsNullOrWhiteSpace(_player) ? null : _player.Trim(),
+        Fields.ToDictionary(f => f.Id, f => _values.TryGetValue(f.Id, out var v) ? v : f.Default));
+
+    private async Task CreateAsync()
+    {
+        if (_busy || Host.Current is not { } vault) return;
+        var draft = Draft();
+        if (draft.Validate(vault.ActiveSystem).Count > 0) return;
+
+        _busy = true;
+        _notice = null;
+        try
+        {
+            var result = await vault.CreatePlayerCharacterAsync(draft);
+            if (result.Status == WriteStatus.Written)
+            {
+                Shell.CloseAddPlayer();
+                Shell.SelectPc(result.RelativePath);
+                Shell.SelectPlayerTab(PlayerTab.Sheet);
+            }
+            else
+            {
+                _notice = result.Status == WriteStatus.AlreadyExists
+                    ? $"Ya existe un personaje en «{result.RelativePath}»."
+                    : $"No se pudo crear «{result.RelativePath}».";
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notice = $"No se pudo escribir la nota: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
