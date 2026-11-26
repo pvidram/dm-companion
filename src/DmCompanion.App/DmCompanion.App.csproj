@@ -20,6 +20,19 @@
         <SupportedOSPlatformVersion>30.0</SupportedOSPlatformVersion>
     </PropertyGroup>
 
+    <!-- Firma de Release con una clave propia que vive fuera del repo (~/.android-keys). Sin ella, se usa la firma de depuración. -->
+    <PropertyGroup>
+        <DmSigningDir>$([System.Environment]::GetFolderPath(SpecialFolder.UserProfile))/.android-keys</DmSigningDir>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Release' and Exists('$(DmSigningDir)/dm-companion.keystore')">
+        <AndroidKeyStore>true</AndroidKeyStore>
+        <AndroidSigningKeyStore>$(DmSigningDir)/dm-companion.keystore</AndroidSigningKeyStore>
+        <AndroidSigningKeyAlias>dmcompanion</AndroidSigningKeyAlias>
+        <AndroidSigningStorePass>file:$(DmSigningDir)/dm-companion.pass</AndroidSigningStorePass>
+        <!-- Fichero aparte: apksigner lee las dos contraseñas por líneas si comparten fichero. -->
+        <AndroidSigningKeyPass>file:$(DmSigningDir)/dm-companion.keypass</AndroidSigningKeyPass>
+    </PropertyGroup>
+
     <ItemGroup>
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
         <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
