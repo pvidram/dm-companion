@@ -1,0 +1,35 @@
+@inherits JournalComponentBase
+@using DmCompanion.Core.Journal
+
+@* Miniatura de una entrada: su primera imagen que se puede mostrar o, si no hay, la tarjeta del motivo. Sin OnSelect es solo una imagen. *@
+<button type="button" class="journal-thumb" disabled="@(!OnSelect.HasDelegate)" @onclick="OnSelect">
+    @if (Cover is { } cover && Journal.ImageUrl(cover) is { } url)
+    {
+        <img src="@url" alt="@Entry.Title" loading="lazy" />
+    }
+    else
+    {
+        <span class="journal-thumb__empty">@EmptyText</span>
+    }
+    @if (ShowLabel)
+    {
+        <span class="journal-thumb__label">@(Caption ?? Entry.Title)</span>
+    }
+</button>
+
+@code {
+    [Parameter, EditorRequired] public JournalEntry Entry { get; set; } = default!;
+
+    /// <summary>Pie de la miniatura; por defecto, el título de la entrada.</summary>
+    [Parameter] public string? Caption { get; set; }
+
+    [Parameter] public bool ShowLabel { get; set; } = true;
+
+    [Parameter] public EventCallback OnSelect { get; set; }
+
+    private JournalImage? Cover => Entry.Images.FirstOrDefault(image => image.Exists && image.Displayable);
+
+    private string EmptyText => Entry.Images.Count == 0
+        ? "Sin imágenes"
+        : JournalTexts.Placeholder(Entry.Images[0])?.Title ?? "Sin imagen";
+}

@@ -1,0 +1,55 @@
+@inherits JournalComponentBase
+@using DmCompanion.Core.Journal
+@inject GlossaryService Glossary
+
+@* Pestaña «Diario» de un PJ: la lista de sus entradas (más reciente primero) o, abierta una, su detalle. *@
+<div class="journal-tab">
+    @if (Shell.JournalNotice is { } notice)
+    {
+        <InlineNotice Kind="NoticeKind.Info" OnClose="@(() => Shell.SetJournalNotice(null))">@notice</InlineNotice>
+    }
+    @if (Shell.SelectedJournalPath is { } path && Journal.Get(path) is { } open)
+    {
+        <div><Button OnClick="Shell.CloseJournalEntry">Atrás</Button></div>
+        <JournalEntryDetail Entry="open" />
+    }
+    else
+    {
+        <div><Button Variant="ButtonVariant.Primary" OnClick="NewEntry">Nueva entrada</Button></div>
+        @if (Journal.ForPc(Pc.RelativePath) is { Count: > 0 } entries)
+        {
+            <div class="journal-list">
+                @foreach (var entry in entries)
+                {
+                    var current = entry;
+                    <div class="journal-row">
+                        <JournalThumbnail Entry="current" ShowLabel="false" OnSelect="() => Open(current)" />
+                        <button type="button" class="journal-row__text" @onclick="() => Open(current)">
+                            <span class="journal-row__title">@current.Title</span>
+                            <span class="journal-row__meta">@JournalTexts.Date(current) · @JournalTexts.ImageCount(current.Images.Count)</span>
+                            @if (CreatureName(current) is { } creature)
+                            {
+                                <ConditionTag Name="@creature" />
+                            }
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <EmptyState Icon="IconName.FileText" Title="Sin entradas">Pulsa «Nueva entrada» o comparte una imagen desde otra app.</EmptyState>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public VaultEntity Pc { get; set; } = default!;
+
+    private void NewEntry() => Shell.OpenJournalForm(new JournalFormRequest(JournalFormMode.New, Pc.RelativePath));
+
+    private void Open(JournalEntry entry) => Shell.OpenJournalEntry(entry.Path, Pc.RelativePath);
+
+    private string? CreatureName(JournalEntry entry) =>
+        entry.Creature is null ? null : Journal.CreatureNameOf(entry, Glossary.Index) ?? entry.Creature;
+}

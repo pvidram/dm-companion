@@ -129,4 +129,12 @@ public sealed class DmShellTests : BunitContext, IAsyncLifetime
         cut.WaitForAssertion(() => (IsOpen(cut, "Cambiar vault"), Services.GetRequiredService<VaultHost>().Current is not null)
             .Should().Be((true, true)), TimeSpan.FromSeconds(10));
     }
+
+    [Fact]
+    public void Without_the_journal_services_there_are_no_journal_dialogs()
+    {
+        var cut = Render<DmShell>();
+
+        cut.FindAll("h2.ds-dialog__title").Select(h => h.TextContent).Should().NotContain(["Nueva entrada", "Borrar entrada"]);
+    }
 }

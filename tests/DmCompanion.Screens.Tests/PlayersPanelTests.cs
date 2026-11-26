@@ -159,4 +159,8 @@ public sealed class PlayersPanelTests : BunitContext, IAsyncLifetime
         await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
         RenderPanel().FindAll(".ds-empty").Should().HaveCount(1);
     }
+
+    [Fact]
+    public void Without_the_journal_services_there_is_no_bitacora_section() =>
+        RenderPanel().FindAll("section.journal-log").Should().BeEmpty();
 }

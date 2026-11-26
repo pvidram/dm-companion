@@ -9,11 +9,20 @@ public enum GlossaryTab { Glossary, Manuals }
 /// <summary>Lateral abierto del visor de manuales; solo hay uno a la vez.</summary>
 public enum ManualPane { None, Outline, Search, Bookmarks }
 
+/// <summary>Pestaña de un PJ en Jugadores.</summary>
+public enum PlayerTab { Sheet, Journal }
+
 public enum EditorDialog { None, Conflict, ConfirmClose }
 
 public enum EditorCommand { Overwrite, Reload }
 
 public sealed record NewNoteRequest(string Title, string? Folder);
+
+public enum JournalFormMode { New, Edit, Shared }
+
+/// <param name="PcPath">PJ propuesto en un formulario nuevo; null = el último usado o el primero.</param>
+/// <param name="EntryPath">Entrada que se edita (solo con Edit).</param>
+public sealed record JournalFormRequest(JournalFormMode Mode, string? PcPath = null, string? EntryPath = null);
 
 /// <summary>Tarjeta rápida de un token. X e Y son px relativos al área del mapa, ya ajustados a sus bordes.</summary>
 public sealed record TokenCardRequest(string TokenId, double X, double Y);
@@ -34,6 +43,31 @@ public sealed class ShellState
     public string? SelectedNotePath { get; private set; }
     public string? EditingPath { get; private set; }
     public string? SelectedPcPath { get; private set; }
+
+    public PlayerTab PlayerTab { get; private set; }
+
+    /// <summary>Entrada abierta en la pestaña Diario del PJ; null = la lista.</summary>
+    public string? SelectedJournalPath { get; private set; }
+
+    /// <summary>Último PJ al que se le guardó una entrada en esta sesión; el formulario lo propone.</summary>
+    public string? LastJournalPcPath { get; private set; }
+
+    /// <summary>Formulario «Nueva entrada» / «Editar entrada» abierto; su estado vive aquí porque se pinta en la ranura Dialogs de DmShell.</summary>
+    public JournalFormRequest? JournalForm { get; private set; }
+
+    /// <summary>«Atrás» o Escape sobre un formulario con cambios sin guardar: espera «Descartar cambios» o «Seguir editando».</summary>
+    public bool ConfirmingJournalDiscard { get; private set; }
+
+    private Func<bool>? _journalFormDirty;
+
+    /// <summary>Hay cambios sin guardar en el formulario abierto (los publica él mismo con <see cref="SetJournalFormDirtyProbe"/>).</summary>
+    public bool IsJournalFormDirty => _journalFormDirty?.Invoke() == true;
+
+    /// <summary>Entrada que espera la confirmación de borrado.</summary>
+    public string? DeletingJournalPath { get; private set; }
+
+    /// <summary>Aviso sobre la pestaña Diario (p. ej. «No se pudo leer 2 imagen(es)»); lo cierra el DM.</summary>
+    public string? JournalNotice { get; private set; }
     public string? SelectedGlossaryKey { get; private set; }
     public GlossaryTab GlossaryTab { get; private set; }
     public string? OpenManualPath { get; private set; }
@@ -207,7 +241,94 @@ public sealed class ShellState
 
     public void SelectPc(string relativePath)
     {
+        if (SelectedPcPath != relativePath) SelectedJournalPath = null;
         SelectedPcPath = relativePath;
+        Notify();
+    }
+
+    public void SelectPlayerTab(PlayerTab tab)
+    {
+        PlayerTab = tab;
+        if (tab != PlayerTab.Journal) SelectedJournalPath = null;
+        Notify();
+    }
+
+    public void OpenJournalEntry(string entryPath, string pcPath)
+    {
+        ActivePanel = OverlayPanel.Players;
+        SelectedPcPath = pcPath;
+        PlayerTab = PlayerTab.Journal;
+        SelectedJournalPath = entryPath;
+        Notify();
+    }
+
+    public void CloseJournalEntry()
+    {
+        if (SelectedJournalPath is null) return;
+        SelectedJournalPath = null;
+        Notify();
+    }
+
+    public void RememberJournalPc(string pcPath) => LastJournalPcPath = pcPath;
+
+    public void OpenJournalForm(JournalFormRequest request)
+    {
+        JournalForm = request;
+        Notify();
+    }
+
+    public void SetJournalFormDirtyProbe(Func<bool>? probe) => _journalFormDirty = probe;
+
+    /// <summary>El formulario está guardando: atrás y Escape no lo cierran (cerrar a mitad borraría los temporales que el almacén lee).</summary>
+    public bool IsJournalFormSaving { get; private set; }
+
+    public void SetJournalFormSaving(bool saving) => IsJournalFormSaving = saving;
+
+    public void CloseJournalForm()
+    {
+        _journalFormDirty = null;
+        IsJournalFormSaving = false;
+        ConfirmingJournalDiscard = false;
+        if (JournalForm is null) return;
+        JournalForm = null;
+        Notify();
+    }
+
+    /// <summary>Cierre «accidental» (atrás, Escape): con cambios sin guardar pide confirmación en vez de cerrar.</summary>
+    public void RequestCloseJournalForm()
+    {
+        if (IsJournalFormSaving) return;
+        if (!IsJournalFormDirty)
+        {
+            CloseJournalForm();
+            return;
+        }
+        ConfirmingJournalDiscard = true;
+        Notify();
+    }
+
+    public void CancelJournalDiscard()
+    {
+        if (!ConfirmingJournalDiscard) return;
+        ConfirmingJournalDiscard = false;
+        Notify();
+    }
+
+    public void RequestDeleteJournalEntry(string entryPath)
+    {
+        DeletingJournalPath = entryPath;
+        Notify();
+    }
+
+    public void CancelDeleteJournalEntry()
+    {
+        DeletingJournalPath = null;
+        Notify();
+    }
+
+    public void SetJournalNotice(string? text)
+    {
+        JournalNotice = text;
         Notify();
     }
 
@@ -472,6 +593,14 @@ public sealed class ShellState
         SelectedNotePath = null;
         EditingPath = null;
         SelectedPcPath = null;
+        PlayerTab = PlayerTab.Sheet;
+        SelectedJournalPath = null;
+        LastJournalPcPath = null;
+        JournalForm = null;
+        _journalFormDirty = null;
+        ConfirmingJournalDiscard = false;
+        DeletingJournalPath = null;
+        JournalNotice = null;
         SelectedGlossaryKey = null;
         GlossaryTab = GlossaryTab.Glossary;
         OpenManualPath = null;

@@ -40,4 +40,12 @@ public sealed class EmbeddedTvAssetsTests
         (html.Contains("assets/tv.css"), html.Contains("assets/konva.min.js"), html.Contains("assets/tv-app.js"), html.Contains("http"))
             .Should().Be((true, true, true, false));
     }
+
+    [Fact]
+    public void Index_has_the_slide_view_of_the_journal()
+    {
+        using var reader = new StreamReader(_assets.Open("index.html")!);
+
+        reader.ReadToEnd().Should().Contain("data-view=\"slide\"");
+    }
 }

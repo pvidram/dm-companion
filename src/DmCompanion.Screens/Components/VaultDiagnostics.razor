@@ -82,6 +82,20 @@
                     </ul>
                 }
 
+                @if (Services.GetService<JournalIndex>()?.Entries.Where(entry => entry.Warnings.Count > 0).ToList() is { Count: > 0 } journalWarnings)
+                {
+                    <h3>Avisos del diario</h3>
+                    <ul>
+                        @foreach (var entry in journalWarnings)
+                        {
+                            @foreach (var warning in entry.Warnings)
+                            {
+                                <li>@entry.Path: @warning</li>
+                            }
+                        }
+                    </ul>
+                }
+
                 @if (Services.GetService<ManualBookmarkStore>()?.CorruptFiles is { Count: > 0 } corruptBookmarks)
                 {
                     <h3>Marcadores de manuales</h3>
@@ -123,6 +137,12 @@
 
 @code {
     private string? _logsNotice;
+
+    // El listado de imágenes del diario es perezoso: se hace aquí para que «Imagen no encontrada» salga en la primera vista.
+    protected override async Task OnInitializedAsync()
+    {
+        if (Services.GetService<JournalIndex>() is { } journal) await journal.RefreshImagesAsync();
+    }
 
     private void OpenLogs(ILogFolder logs) =>
         _logsNotice = logs.Open() ? null : "No se pudo abrir la carpeta de registros. Ábrela a mano desde el Explorador.";

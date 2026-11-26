@@ -3,10 +3,10 @@ using DmCompanion.Core.Vault;
 
 namespace DmCompanion.Screens.Services;
 
-// Contenido en la TV: una ficha de PJ o una nota de lugar a pantalla completa, hasta «Volver al mapa».
+// Contenido en la TV: una ficha de PJ o una nota de lugar a pantalla completa, una entrada del diario o la bitácora, hasta «Volver al mapa».
 public sealed partial class TvSession
 {
-    private sealed record ShownContent(string? Path, string? GlossaryKey, string? ManualPath, string Title, VaultService? Vault);
+    private sealed record ShownContent(string? Path, string? GlossaryKey, string? ManualPath, string Title, VaultService? Vault, JournalPlayback? Journal = null);
 
     // Inmutable para que la UI lo lea sin el gate.
     private ShownContent? _showing;
@@ -102,6 +102,13 @@ public sealed partial class TvSession
     private bool RefreshContent()
     {
         if (Mode != TvMode.Content || _showing is not { } shown) return false;
+        if (shown.Journal is not null)
+        {
+            // El pase del diario es una foto del momento: no sigue los cambios de las notas. Solo se abandona al cambiar de vault.
+            if (ReferenceEquals(_host.Current, shown.Vault)) return false;
+            LeaveContent();
+            return true;
+        }
         if (shown.ManualPath is not null)
         {
             // La imagen de un manual no depende de las notas: solo se abandona al cambiar de vault.

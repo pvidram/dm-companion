@@ -1,0 +1,63 @@
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject ILogger<JournalTvBar> Log
+
+@* Barra del pase de diapositivas del diario: «Anterior», «Entrada x de M» (o «Imagen i de N») y «Siguiente». «Volver al mapa» es del aviso que la contiene. *@
+@if (Tv.Journal is { } journal)
+{
+    <span class="journal-tv-bar">
+        <Button Disabled="@(_busy || !journal.HasPrevious)" OnClick="PreviousAsync">Anterior</Button>
+        <span class="journal-tv-bar__position">@journal.Current.BarLabel(journal.IsLog)</span>
+        <Button Disabled="@(_busy || !journal.HasNext)" OnClick="NextAsync">Siguiente</Button>
+    </span>
+}
+
+@code {
+    [Parameter, EditorRequired] public TvSession Tv { get; set; } = default!;
+
+    private bool _busy;
+
+    protected override void OnInitialized() => Tv.Changed += OnChanged;
+
+    private Task PreviousAsync() => MoveAsync(Tv.JournalPreviousAsync);
+
+    private Task NextAsync() => MoveAsync(Tv.JournalNextAsync);
+
+    private async Task MoveAsync(Func<Task> move)
+    {
+        _busy = true;
+        try
+        {
+            await move();
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("No se pudo pasar de diapositiva en la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Llega desde otros hilos (servidor de la TV, cambios del vault): hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // La barra ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar la barra del diario en la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose() => Tv.Changed -= OnChanged;
+}

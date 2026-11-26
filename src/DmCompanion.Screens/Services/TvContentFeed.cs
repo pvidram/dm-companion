@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using DmCompanion.Core.GameSystems;
+using DmCompanion.Core.Journal;
 using DmCompanion.Core.Glossary;
 using DmCompanion.Core.Rendering;
 using DmCompanion.Core.Tv;
@@ -37,6 +38,9 @@ public sealed partial class TvContentFeed(VaultHost host, NoteImageResolver imag
         add => images.ImagesChanged += value;
         remove => images.ImagesChanged -= value;
     }
+
+    /// <summary>La imagen sigue en el vault (lista ya cargada con <see cref="PrepareAsync"/>).</summary>
+    public bool ImageExists(string path) => images.LastWriteOf(path) is not null;
 
     /// <summary>Mensaje de esa nota en el vault abierto; null si no existe o no se puede mostrar.</summary>
     public TvContentMessage? Build(string notePath)
@@ -74,6 +78,18 @@ public sealed partial class TvContentFeed(VaultHost host, NoteImageResolver imag
         var html = $"<img src=\"files/{id}\" alt=\"\" class=\"tv-manual\">";
         var json = JsonSerializer.Serialize(new { kind = "content", title, html }, Json);
         return new TvContentMessage(json, files, title);
+    }
+
+    /// <summary>
+    /// Mensaje `slide` de una diapositiva del diario: `{ kind, caption, image, text }`. La imagen se cita como `files/{id}` (mismos ids
+    /// que el mapa y las notas) y vive solo en la lista blanca de este mensaje; el texto de la nota va como texto plano.
+    /// </summary>
+    public TvContentMessage BuildSlide(JournalSlide slide)
+    {
+        var whitelist = new Dictionary<string, TvFile>(StringComparer.Ordinal);
+        var image = slide.ImagePath is null ? null : files.UrlFor(slide.ImagePath, whitelist);
+        var json = JsonSerializer.Serialize(new { kind = "slide", caption = slide.Caption, image, text = slide.Text }, Json);
+        return new TvContentMessage(json, whitelist, slide.Caption);
     }
 
     private static string SpellFields(SpellInfo? spell) => spell is null

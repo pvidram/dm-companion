@@ -1,0 +1,107 @@
+@inherits JournalComponentBase
+@using DmCompanion.Core.Journal
+@using Microsoft.AspNetCore.Components.Web
+@inject GlossaryService Glossary
+
+@* Una entrada: sus imágenes grandes (se pasan con los botones o deslizando), la nota y las acciones. *@
+<article class="journal-detail">
+    <h3>@Entry.Title</h3>
+    <p class="journal-detail__meta">@Entry.OwnerName · @JournalTexts.Date(Entry) · @JournalTexts.ImageCount(Entry.Images.Count)</p>
+    @foreach (var warning in Entry.Warnings.Where(text => !text.StartsWith("Imagen no encontrada:", StringComparison.Ordinal)))
+    {
+        <InlineNotice Kind="NoticeKind.Warning">@warning</InlineNotice>
+    }
+    @if (CreatureName is { } creature)
+    {
+        <p>Criatura: <ConditionTag Name="@creature" /></p>
+    }
+    @if (Entry.Images.Count > 0)
+    {
+        var image = Entry.Images[_index];
+        <div class="journal-viewer" @ontouchstart="OnTouchStart" @ontouchend="OnTouchEnd">
+            @if (JournalTexts.Placeholder(image) is { } card)
+            {
+                <div class="journal-viewer__card">
+                    <p>@card.Title</p>
+                    @if (card.Detail is { } detail)
+                    {
+                        <p>@detail</p>
+                    }
+                </div>
+            }
+            else if (Journal.ImageUrl(image) is { } url)
+            {
+                <img class="journal-viewer__image" src="@url" alt="@Entry.Title" />
+            }
+        </div>
+        <div class="journal-viewer__bar">
+            <Button Disabled="@(_index == 0)" OnClick="Previous">Anterior</Button>
+            <span>Imagen @(_index + 1) de @Entry.Images.Count</span>
+            <Button Disabled="@(_index >= Entry.Images.Count - 1)" OnClick="Next">Siguiente</Button>
+        </div>
+    }
+    @if (Entry.Note.Length > 0)
+    {
+        <p class="journal-detail__note">@Entry.Note</p>
+    }
+    <div class="journal-detail__actions">
+        @if (CanEdit)
+        {
+            <Button OnClick="Edit">Editar</Button>
+            <Button OnClick="Delete">Borrar</Button>
+        }
+        else
+        {
+            <span class="journal-detail__hint">Arregla el YAML en Obsidian para editarla o borrarla</span>
+        }
+        <ShowJournalOnTvButton Entry="Entry" />
+    </div>
+</article>
+
+@code {
+    private const double SwipePixels = 50;
+
+    private string? _path;
+    private int _index;
+    private double? _touchStart;
+
+    [Parameter, EditorRequired] public JournalEntry Entry { get; set; } = default!;
+
+    private string? CreatureName =>
+        Entry.Creature is null ? null : Journal.CreatureNameOf(Entry, Glossary.Index) ?? Entry.Creature;
+
+    // Una nota con YAML inválido no se reescribe (decisión 13): se ve con su aviso y no se edita ni se borra (el almacén tampoco la borra).
+    private bool CanEdit => Index.Get(Entry.Path)?.ParseError is null;
+
+    // Otra entrada empieza en su primera imagen; si la misma pierde imágenes, no se pasa del final.
+    protected override void OnParametersSet()
+    {
+        if (Entry.Path != _path) (_path, _index) = (Entry.Path, 0);
+        _index = Math.Min(_index, Math.Max(0, Entry.Images.Count - 1));
+    }
+
+    private void Next()
+    {
+        if (_index < Entry.Images.Count - 1) _index++;
+    }
+
+    private void Previous()
+    {
+        if (_index > 0) _index--;
+    }
+
+    private void OnTouchStart(TouchEventArgs e) => _touchStart = e.ChangedTouches.Length > 0 ? e.ChangedTouches[0].ClientX : null;
+
+    private void OnTouchEnd(TouchEventArgs e)
+    {
+        if (_touchStart is not { } start || e.ChangedTouches.Length == 0) return;
+        _touchStart = null;
+        var delta = e.ChangedTouches[0].ClientX - start;
+        if (delta <= -SwipePixels) Next();
+        else if (delta >= SwipePixels) Previous();
+    }
+
+    private void Edit() => Shell.OpenJournalForm(new JournalFormRequest(JournalFormMode.Edit, null, Entry.Path));
+
+    private void Delete() => Shell.RequestDeleteJournalEntry(Entry.Path);
+}

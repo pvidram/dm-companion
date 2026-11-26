@@ -1,0 +1,69 @@
+@inherits JournalComponentBase
+@using DmCompanion.Core.Journal
+@inject JournalStore Store
+
+@* Confirmación de «Borrar» una entrada. Va en la ranura Dialogs de DmShell. *@
+<ConfirmDialog Title="Borrar entrada" Message="@Message" IsOpen="@(Shell.DeletingJournalPath is not null)" Destructive="true"
+               ConfirmText="Borrar" CancelText="Cancelar" OnConfirm="DeleteAsync" OnCancel="Shell.CancelDeleteJournalEntry" />
+
+@code {
+    private bool _busy;
+    private string? _seen;
+    private DateTime? _stamp;
+
+    // La fecha de la nota se fija al pedir la confirmación: es la que vio el DM, no la de cuando pulsa «Borrar».
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Capture();
+    }
+
+    protected override void OnVaultChanged() => Capture();
+
+    private void Capture()
+    {
+        var path = Shell.DeletingJournalPath;
+        if (path == _seen) return;
+        _seen = path;
+        _stamp = path is null ? null : Journal.LastWriteOf(path);
+    }
+
+    private string Message => Shell.DeletingJournalPath is { } path && Journal.Get(path) is { } entry ? TextFor(entry) : string.Empty;
+
+    // Spec §5.3: «¿Borrar la entrada «X» y sus N imágenes?»; en singular y sin imágenes la frase se adapta (decisión 35).
+    private static string TextFor(JournalEntry entry) => entry.Images.Count switch
+    {
+        0 => $"¿Borrar la entrada «{entry.Title}»?",
+        1 => $"¿Borrar la entrada «{entry.Title}» y su imagen?",
+        var count => $"¿Borrar la entrada «{entry.Title}» y sus {count} imágenes?",
+    };
+
+    private async Task DeleteAsync()
+    {
+        if (_busy || Shell.DeletingJournalPath is not { } path) return;
+        _busy = true;
+        try
+        {
+            var result = (_stamp ?? Journal.LastWriteOf(path)) is { } stamp
+                ? await Store.DeleteAsync(path, stamp)
+                : new JournalResult(JournalStatus.NotFound);
+            Shell.CancelDeleteJournalEntry();
+            if (result.IsDone)
+            {
+                Shell.SetJournalNotice(null);
+                Shell.CloseJournalEntry();
+                return;
+            }
+            Shell.SetJournalNotice(result.Status switch
+            {
+                JournalStatus.ModifiedOnDisk => "La entrada cambió fuera de la app y no se ha borrado.",
+                JournalStatus.NotFound => "La entrada ya no existe.",
+                _ => "No se pudo borrar la entrada.",
+            });
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

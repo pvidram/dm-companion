@@ -1,0 +1,81 @@
+@using DmCompanion.Core.Journal
+@using DmCompanion.Screens.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject JournalIndex Journal
+
+@* Imágenes del formulario del diario: lista ordenable, quitar (con confirmación si ya estaba guardada) y «Añadir imagen». *@
+<h4>Imágenes</h4>
+<ul class="journal-form__images">
+    @foreach (var image in Draft.Images)
+    {
+        var current = image;
+        <li class="journal-form__image">
+            @if (current.Existing is { } saved && Journal.ImageUrl(saved) is { } url)
+            {
+                <img src="@url" alt="" />
+            }
+            <span class="journal-form__image-name">@current.Name</span>
+            <Button Disabled="@(Draft.Images[0].Id == current.Id)" OnClick="() => Draft.MoveUp(current.Id)">Subir</Button>
+            <Button Disabled="@(Draft.Images[^1].Id == current.Id)" OnClick="() => Draft.MoveDown(current.Id)">Bajar</Button>
+            <Button Disabled="@(!Draft.CanRemove)" OnClick="() => AskRemove(current)">Quitar</Button>
+        </li>
+    }
+</ul>
+@if (_confirmRemove is { } pending)
+{
+    <InlineNotice Kind="NoticeKind.Warning">
+        ¿Quitar la imagen «@pending.Name»? Su fichero se borrará al guardar.
+        <Button OnClick="ConfirmRemove">Quitar</Button>
+        <Button OnClick="CancelRemove">Cancelar</Button>
+    </InlineNotice>
+}
+@if (NativePicker)
+{
+    <Button Disabled="Busy" OnClick="OnPick">Añadir imagen</Button>
+}
+else
+{
+    <label class="ds-field">
+        <span class="ds-field__label">Añadir imagen</span>
+        <InputFile class="ds-field__input" accept="image/*" multiple OnChange="OnFilesChosen" />
+    </label>
+}
+
+@code {
+    private JournalDraft? _seen;
+    private DraftImage? _confirmRemove;
+
+    [Parameter, EditorRequired] public JournalDraft Draft { get; set; } = default!;
+
+    /// <summary>Con selector nativo (tablet) se pinta un botón; sin él, el campo de ficheros del navegador.</summary>
+    [Parameter] public bool NativePicker { get; set; }
+
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback OnPick { get; set; }
+
+    [Parameter] public EventCallback<InputFileChangeEventArgs> OnFilesChosen { get; set; }
+
+    // Un borrador nuevo (otro formulario, o recargado tras un cambio en disco) anula la confirmación pendiente.
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_seen, Draft)) return;
+        _seen = Draft;
+        _confirmRemove = null;
+    }
+
+    // Quitar una ya guardada pide confirmación; una nueva (elegida o compartida) no.
+    private void AskRemove(DraftImage image)
+    {
+        if (image.Kind == DraftImageKind.Existing) _confirmRemove = image;
+        else Draft.Remove(image.Id);
+    }
+
+    private void ConfirmRemove()
+    {
+        if (_confirmRemove is { } image) Draft.Remove(image.Id);
+        _confirmRemove = null;
+    }
+
+    private void CancelRemove() => _confirmRemove = null;
+}

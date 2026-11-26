@@ -40,6 +40,8 @@ public static class MauiProgram
 		builder.Services.AddScoped<AudioMixer>();
 		builder.Services.AddSingleton<AudioStore>();
 		builder.Services.AddSingleton<IImagePicker, MauiImagePicker>();
+		builder.Services.AddSingleton<IShareInbox, AndroidShareInbox>();
+		builder.Services.AddSingleton<IncomingShare>();
 		builder.Services.AddScoped<ShellState>();
 		builder.Services.AddScoped<WikilinkInterop>();
 		builder.Services.AddScoped<MapCanvasInterop>();
@@ -52,11 +54,14 @@ public static class MauiProgram
 		builder.Services.AddSingleton<NoteImageResolver>();
 		builder.Services.AddSingleton<VaultFileRequestHandler>();
 		builder.Services.AddSingleton<PortraitUrlProvider>();
+		builder.Services.AddSingleton<JournalStore>();
 		builder.Services.AddSingleton<ITvAssets, EmbeddedTvAssets>();
 		builder.Services.AddSingleton<ITvServer, TvServer>();
 		builder.Services.AddSingleton<TvMapFeed>();
 		builder.Services.AddSingleton<TvContentFeed>();
 		builder.Services.AddSingleton<TvSession>();
+		builder.Services.AddSingleton<JournalIndex>();
+		builder.Services.AddSingleton<JournalLogService>();
 		builder.Services.AddSingleton<IAudioPlayer, AndroidAudioPlayer>();
 
 		// Release también necesita sink: sin él los errores no llegan a `adb logcat -s DmCompanion`.

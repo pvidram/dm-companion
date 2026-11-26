@@ -1,0 +1,123 @@
+@inherits JournalComponentBase
+@using DmCompanion.Core.Journal
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@inject IServiceProvider Services
+@inject JournalLogService LogService
+@inject ILogger<JournalLogSection> Log
+
+@* Sección «Bitácora» de Jugadores: genera la nota común, la muestra en la TV y la abre. *@
+<section class="journal-log">
+    <h3>Bitácora</h3>
+    @if (_notice is { } notice)
+    {
+        <InlineNotice Kind="notice.Kind" OnClose="CloseNotice">@notice.Text</InlineNotice>
+    }
+    <div class="journal-log__actions">
+        <Button Disabled="_busy" OnClick="GenerateAsync">Generar bitácora común</Button>
+        @if (_tv is { Mode: not TvMode.Off } && JournalSlides.ForLog(Journal.Entries).Count > 0)
+        {
+            <Button Disabled="_busy" OnClick="ShowOnTvAsync">Ver bitácora en TV</Button>
+        }
+        @if (Index.Get(JournalPaths.LogPath) is not null)
+        {
+            <Button OnClick="OpenNoteAsync">Abrir nota de la bitácora</Button>
+        }
+    </div>
+</section>
+
+@code {
+    private sealed record Notice(NoticeKind Kind, string Text);
+
+    private Notice? _notice;
+    private TvSession? _tv;
+    private bool _busy;
+
+    /// <summary>Jugadores pinta la sección solo si están el índice y el servicio (decisión 18).</summary>
+    public static bool CanShow(IServiceProvider services) =>
+        IsAvailable(services) && services.GetService<JournalLogService>() is not null;
+
+    // La TV se resuelve opcionalmente: el panel no obliga a registrar el servicio donde no se usa (tests).
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _tv = Services.GetService<TvSession>();
+        if (_tv is not null) _tv.Changed += OnTvChanged;
+    }
+
+    private void CloseNotice() => _notice = null;
+
+    private async Task GenerateAsync()
+    {
+        _busy = true;
+        try
+        {
+            var result = await LogService.GenerateAsync();
+            _notice = result.Status switch
+            {
+                JournalLogStatus.Generated => new Notice(NoticeKind.Info, JournalLogService.GeneratedText(result.Entries)),
+                JournalLogStatus.ForeignNote => new Notice(NoticeKind.Warning, JournalLogService.ForeignNoteText),
+                JournalLogStatus.ModifiedOnDisk => new Notice(NoticeKind.Warning, "La bitácora cambió mientras se generaba. Vuelve a intentarlo."),
+                JournalLogStatus.NoVault => new Notice(NoticeKind.Error, "No hay ningún vault abierto."),
+                _ => new Notice(NoticeKind.Error, "No se pudo generar la bitácora."),
+            };
+        }
+        catch (Exception ex)
+        {
+            // Una excepción sin capturar en un handler tumba la interfaz de MAUI.
+            Log.LogError("No se pudo generar la bitácora ({ExceptionType}).", ex.GetType().FullName);
+            _notice = new Notice(NoticeKind.Error, "No se pudo generar la bitácora.");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ShowOnTvAsync()
+    {
+        if (_tv is null) return;
+        _busy = true;
+        try
+        {
+            // Con las imágenes ya listadas, las que faltan no entran en el pase.
+            await Journal.RefreshImagesAsync();
+            await _tv.ShowJournalLogAsync(Journal.Entries);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("No se pudo mostrar la bitácora en la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task OpenNoteAsync() => Shell.RequestOpenNote(JournalPaths.LogPath);
+
+    // Llega desde otros hilos (servidor de la TV, cambios del vault): hay que volver al dispatcher.
+    private void OnTvChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // La sección ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar la sección «Bitácora» ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public override void Dispose()
+    {
+        if (_tv is not null) _tv.Changed -= OnTvChanged;
+        base.Dispose();
+    }
+}

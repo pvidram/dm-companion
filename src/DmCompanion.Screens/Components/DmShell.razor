@@ -1,5 +1,6 @@
 @inherits DmComponentBase
 @inject MapSession Maps
+@inject IServiceProvider Services
 @using DmCompanion.Screens.Components.Sound
 
 <TableFrame>
@@ -64,6 +65,11 @@
         <CombatEndDialog />
         <SoundDialogs />
         <VaultSwitchDialog />
+        @if (JournalFormDialog.CanEdit(Services))
+        {
+            <JournalFormDialog />
+            <JournalDeleteDialog />
+        }
     </Dialogs>
 </TableFrame>
 
