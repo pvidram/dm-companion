@@ -1,3 +1,4 @@
+using DmCompanion.Desktop.Window;
 using DmCompanion.Screens.Platform;
 
 namespace DmCompanion.Desktop.Tests;
@@ -25,4 +26,11 @@ internal sealed class FakeLogFolder : ILogFolder
     public bool IsAvailable => true;
 
     public bool Open() => true;
+}
+
+internal sealed class FakeWindowActivator : IWindowActivator
+{
+    public int Calls { get; private set; }
+
+    public void BringToFront() => Calls++;
 }
