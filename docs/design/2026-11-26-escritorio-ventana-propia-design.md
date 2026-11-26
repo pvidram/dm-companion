@@ -161,7 +161,7 @@ El interruptor «Buscar versiones nuevas al arrancar» va en la pantalla de diag
 | Falta WebKitGTK (Linux) | Mensaje en stderr y en el log. El README indica el paquete que hay que instalar. |
 | Kestrel no arranca o `LoopbackGuard` lo para | No se abre la ventana. Diálogo nativo con el mensaje de `StartupFailure`. |
 | El host se para con la ventana abierta, sin que el usuario la haya cerrado | La ventana se cierra con el aviso «DM Companion se ha detenido; revisa los registros» y la ruta de los registros. |
-| Apagar Windows o cerrar sesión con la app abierta | Se mantiene el manejador de `SIGTERM` con `ShutdownFlush` (4 s). |
+| Apagar Windows o cerrar sesión con la app abierta | En Linux, el manejador de `SIGTERM` guarda el mapa con `ShutdownFlush` (4 s). En Windows la app (WinExe) ya no recibe esa señal; el mapa se guarda unos 750 ms después de cada cambio (`MapSession.SaveDelay`), así que como mucho se pierde el último cambio y `window.json`. |
 | Segunda instancia sin respuesta de la primera | Diálogo «DM Companion ya está abierto, pero no responde». |
 | Faltan ficheros junto al ejecutable | Diálogo nativo con el mensaje actual de `InstallationCheck`, adaptado: «Reinstala DM Companion o vuelve a descomprimir el zip». |
 
