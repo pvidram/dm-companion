@@ -2,7 +2,7 @@
 @inject MapCanvasInterop Canvas
 @inject CombatController Combat
 
-@if (Canvas.GridAdjusting)
+@if (Canvas.GridAdjusting && !Canvas.GridCalibrating)
 {
     <div class="map-adjust-bar" role="group" aria-label="Ajustando cuadrícula">
         <span class="map-adjust-bar__title">Ajustando cuadrícula</span>

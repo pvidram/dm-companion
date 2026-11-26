@@ -19,11 +19,14 @@
 
     // Dedos y ratón (en DevHost) mueven la cuadrícula; el lápiz no hace nada en este modo.
     function adjustPointer(inst, phase, event) {
-        if (event.pointerType === 'pen') return;
         const adjust = inst.adjust;
+        if (event.pointerType === 'pen') {
+            if (!adjust.zooms) return;
+            inst.lastPenAt = performance.now(); // la palma que acompaña al lápiz no hace zoom (touchBlocked)
+        }
         if (phase === 'down') {
             try { inst.host.setPointerCapture(event.pointerId); } catch { /* el puntero ya no existe */ }
-            adjust.down(event.pointerId, event.clientX, event.clientY);
+            adjust.down(event.pointerId, event.clientX, event.clientY, event.pointerType);
         } else if (phase === 'move') {
             adjust.move(event.pointerId, event.clientX, event.clientY);
         } else {

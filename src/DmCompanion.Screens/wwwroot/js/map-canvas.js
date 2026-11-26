@@ -1,4 +1,4 @@
-// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, setFogTool, fogDraft, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose}.
+// Lienzo del mapa (Konva). Un único mapa a la vez: window.mapCanvas.{load, render, setMode, setFogTool, fogDraft, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, beginGridCalibrate, setCalibrateCells, endGridAdjust, dispose}.
 // Capas, de abajo arriba: imagen o lienzo, cuadrícula, trazos, tokens, niebla (fog-mode.js), encuadre de la TV (tv-frame.js) y borrador (trazo, medición o zona en curso).
 // El estado manda C#: JS pinta lo que recibe y solo informa de gestos (token movido o tocado, imagen cargada,
 // trazo añadido o borrado). La medición no cruza el puente.
@@ -130,11 +130,41 @@
         return true;
     }
 
+    // Entra en «Calibrar con un rectángulo»: la vista previa se pinta en vivo y C# recibe el tamaño calculado (OnCalibrateChanged, 0 si aún no hay rectángulo).
+    function beginGridCalibrate(minCell, maxCell) {
+        const inst = core.current();
+        if (!inst || inst.adjust || !inst.dto.grid) return false;
+        const { cellSize, offsetX, offsetY } = inst.dto.grid;
+        let lastSize = 0;
+        const adjust = window.gridCalibrateMode.create({
+            grid: { cellSize, offsetX, offsetY },
+            toMap: point => worldPoint(inst, containerPoint(inst, { clientX: point.x, clientY: point.y })),
+            onChange: () => {
+                drawGrid(inst);
+                window.gridCalibrateDraw.draw(inst);
+                const size = adjust.cellSize() ?? 0;
+                if (size === lastSize) return; // el rectángulo en vivo no cambia el tamaño en cada movimiento
+                lastSize = size;
+                core.notify(inst, 'OnCalibrateChanged', size);
+            },
+        });
+        inst.adjust = adjust;
+        applyMode(inst);
+        return true;
+    }
+
+    // Columnas y filas que abarca el rectángulo; no hace nada fuera del modo de calibrar.
+    function setCalibrateCells(columns, rows) {
+        const inst = core.current();
+        if (inst && inst.adjust && inst.adjust.setCells) inst.adjust.setCells(columns, rows);
+    }
+
     // Sale del modo y devuelve la cuadrícula ajustada [cellSize, offsetX, offsetY]; con `commit` C# la guardará, si no se descarta.
     function endGridAdjust(commit) {
         const inst = core.current();
         if (!inst || !inst.adjust) return null;
         const adjusted = inst.adjust.grid();
+        window.gridCalibrateDraw.clear(inst);
         const { cellSize, offsetX, offsetY } = adjusted;
         inst.adjust = null;
         // Al aceptar se conserva lo ajustado hasta que llegue el repintado de C#: la cuadrícula no parpadea.
@@ -181,5 +211,5 @@
         return [rect.left, rect.top, rect.width, rect.height];
     }
 
-    window.mapCanvas = { load, render, setMode, setFogTool, fogDraft, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, endGridAdjust, dispose };
+    window.mapCanvas = { load, render, setMode, setFogTool, fogDraft, fit, viewCenter, viewRect, hostRect, setTvFrame, beginGridAdjust, beginGridCalibrate, setCalibrateCells, endGridAdjust, dispose };
 })();

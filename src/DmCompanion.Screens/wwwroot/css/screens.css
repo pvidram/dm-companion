@@ -23,6 +23,7 @@
 /* Franja del ajuste de la cuadrícula con los dedos: arriba, centrada en el área del mapa. */
 .map-adjust-bar { position: absolute; top: var(--space-3); left: 50%; transform: translateX(-50%); z-index: var(--z-toolbar); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); max-width: calc(100% - 2 * var(--space-4)); background-color: var(--surface-sheet-raised); color: var(--text-ink); border: 1px solid var(--border-frame); border-radius: var(--radius-sheet); box-shadow: var(--elevation-1); }
 .map-adjust-bar__title { font-weight: 600; }
+.map-adjust-bar__warning { color: var(--danger-600); font-size: 0.875rem; }
 /* Ajustes de cuadrícula: encima de la barra, a la derecha. */
 .map-controls__panel { position: absolute; bottom: calc(var(--space-4) + var(--map-controls-height) + var(--space-2)); right: var(--space-4); z-index: var(--z-toolbar); display: grid; gap: var(--space-3); width: 20rem; max-width: calc(100% - 2 * var(--space-4)); padding: var(--space-3); background-color: var(--surface-sheet-raised); color: var(--text-ink); border: 1px solid var(--border-frame); border-radius: var(--radius-sheet); }
 /* Color y grosor del lápiz: botones táctiles de tamaño mínimo, con contorno y marca de activo que no dependen solo del color. */

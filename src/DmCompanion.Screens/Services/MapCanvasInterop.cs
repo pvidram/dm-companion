@@ -131,7 +131,9 @@ public sealed partial class MapCanvasInterop(
     public Task FitAsync() => InvokeLoadedAsync("mapCanvas.fit");
 
     /// <summary>Empieza el ajuste de la cuadrícula con los dedos. No hace nada en solo lectura ni sin lienzo cargado.</summary>
-    public async Task BeginGridAdjustAsync()
+    public Task BeginGridAdjustAsync() => BeginAsync("mapCanvas.beginGridAdjust", false);
+
+    private async Task BeginAsync(string jsFunction, bool calibrating)
     {
         if (GridAdjusting || session.IsReadOnly || combat is { IsActive: true }) return;
         await _gate.WaitAsync();
@@ -139,8 +141,9 @@ public sealed partial class MapCanvasInterop(
         {
             // El JS tiene la cuadrícula del último estado pintado: esa es la base con la que se compara.
             if (!_loaded || GridAdjusting || _paintedState is not { } painted) return;
-            if (!await TryInvokeAsync("mapCanvas.beginGridAdjust", MinCellSize, MaxCellSize)) return;
+            if (!await TryInvokeAsync(jsFunction, MinCellSize, MaxCellSize)) return;
             _adjustBase = painted;
+            GridCalibrating = calibrating;
             SetGridAdjusting(true);
         }
         finally
@@ -156,22 +159,27 @@ public sealed partial class MapCanvasInterop(
     public async Task FinishGridAdjustAsync(bool commit)
     {
         if (!GridAdjusting) return;
+        var (calibrating, hadRectangle) = (GridCalibrating, CalibrateCellSize is not null);
+        var noRectangle = commit && calibrating && !hadRectangle; // Hecho sin rectángulo: se trata como cancelar
+        if (noRectangle) commit = false;
         SetGridAdjusting(false);
         var adjusted = await QueryLoadedAsync("mapCanvas.endGridAdjust", 3, commit);
         if (!commit || adjusted is not [var rawSize, var rawX, var rawY])
         {
-            if (commit) await RepaintAsync(); // Hecho sin valor del JS: se vuelve a la cuadrícula real
+            if (commit || noRectangle) await RepaintAsync(); // Hecho sin valor del JS: se vuelve a la cuadrícula real
             return;
         }
         // Un decimal, como las posiciones de los tokens: el pellizco da tamaños como 73,2846…
-        var (size, offsetX, offsetY) = (Math.Round(rawSize, 1), Math.Round(rawX, 1), Math.Round(rawY, 1));
+        var size = Math.Round(rawSize, 1);
         var saved = false;
-        if (size is >= MinCellSize and <= MaxCellSize && offsetX is >= 0 && offsetY is >= 0 && offsetX <= size && offsetY <= size)
+        if (size is >= MinCellSize and <= MaxCellSize && rawX is >= 0 && rawY is >= 0)
         {
+            // El desplazamiento se ajusta al tamaño ya redondeado: 49,97 con casilla 49,94→49,9 es 0,1, no un valor fuera de rango.
+            var (offsetX, offsetY) = (Math.Round(Math.Round(rawX, 1) % size, 1), Math.Round(Math.Round(rawY, 1) % size, 1));
             session.Mutate(editor =>
             {
                 var current = editor.State.Grid;
-                var next = current with { CellSize = size, OffsetX = offsetX, OffsetY = offsetY };
+                var next = current with { Enabled = current.Enabled || calibrating, CellSize = size, OffsetX = offsetX, OffsetY = offsetY };
                 if (next == current || !MapStateSerializer.IsValidGrid(next)) return false;
                 editor.SetGrid(next);
                 return saved = true;
@@ -285,7 +293,12 @@ public sealed partial class MapCanvasInterop(
     {
         if (GridAdjusting == value) return;
         GridAdjusting = value;
-        if (!value) _adjustBase = null;
+        if (!value)
+        {
+            _adjustBase = null;
+            GridCalibrating = false;
+            CalibrateCellSize = null;
+        }
         GridAdjustChanged?.Invoke(this, EventArgs.Empty);
     }
 

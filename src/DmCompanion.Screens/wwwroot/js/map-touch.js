@@ -27,7 +27,7 @@
 
         stage.on('touchmove', event => {
             const touches = event.evt.touches;
-            if (inst.adjust) return; // el pellizco cambia la casilla, no el zoom
+            if (inst.adjust && !inst.adjust.zooms) return; // el pellizco cambia la casilla, no el zoom (salvo al calibrar)
             if (!touches || touches.length !== 2) return;
             event.evt.preventDefault();
             if (touchBlocked(inst)) {
@@ -70,7 +70,7 @@
 
         stage.on('wheel', event => {
             event.evt.preventDefault();
-            if (inst.adjust) return;
+            if (inst.adjust && !inst.adjust.zooms) return;
             const pointer = stage.getPointerPosition();
             if (!pointer) return;
             const factor = event.evt.deltaY < 0 ? 1.1 : 1 / 1.1;

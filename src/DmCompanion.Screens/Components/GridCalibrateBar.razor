@@ -1,0 +1,83 @@
+@inherits DmComponentBase
+@inject MapCanvasInterop Canvas
+@inject CombatController Combat
+
+@if (Canvas.GridCalibrating)
+{
+    <div class="map-adjust-bar" role="group" aria-label="Calibrando cuadrícula">
+        <span class="map-adjust-bar__title">Calibrando cuadrícula</span>
+        <NumberStepper Label="Columnas" Min="1" Decimals="0" Value="_columns" ValueChanged="ColumnsChangedAsync" />
+        <NumberStepper Label="Filas" Min="1" Decimals="0" Value="_rows" ValueChanged="RowsChangedAsync" />
+        @if (OutOfRange)
+        {
+            <span class="map-adjust-bar__warning" role="alert">La casilla saldría de @Size.ToString("0.0", CultureInfo.InvariantCulture) px; debe estar entre @MapCanvasInterop.MinCellSize.ToString("0", CultureInfo.InvariantCulture) y @MapCanvasInterop.MaxCellSize.ToString("0", CultureInfo.InvariantCulture) px.</span>
+        }
+        <Button Variant="ButtonVariant.Primary" Disabled="@(!CanFinish)" OnClick="() => Canvas.FinishGridAdjustAsync(true)">Hecho</Button>
+        <Button OnClick="() => Canvas.FinishGridAdjustAsync(false)">Cancelar</Button>
+    </div>
+}
+
+@code {
+    private double _columns = 1;
+    private double _rows = 1;
+    private bool _wasCalibrating;
+
+    private double Size => Math.Round(Canvas.CalibrateCellSize ?? 0, 1);
+    private bool HasRectangle => Canvas.CalibrateCellSize is not null;
+    private bool OutOfRange => HasRectangle && Size is < MapCanvasInterop.MinCellSize or > MapCanvasInterop.MaxCellSize;
+    private bool CanFinish => HasRectangle && !OutOfRange;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Canvas.GridAdjustChanged += OnStateChanged;
+        Combat.Changed += OnCombatChanged;
+    }
+
+    public override void Dispose()
+    {
+        Canvas.GridAdjustChanged -= OnStateChanged;
+        Combat.Changed -= OnCombatChanged;
+        base.Dispose();
+    }
+
+    private Task ColumnsChangedAsync(double value)
+    {
+        if (value < 1) return Task.CompletedTask;
+        _columns = value;
+        return Canvas.SetCalibrateCellsAsync((int)_columns, (int)_rows);
+    }
+
+    private Task RowsChangedAsync(double value)
+    {
+        if (value < 1) return Task.CompletedTask;
+        _rows = value;
+        return Canvas.SetCalibrateCellsAsync((int)_columns, (int)_rows);
+    }
+
+    // Empezar un combate durante la calibración la cancela: con combate activo la cuadrícula no se toca.
+    private void OnCombatChanged(object? sender, EventArgs e)
+    {
+        if (Combat.IsActive && Canvas.GridAdjusting) _ = Canvas.FinishGridAdjustAsync(false);
+    }
+
+    // El JS arranca cada calibración en 1×1: los campos deben empezar igual.
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        if (Canvas.GridCalibrating && !_wasCalibrating) (_columns, _rows) = (1, 1);
+        _wasCalibrating = Canvas.GridCalibrating;
+        _ = RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // La franja ya se retiró mientras llegaba el evento.
+        }
+    }
+}

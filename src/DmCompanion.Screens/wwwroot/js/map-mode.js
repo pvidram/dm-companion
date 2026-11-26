@@ -25,6 +25,8 @@
 
     // Rechazo de palma: en Dibujar el dedo ni mueve ni hace zoom mientras el lápiz está apoyado o acaba de estarlo.
     function touchBlocked(inst) {
+        // Al calibrar con un rectángulo el lápiz también traza en exclusiva: mismo rechazo de palma.
+        if (inst.adjust && inst.adjust.zooms) return performance.now() - inst.lastPenAt < PALM_GRACE_MS;
         return pensOnly(effectiveMode(inst))
             && (inst.gesture !== null || performance.now() - inst.lastPenAt < PALM_GRACE_MS);
     }
