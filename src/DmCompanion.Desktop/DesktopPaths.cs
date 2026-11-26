@@ -39,6 +39,8 @@ public sealed class DesktopPaths
 
     public string PreferencesFile => Path.Combine(RoamingRoot, "prefs.json");
 
+    public string WindowFile => Path.Combine(RoamingRoot, "window.json");
+
     public string LogsFolder => Path.Combine(LocalRoot, "logs");
 
     public string InstanceFile => Path.Combine(LocalRoot, "instance.json");
