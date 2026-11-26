@@ -24,6 +24,8 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<IVaultServiceFactory>(new FileSystemVaultServiceFactory(NullLoggerFactory.Instance));
         Services.AddSingleton<VaultHost>();
         Services.AddSingleton<PortraitUrlProvider>();
+        Services.AddSingleton<VaultFileUrls>();
+        Services.AddSingleton<JournalIndex>();
         Services.AddScoped<ShellState>();
         Services.AddGlossaryForTests();
         Services.AddScoped<WikilinkInterop>();
@@ -47,7 +49,10 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
             await File.WriteAllTextAsync(_vault.PathOf(path), $"---\ntype: campaign\nname: C\nsystem: {system}\n---\n");
         }
         await Services.GetRequiredService<VaultHost>().OpenAsync(_vault.Root);
-        return Render<VaultDiagnostics>();
+        var cut = Render<VaultDiagnostics>();
+        // OnInitializedAsync relista las imágenes del diario y repinta al acabar: hasta entonces los manejadores de los botones aún cambian.
+        cut.WaitForState(() => cut.RenderCount >= 2, TimeSpan.FromSeconds(10));
+        return cut;
     }
 
     [Fact]
@@ -188,6 +193,47 @@ public sealed class VaultDiagnosticsTests : BunitContext, IAsyncLifetime
         cut.Render();
 
         cut.Markup.Should().Contain("<h3>Marcadores de manuales</h3>").And.Contain("manuales/dnd5e/PHB.marcadores.json");
+    }
+
+    [Fact]
+    public async Task Lists_the_sync_conflicts_of_a_journal_entry()
+    {
+        Directory.CreateDirectory(_vault.PathOf("Personajes/Lyra/Diario"));
+        const string entry = "---\ntype: journal\nadded: 2026-11-16T21:34:00+01:00\nimages:\n  - \"a.png\"\n---\n";
+        await File.WriteAllTextAsync(_vault.PathOf("Personajes/Lyra/Diario/2026-11-16 Ankheg.md"), entry);
+        await File.WriteAllTextAsync(_vault.PathOf("Personajes/Lyra/Diario/2026-11-16 Ankheg.sync-conflict-20261116-101500-ABCDEF1.md"), entry);
+        await File.WriteAllBytesAsync(_vault.PathOf("Personajes/Lyra/Diario/a.png"), [1, 2, 3]);
+
+        var cut = await RenderAsync();
+
+        // La imagen existe: la única fila con la nota es la del conflicto, no un aviso del diario.
+        cut.WaitForAssertion(() => cut.FindAll("li").Select(li => li.TextContent).Should().Contain("Personajes/Lyra/Diario/2026-11-16 Ankheg.md"), TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
+    public async Task Lists_the_warnings_of_journal_entries_with_their_path()
+    {
+        Directory.CreateDirectory(_vault.PathOf("Personajes/Lyra/Diario"));
+        await File.WriteAllTextAsync(_vault.PathOf("Personajes/Lyra/Diario/2026-11-16 Rota.md"), "---\ntype: journal\nimages: [sin cerrar\n---\n");
+        await File.WriteAllTextAsync(_vault.PathOf("Personajes/Lyra/Diario/2026-11-17 Falta.md"),
+            "---\ntype: journal\nadded: 2026-11-17T10:00:00+01:00\nimages:\n  - \"falta.png\"\n---\n");
+
+        var cut = await RenderAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.Should().Contain("Avisos del diario");
+            cut.Markup.Should().Contain("Personajes/Lyra/Diario/2026-11-16 Rota.md: Frontmatter YAML inválido");
+            cut.Markup.Should().Contain("Personajes/Lyra/Diario/2026-11-17 Falta.md: Imagen no encontrada: falta.png");
+        }, TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
+    public async Task Without_journal_warnings_the_diary_section_is_not_shown()
+    {
+        var cut = await RenderAsync();
+
+        cut.Markup.Should().NotContain("Avisos del diario");
     }
 
     private sealed class NoSpellsSource : IGlossaryPackSource

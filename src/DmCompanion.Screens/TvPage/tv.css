@@ -104,3 +104,10 @@ html, body {
     -webkit-mask-image: linear-gradient(to bottom, #000 85%, transparent);
     mask-image: linear-gradient(to bottom, #000 85%, transparent);
 }
+
+/* Diario (fase 8): una diapositiva a pantalla completa. La imagen se ajusta sin deformarse; el pie va debajo. */
+.tv-view--slide { flex-direction: column; padding: 2vw; box-sizing: border-box; }
+.tv-slide__image { flex: 1 1 0; min-height: 0; width: 100%; object-fit: contain; }
+.tv-slide__text { flex: 1 1 0; min-height: 0; box-sizing: border-box; width: 100%; margin: 0; padding: 2vw 8vw; overflow: hidden; font-size: 2.6vw; line-height: 1.4; white-space: pre-wrap; }
+.tv-slide__text--fade { -webkit-mask-image: linear-gradient(to bottom, #000 85%, transparent); mask-image: linear-gradient(to bottom, #000 85%, transparent); }
+.tv-slide__caption { flex: none; margin: 1vw 0 0; font-size: 2vw; text-align: center; color: #C9A24A; }

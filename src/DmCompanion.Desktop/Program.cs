@@ -108,11 +108,14 @@ try
     builder.Services.AddSingleton<VaultFileUrls>();
     builder.Services.AddSingleton<NoteImageResolver>();
     builder.Services.AddSingleton<PortraitUrlProvider>();
+    builder.Services.AddSingleton<JournalStore>();
     builder.Services.AddSingleton<ITvAssets, EmbeddedTvAssets>();
     builder.Services.AddSingleton<ITvServer, TvServer>();
     builder.Services.AddSingleton<TvMapFeed>();
     builder.Services.AddSingleton<TvContentFeed>();
     builder.Services.AddSingleton<TvSession>();
+    builder.Services.AddSingleton<JournalIndex>();
+    builder.Services.AddSingleton<JournalLogService>();
     builder.Services.AddHostedService<MapFlushOnStop>();
 
     var app = builder.Build();

@@ -12,6 +12,23 @@ public sealed class BackNavigation(ShellState shell)
             shell.DismissEditorDialog();
             return Task.FromResult(true);
         }
+        // Los diálogos del diario se pintan encima de todo (ranura Dialogs): primero la confirmación de borrado y luego el formulario.
+        if (shell.DeletingJournalPath is not null)
+        {
+            shell.CancelDeleteJournalEntry();
+            return Task.FromResult(true);
+        }
+        // Con la pregunta abierta, atrás equivale a «Seguir editando»; sin ella, un formulario con cambios pregunta antes de cerrarse.
+        if (shell.ConfirmingJournalDiscard)
+        {
+            shell.CancelJournalDiscard();
+            return Task.FromResult(true);
+        }
+        if (shell.JournalForm is not null)
+        {
+            shell.RequestCloseJournalForm();
+            return Task.FromResult(true);
+        }
         if (shell.EditorDirty)
         {
             // Con la confirmación ya abierta, atrás equivale a «Seguir editando».
@@ -56,6 +73,11 @@ public sealed class BackNavigation(ShellState shell)
         else if (shell.ActivePanel == OverlayPanel.Glossary && shell.SelectedGlossaryKey is not null)
         {
             shell.ShowGlossaryList();
+            return Task.FromResult(true);
+        }
+        if (shell.ActivePanel == OverlayPanel.Players && shell.SelectedJournalPath is not null)
+        {
+            shell.CloseJournalEntry();
             return Task.FromResult(true);
         }
         if (shell.ActivePanel != OverlayPanel.None)

@@ -90,6 +90,10 @@
         <NoteContent Html="(MarkupString)GlossaryHtmlRenderer.Render(entry.Blocks)" />
         <p class="glossary-detail__source">@(entry.Page is { } page ? $"SRD 5.2.1, p. {page}" : "SRD 5.2.1")</p>
     }
+    @if (listing?.Category == GlossaryCategory.Creature && JournalComponentBase.IsAvailable(Services))
+    {
+        <JournalCreatureSection Key="@Key" />
+    }
 </div>
 
 @code {

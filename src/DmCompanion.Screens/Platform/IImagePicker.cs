@@ -10,4 +10,7 @@ public interface IImagePicker
 {
     /// <summary>null si el usuario cancela.</summary>
     Task<PickedImage?> PickAsync();
+
+    /// <summary>Varias imágenes; lista vacía si el usuario cancela. Por defecto, la de <see cref="PickAsync"/>.</summary>
+    async Task<IReadOnlyList<PickedImage>> PickManyAsync() => await PickAsync() is { } one ? [one] : [];
 }

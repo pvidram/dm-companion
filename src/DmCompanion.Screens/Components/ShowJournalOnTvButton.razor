@@ -1,0 +1,71 @@
+@using DmCompanion.Core.Journal
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject IServiceProvider Services
+@inject ILogger<ShowJournalOnTvButton> Log
+
+@* «Mostrar en TV» de una entrada: sus imágenes una a una y, al final, la nota. Solo con la TV activada y algo que mostrar. *@
+@if (_tv is { Mode: not TvMode.Off } && JournalSlides.ForEntry(Entry).Count > 0)
+{
+    <Button Icon="IconName.Tv" Disabled="_busy" OnClick="ShowAsync">Mostrar en TV</Button>
+}
+
+@code {
+    [Parameter, EditorRequired] public JournalEntry Entry { get; set; } = default!;
+
+    private TvSession? _tv;
+    private bool _busy;
+
+    // La TV se resuelve opcionalmente: el detalle no obliga a registrar el servicio donde no se usa (tests).
+    protected override void OnInitialized()
+    {
+        _tv = Services.GetService<TvSession>();
+        if (_tv is not null) _tv.Changed += OnChanged;
+    }
+
+    private async Task ShowAsync()
+    {
+        if (_tv is null) return;
+        _busy = true;
+        try
+        {
+            // Con las imágenes ya listadas, las que faltan no entran en el pase.
+            var journal = Services.GetService<JournalIndex>();
+            if (journal is not null) await journal.RefreshImagesAsync();
+            await _tv.ShowJournalEntryAsync(journal?.Get(Entry.Path) ?? Entry);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("No se pudo mostrar la entrada del diario en la TV ({ExceptionType}).", ex.GetType().FullName);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Llega desde otros hilos (servidor de la TV, cambios del vault): hay que volver al dispatcher.
+    private void OnChanged(object? sender, EventArgs e) => _ = RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // El botón ya se retiró mientras llegaba el evento.
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Fallo al refrescar el botón «Mostrar en TV» del diario ({ExceptionType}).", ex.GetType().FullName);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_tv is not null) _tv.Changed -= OnChanged;
+    }
+}

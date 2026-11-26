@@ -1,10 +1,26 @@
 @inherits DmComponentBase
 @using DmCompanion.Core.GameSystems
+@inject IServiceProvider Services
 
 <article class="character-sheet">
     <PcPortrait Entity="Entity" />
     <h3 data-testid="pc-title">@Entity.Title</h3>
     <ShowOnTvButton Entity="Entity" />
+    @if (JournalComponentBase.IsAvailable(Services))
+    {
+        <div class="glossary-tabs journal-tabs" role="tablist">
+            <button type="button" role="tab" class="glossary-tab" aria-selected="@(Shell.PlayerTab == PlayerTab.Sheet ? "true" : "false")"
+                    @onclick="() => Shell.SelectPlayerTab(PlayerTab.Sheet)">Ficha</button>
+            <button type="button" role="tab" class="glossary-tab" aria-selected="@(Shell.PlayerTab == PlayerTab.Journal ? "true" : "false")"
+                    @onclick="() => Shell.SelectPlayerTab(PlayerTab.Journal)">Diario</button>
+        </div>
+    }
+    @if (Shell.PlayerTab == PlayerTab.Journal && JournalComponentBase.IsAvailable(Services))
+    {
+        <JournalTab Pc="Entity" />
+    }
+    else
+    {
     @if (Entity.ParseError is { } error)
     {
         <InlineNotice Kind="NoticeKind.Warning">@error</InlineNotice>
@@ -56,6 +72,7 @@
         </div>
     }
     <NoteBody Entity="Entity" />
+    }
 </article>
 
 @code {

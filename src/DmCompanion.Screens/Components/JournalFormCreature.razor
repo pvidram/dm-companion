@@ -1,0 +1,50 @@
+@using DmCompanion.Core.Glossary
+@using DmCompanion.Core.Vault
+@inject GlossaryService Glossary
+
+@* Criatura del glosario enlazada a la entrada: buscador o, elegida una, su etiqueta con «Quitar criatura». *@
+@if (Creature is { } raw)
+{
+    <p>Criatura: <ConditionTag Name="@Label(raw)" /> <Button OnClick="Clear">Quitar criatura</Button></p>
+}
+else
+{
+    <SearchField Label="Criatura (glosario)" Value="@_search" ValueChanged="OnSearch" />
+    @foreach (var row in _matches)
+    {
+        var chosen = row;
+        <ListRow OnSelect="() => Choose(chosen)">@chosen.Name</ListRow>
+    }
+}
+
+@code {
+    private string _search = string.Empty;
+    private IReadOnlyList<GlossaryListing> _matches = [];
+
+    /// <summary>Lo que se guarda en la nota: la clave <c>srd:…</c> o un enlace <c>[[nota]]</c>.</summary>
+    [Parameter] public string? Creature { get; set; }
+
+    [Parameter] public EventCallback<string?> CreatureChanged { get; set; }
+
+    private void OnSearch(string text)
+    {
+        _search = text;
+        _matches = text.Trim().Length == 0
+            ? []
+            : [.. Glossary.Index.Search(new GlossaryQuery(text, GlossaryCategory.Creature)).Take(6)];
+    }
+
+    // Una criatura del SRD se guarda por su clave; una nota del vault, como enlace [[nota]] (JournalIndex lo resuelve).
+    private Task Choose(GlossaryListing row)
+    {
+        _search = string.Empty;
+        _matches = [];
+        return CreatureChanged.InvokeAsync(row.IsVault ? $"[[{VaultPaths.FileTitle(row.VaultPath!)}]]" : row.Key);
+    }
+
+    private Task Clear() => CreatureChanged.InvokeAsync(null);
+
+    private string Label(string raw) => raw.StartsWith(GlossaryPacks.SrdPrefix, StringComparison.Ordinal)
+        ? Glossary.Index.Get(raw)?.Name ?? raw
+        : raw.Trim().TrimStart('[').TrimEnd(']').Split('|')[0];
+}

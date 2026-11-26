@@ -1,0 +1,37 @@
+@inherits JournalComponentBase
+@inject GlossaryService Glossary
+
+@* «Lo que saben los jugadores» en la ficha de una criatura: las entradas del diario que apuntan a ella (o a su gemela del SRD o del vault). *@
+@if (Journal.ForCreature(Key, Glossary.Index) is { Count: > 0 } entries)
+{
+    <section class="journal-creature">
+        <h4>Lo que saben los jugadores</h4>
+        <div class="journal-creature__list">
+            @foreach (var entry in entries)
+            {
+                var current = entry;
+                var caption = $"{current.OwnerName} · {current.Title}";
+                if (Journal.OwnerPcPathOf(current) is { } pcPath)
+                {
+                    <JournalThumbnail Entry="current" Caption="@caption" OnSelect="() => OpenAsync(current.Path, pcPath)" />
+                }
+                else
+                {
+                    <JournalThumbnail Entry="current" Caption="@caption" />
+                }
+            }
+        </div>
+    </section>
+}
+
+@code {
+    /// <summary>Clave del glosario de la criatura: <c>srd:criaturas/…</c> o <c>vault:ruta</c>.</summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = default!;
+
+    // Abrir la entrada cambia de panel y puede descartar texto sin guardar del editor de notas.
+    private Task OpenAsync(string entryPath, string pcPath) => Shell.RequestNavigationAsync(() =>
+    {
+        Shell.OpenJournalEntry(entryPath, pcPath);
+        return Task.CompletedTask;
+    });
+}

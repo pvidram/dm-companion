@@ -1,0 +1,48 @@
+@inherits JournalComponentBase
+@using DmCompanion.Core.Journal
+
+@* «Nueva entrada» y «Editar entrada». Va en la ranura Dialogs de DmShell. También recoge lo que llega por «Compartir». *@
+<Dialog Title="@(Request?.Mode == JournalFormMode.Edit ? "Editar entrada" : "Nueva entrada")" IsOpen="@(Request is not null)" OnClose="RequestClose">
+    <ChildContent>
+        @if (Request is { } request)
+        {
+            <div class="journal-form">
+                @if (_notice is { } notice)
+                {
+                    <InlineNotice Kind="NoticeKind.Error">@notice</InlineNotice>
+                }
+                @if (_missing > 0)
+                {
+                    <InlineNotice Kind="NoticeKind.Info">@_missing imagen(es) de la nota ya no existen en el vault y se quitarán al guardar.</InlineNotice>
+                }
+                @if (_dropped > 0)
+                {
+                    <InlineNotice Kind="NoticeKind.Info">@_dropped imagen(es) de la nota tienen un nombre no admitido o repetido y se quitarán al guardar.</InlineNotice>
+                }
+                @if (_unreadable > 0)
+                {
+                    <InlineNotice Kind="NoticeKind.Warning">No se pudo leer @_unreadable imagen(es)</InlineNotice>
+                }
+                @if (request.Mode != JournalFormMode.Edit && _pcs.Count == 0)
+                {
+                    <InlineNotice Kind="NoticeKind.Warning">No hay ningún personaje. Crea una nota con <code>type: pc</code>.</InlineNotice>
+                }
+                <Select TValue="VaultEntity" Label="Personaje" Value="_pc" ValueChanged="SelectPc" Options="_pcs"
+                        LabelOf="@(pc => pc.Title)" Disabled="@(request.Mode == JournalFormMode.Edit)" />
+                <TextField Label="Título" @bind-Value="_title" />
+                <TextArea Label="Nota" Rows="4" @bind-Value="_note" />
+                <JournalFormCreature @bind-Creature="_creature" />
+                <JournalFormImages Draft="_draft" NativePicker="@(_picker is not null)" Busy="_busy" OnPick="PickAsync" OnFilesChosen="OnFilesChosen" />
+            </div>
+        }
+    </ChildContent>
+    <Footer>
+        <Button Variant="ButtonVariant.Primary" Disabled="@(_busy || !CanSave)" OnClick="SaveAsync">Guardar</Button>
+        <Button Disabled="_busy" OnClick="Discard">Descartar</Button>
+    </Footer>
+</Dialog>
+
+<ConfirmDialog Title="Descartar la entrada" Message="Hay cambios sin guardar en la entrada. Si descartas, se perderán."
+               IsOpen="@(Shell.ConfirmingJournalDiscard)" Destructive="true"
+               ConfirmText="Descartar cambios" CancelText="Seguir editando"
+               OnConfirm="Discard" OnCancel="Shell.CancelJournalDiscard" />

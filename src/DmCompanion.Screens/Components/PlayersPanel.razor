@@ -1,8 +1,13 @@
 @inherits DmComponentBase
+@inject IServiceProvider Services
 
 <Parchment Title="Jugadores" Size="ParchmentSize.Wide" IsOpen="@(Shell.ActivePanel == OverlayPanel.Players)"
            OnClose="@(() => Shell.Toggle(OverlayPanel.Players))">
     <ChildContent>
+        @if (JournalLogSection.CanShow(Services))
+        {
+            <JournalLogSection />
+        }
         @{
             var pcs = Index.OfType(EntityType.Pc);
         }

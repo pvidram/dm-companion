@@ -35,6 +35,19 @@
             show('content');
             fitContent();
         },
+        slide: function (message) {
+            var view = window.tvLayout.slideView(message);
+            var image = document.getElementById('tv-slide-image');
+            var text = document.getElementById('tv-slide-text');
+            image.hidden = !view.image;
+            if (view.image) image.setAttribute('src', view.image);
+            else image.removeAttribute('src');
+            text.hidden = !view.text;
+            text.textContent = view.text || ''; // texto plano: nunca HTML
+            document.getElementById('tv-slide-caption').textContent = view.caption;
+            show('slide');
+            fitSlideText();
+        },
         waiting: function (message) {
             document.getElementById('tv-campaign').textContent = message.campaign || '';
             show('waiting');
@@ -79,6 +92,17 @@
             return content.scrollHeight <= content.clientHeight;
         });
         content.className = picked.overflow ? 'tv-content tv-content--fade' : 'tv-content';
+    }
+
+    // Misma regla que fitContent para la nota de una diapositiva: letra grande, baja hasta 0.6 y, si aun así no cabe, degradado.
+    function fitSlideText() {
+        var text = document.getElementById('tv-slide-text');
+        if (text.hidden) return;
+        var picked = window.tvLayout.pickContentScale(function (scale) {
+            text.style.fontSize = (2.6 * scale) + 'vw';
+            return text.scrollHeight <= text.clientHeight;
+        });
+        text.className = picked.overflow ? 'tv-slide__text tv-slide__text--fade' : 'tv-slide__text';
     }
 
     function show(view) {
@@ -134,6 +158,7 @@
         resizeTimer = setTimeout(reportSize, RESIZE_DEBOUNCE_MS);
         mapView.resize();
         if (!document.querySelector('[data-view="content"]').hidden) fitContent();
+        if (!document.querySelector('[data-view="slide"]').hidden) fitSlideText();
     });
     // Las imágenes del contenido (y el retrato de la ficha) cambian el alto al cargar (el evento load no burbujea: se captura).
     document.querySelector('.tv-content').addEventListener('load', function () {

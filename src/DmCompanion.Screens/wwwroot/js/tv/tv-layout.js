@@ -72,10 +72,20 @@
         return result;
     }
 
+    // Diapositiva del diario (mensaje `slide`): una imagen servida por la propia app (`files/…`), un texto plano y el pie.
+    function slideView(message) {
+        var m = message && typeof message === 'object' ? message : {};
+        return {
+            image: typeof m.image === 'string' && m.image.indexOf('files/') === 0 ? m.image : null,
+            text: typeof m.text === 'string' && m.text.length > 0 ? m.text : null,
+            caption: typeof m.caption === 'string' ? m.caption : ''
+        };
+    }
+
     var api = {
         stageTransform: stageTransform, visibleStripEntries: visibleStripEntries, hpClass: hpClass,
         availableViewport: availableViewport, pickContentScale: pickContentScale, CONTENT_SCALES: CONTENT_SCALES,
-        sheetView: sheetView, fogPolygons: fogPolygons
+        sheetView: sheetView, fogPolygons: fogPolygons, slideView: slideView
     };
     root.tvLayout = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

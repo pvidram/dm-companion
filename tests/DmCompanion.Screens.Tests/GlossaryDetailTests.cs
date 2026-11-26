@@ -240,4 +240,12 @@ public sealed class GlossaryDetailTests : BunitContext, IAsyncLifetime
 
         Button(cut, "Mostrar en TV").Should().BeNull();
     }
+
+    [Fact]
+    public async Task Without_the_journal_services_a_creature_sheet_has_no_players_section()
+    {
+        var cut = await OpenAsync(AbolethKey);
+
+        Panel(cut).QuerySelectorAll(".journal-creature").Should().BeEmpty();
+    }
 }

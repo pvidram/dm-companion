@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { stageTransform, visibleStripEntries, hpClass, availableViewport, pickContentScale, sheetView } = require('../../src/DmCompanion.Screens/wwwroot/js/tv/tv-layout.js');
+const { stageTransform, visibleStripEntries, hpClass, availableViewport, pickContentScale, sheetView, slideView } = require('../../src/DmCompanion.Screens/wwwroot/js/tv/tv-layout.js');
 
 test('encuadre 16:9 en pantalla 16:9 escala 1.2 sin márgenes', () => {
     const t = stageTransform({ x: 0, y: 0, width: 1600, height: 900 }, { width: 1920, height: 1080 });
@@ -73,4 +73,21 @@ test('sheetView conserva retrato y estadísticas de texto', () => {
 test('sheetView descarta retratos ajenos y estadísticas mal formadas', () => {
     assert.deepStrictEqual(sheetView({ portraitUrl: 'http://otro/x.png', stats: [{ label: 'CA', value: 14 }, null, { label: 'PG', value: '27' }] }),
         { portraitUrl: null, stats: [{ label: 'PG', value: '27' }] });
+});
+
+test('slideView conserva imagen propia, texto y pie', () => {
+    assert.deepStrictEqual(slideView({ kind: 'slide', image: 'files/3', text: 'Nota', caption: 'Lyra · Ankheg' }),
+        { image: 'files/3', text: 'Nota', caption: 'Lyra · Ankheg' });
+});
+
+test('slideView sin imagen ni texto deja solo el pie', () => {
+    assert.deepStrictEqual(slideView({ image: null, text: null, caption: 'Lyra · Ankheg' }), { image: null, text: null, caption: 'Lyra · Ankheg' });
+});
+
+test('slideView descarta imágenes ajenas y textos vacíos', () => {
+    assert.deepStrictEqual(slideView({ image: 'http://otro/x.png', text: '', caption: 7 }), { image: null, text: null, caption: '' });
+});
+
+test('slideView de algo que no es un objeto no rompe', () => {
+    assert.deepStrictEqual(slideView(undefined), { image: null, text: null, caption: '' });
 });

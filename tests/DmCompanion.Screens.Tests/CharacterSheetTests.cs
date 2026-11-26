@@ -154,4 +154,12 @@ public sealed class CharacterSheetTests : BunitContext, IAsyncLifetime
         var cut = await RenderSheetAsync(null, LyraStats);
         cut.FindAll(".character-sheet details").Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Without_the_journal_services_the_sheet_has_no_tabs()
+    {
+        var cut = await RenderSheetAsync(null, LyraStats);
+
+        cut.FindAll("[role=tab]").Should().BeEmpty();
+    }
 }
