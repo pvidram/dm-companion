@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using DmCompanion.Screens.Platform;
 using DmCompanion.Screens.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -46,6 +47,34 @@ public sealed class DesktopSmokeTests : IDisposable
         var html = await client.GetStringAsync("/");
 
         html.Should().Contain("Bienvenido a DM Companion");
+    }
+
+    [Fact]
+    public async Task Blazor_script_is_served_to_the_window()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/_framework/blazor.web.js");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Every_stylesheet_the_home_page_links_is_served()
+    {
+        using var client = _factory.CreateClient();
+        var html = await client.GetStringAsync("/");
+
+        var hrefs = Regex.Matches(html, "<link[^>]*rel=\"stylesheet\"[^>]*href=\"([^\"]+)\"")
+            .Select(match => match.Groups[1].Value).ToList();
+        var failed = new List<string>();
+        foreach (var href in hrefs)
+        {
+            var response = await client.GetAsync(href);
+            if (response.StatusCode != HttpStatusCode.OK) failed.Add($"{href} -> {(int)response.StatusCode}");
+        }
+
+        failed.Should().BeEmpty();
     }
 
     [Fact]
