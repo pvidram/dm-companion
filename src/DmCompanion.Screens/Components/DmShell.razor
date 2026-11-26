@@ -23,6 +23,7 @@
         </div>
     </Rail>
     <Strip>
+        <UpdateBanner />
         @if (Host.Current is { Conflicts.Count: > 0 } vault)
         {
             <InlineNotice Kind="NoticeKind.Warning">

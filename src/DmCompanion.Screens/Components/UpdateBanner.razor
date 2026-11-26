@@ -1,0 +1,33 @@
+@implements IDisposable
+@using DmCompanion.Screens.Services
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider Services
+
+@* Aviso de versión nueva: solo en el host de escritorio, que registra UpdateNotice. *@
+@if (_notice?.Pending is { } pending)
+{
+    <InlineNotice Kind="NoticeKind.Info">
+        Hay una versión nueva (@pending.Version)
+        <Button Variant="ButtonVariant.Primary" OnClick="_notice.OpenPending">Descargar</Button>
+        <Button OnClick="_notice.Dismiss">Ahora no</Button>
+        <Button OnClick="_notice.SkipPending">No avisar de esta versión</Button>
+    </InlineNotice>
+}
+
+@code {
+    private UpdateNotice? _notice;
+
+    protected override void OnInitialized()
+    {
+        _notice = Services.GetService<UpdateNotice>();
+        if (_notice is not null) _notice.Changed += OnChanged;
+    }
+
+    // Changed llega desde el hilo del servicio en segundo plano: se vuelve al del circuito.
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (_notice is not null) _notice.Changed -= OnChanged;
+    }
+}
