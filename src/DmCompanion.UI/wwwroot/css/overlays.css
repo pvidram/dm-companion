@@ -47,12 +47,12 @@
 
 .ds-dialog-backdrop {
     position: fixed; inset: 0; z-index: var(--z-dialog);
-    display: grid; place-items: center; padding: var(--space-4);
+    display: grid; grid-template-rows: minmax(0, 1fr); place-items: center; padding: var(--space-4);
     background-color: var(--scrim);
 }
 .ds-dialog { width: min(480px, 100%); max-height: 100%; box-shadow: var(--elevation-2); padding: var(--space-4); gap: var(--space-3); }
 .ds-dialog__title { font-size: var(--font-size-h2); }
-.ds-dialog__body { overflow-y: auto; }
+.ds-dialog__body { flex: 1; min-height: 0; overflow-y: auto; }
 .ds-dialog__footer { display: flex; gap: var(--space-2); justify-content: flex-end; }
 
 /* Aviso efímero: arriba a la derecha del área del mapa (abajo va la barra de herramientas), entre la tarjeta (20) y el diálogo (30). Madera translúcida: solo el fondo, el texto y los botones no pierden opacidad. */
