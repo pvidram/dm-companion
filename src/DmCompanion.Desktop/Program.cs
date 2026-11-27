@@ -29,6 +29,7 @@ DailyFileLoggerProvider? fileLogs = null;
 SingleInstance? instance = null;
 string? instanceFile = null;
 var hasStarted = false;
+var windowClosedNormally = false;
 var logsFolder = "la carpeta de registros";
 // La URL de Kestrel, o null si el guardián de loopback detuvo el host antes de que la ventana se abriera.
 var startedUrl = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -229,6 +230,7 @@ try
     try
     {
         await RunWindowAsync(desktopWindow!, windowUrl, app.Lifetime.ApplicationStopping);
+        windowClosedNormally = true;
     }
     catch (Exception ex) when (StartupFailure.MissingNativeLibraryMessage(ex, OperatingSystem.IsLinux()) is { } missing)
     {
@@ -263,6 +265,8 @@ finally
     instance?.Dispose();
     fileLogs?.Dispose();
 }
+// Mutex, instance.json and logs are already closed here; see NativeExit for why the process skips the native exit path.
+if (NativeExit.ShouldSkipNativeTeardown(OperatingSystem.IsLinux(), windowClosedNormally)) NativeExit.Now(0);
 return 0;
 
 // Photino necesita un hilo STA en Windows, y el Main asíncrono de top-level statements no lo es. Por eso la ventana
