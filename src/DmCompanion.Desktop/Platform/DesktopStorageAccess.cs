@@ -13,7 +13,7 @@ public sealed class DesktopStorageAccess(DesktopPaths paths) : IStorageAccess
 
     public bool CanTypePath => true;
 
-    public IReadOnlyList<string> Roots => DriveRoots.Current();
+    public IReadOnlyList<string> Roots => [.. UserFolders.Current().Concat(DriveRoots.Current()).Distinct()];
 
     public string? InitialPath => paths.DocumentsRoot;
 }
