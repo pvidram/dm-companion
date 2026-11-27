@@ -32,6 +32,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The welcome screen offers this vault; it must ship with every build, not only with scripts/publish-desktop.sh. -->
+    <Content Include="..\..\samples\vault-demo\**\*" LinkBase="ejemplo" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DmCompanion.Core\DmCompanion.Core.csproj" />
     <ProjectReference Include="..\DmCompanion.Infrastructure\DmCompanion.Infrastructure.csproj" />
     <ProjectReference Include="..\DmCompanion.Screens\DmCompanion.Screens.csproj" />
