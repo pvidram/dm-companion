@@ -57,7 +57,12 @@ public sealed class WindowFrameInterop(IJSRuntime jsRuntime, ILogger<WindowFrame
             await (await LoadModuleAsync()).InvokeVoidAsync(identifier, args);
             return true;
         }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
+        catch (JSDisconnectedException)
+        {
+            // El circuito ya se cerró: al cerrar la ventana es lo normal, no un fallo.
+            return false;
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or TaskCanceledException)
         {
             logger.LogWarning(ex, "window-frame.js {Function} failed", identifier);
             return false;
