@@ -14,7 +14,6 @@ rm -rf "dist/$rid"
 dotnet publish src/DmCompanion.Desktop -c Release -r "$rid" --self-contained \
   -p:Version="$version" -p:NuGetAudit=false -o "$out"
 rm -f "$out"/aspnetcorev2_inprocess.dll "$out"/web.config "$out"/*.pdb
-cp -r samples/vault-demo "$out/ejemplo"
 
 if [ "$rid" = win-x64 ]; then
   python3 scripts/guide-to-text.py docs/guia-version-pc.md "$out/LEEME.txt"
